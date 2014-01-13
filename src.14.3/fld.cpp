@@ -613,8 +613,8 @@ void Fluid::outputSurface(double tau)
       piSquare[jx][jy][jz][index44(ii,jj)] = cc->getpi(ii,jj) ;
     PiSquare[jx][jy][jz] = cc->getPi() ;
   }
-  cornelius->find_surface_4d(ccube);
-  const int Nsegm = cornelius->get_Nelements() ;
+  //cornelius->find_surface_4d(ccube);
+  const int Nsegm = 0 ;//cornelius->get_Nelements() ;
   for(int isegm=0; isegm<Nsegm; isegm++){
     //ffreeze<<"cell  "<<ix<<"  "<<iy<<"  "<<iz<<endl ;
     //for(int jx=0; jx<2; jx++)
@@ -742,9 +742,9 @@ void Fluid::outputSurface(double tau)
  Nb1 *= dx*dy*dz ; Nb2 *= dx*dy*dz ;
  fout_aniz << setw(12) << tau << setw(14) << vt_num/vt_den <<
  setw(14) << vxvy_num/vxvy_den << setw(14) << pi0x_num/pi0x_den << endl ;
- cout << endl << setw(12) << "E = " << setw(14) << E << "  Efull = " << setw(14) << Efull <<"  Nb = " << setw(14) << nbSurf << endl ;
- cout << setw(12) << "Px = " << setw(14) << Px << "  vEff = " << vEff << "  Esurf = " <<setw(14)<<EtotSurf << endl ;
- cout << "Nb1 = " << setw(14) << Nb1 << "  Nb2 = " << setw(14) << Nb2 << endl ;
+ cout << setw(10) << tau << setw(12) << "E = " << setw(14) << E << "  Efull = " << setw(14) << Efull <<"  Nb = " << setw(14) << nbSurf << endl ;
+// cout << setw(12) << "Px = " << setw(14) << Px << "  vEff = " << vEff << "  Esurf = " <<setw(14)<<EtotSurf << endl ;
+// cout << "Nb1 = " << setw(14) << Nb1 << "  Nb2 = " << setw(14) << Nb2 << endl ;
 //-- Cornelius: all done, let's free memory
   for (int i1=0; i1 < 2; i1++) {
     for (int i2=0; i2 < 2; i2++) {

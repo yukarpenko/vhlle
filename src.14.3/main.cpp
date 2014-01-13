@@ -199,7 +199,7 @@ int main(int argc, char **argv)
     h->setDtau(dtau/nSubSteps) ;
     for(int j=0; j<nSubSteps; j++){ h->performStep() ;
     }
-    cout << "step= " << istep << "  dtau= " << dtau/nSubSteps << "\n" << endl ; // "\r" << flush
+    //cout << "step= " << istep << "  dtau= " << dtau/nSubSteps << "\n" << endl ; // "\r" << flush
     f->outputPDirections(h->getTau());
     f->outputSurface(h->getTau()) ;
 	}
