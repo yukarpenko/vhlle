@@ -136,7 +136,7 @@ void IC::setIC(Fluid *f, EoS* eos, double tau)
     icurqmd::getIC(x, y, eta, e, nb, nq, vx, vy, vz) ;
 //    e = e*1.5 ;
    // vz = -tanh(eta) ; // for v_z=0 (in Cartesian coordinates)
-    if(e<0.4){ e = nb = nq = 0.0 ;
+    if(e<1e-10){ e = nb = nq = 0.0 ;
     vx = vy = vz = 0.0 ; }
   }else{
   double eta1 = fabs(eta)<1.3 ? 0.0 : fabs(eta)-1.3 ;

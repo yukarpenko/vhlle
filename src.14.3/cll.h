@@ -71,6 +71,7 @@ public :
 
 	inline void getQ(double *_Q) { for(int i=0; i<7; i++) _Q[i] = Q[i] ; }
 	inline void getQh(double *_Qh) { for(int i=0; i<7; i++) _Qh[i] = Qh[i] ; }
+  inline void getQprev(double *_Qp) { for(int i=0; i<7; i++) _Qp[i] = Qprev[i] ; }
 	inline void getQfull(double *_Qf) { for(int i=0; i<7; i++) _Qf[i] = Qfull[i] ; }
 	inline void saveQprev(void) { for(int i=0; i<7; i++) Qprev[i] = Q[i] ; }
 	inline void setNext(int i, Cell* c) { next[i-1] = c ; }

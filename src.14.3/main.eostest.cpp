@@ -8,14 +8,28 @@
 #include <TCanvas.h>
 #include <TGraph.h>
 
+#include "fld.h"
+#include "hdo.h"
+#include "ic.h"
+#include "ickw.h"
 #include "eos.h"
 #include "eo3.h"
 #include "eo1.h"
 #include "eoChiral.h"
 #include "eoHadron.h"
+#include "trancoeff.h"
 #include "rmn.h"
 
 using namespace std ;
+
+// program parameters, to be read from file
+int nx, ny, nz, eosType ;
+double xmin, xmax, ymin, ymax, etamin, etamax, tau0, tauMax, dtau ;
+char outputDir[255], eosFile[255], chiBfile[255], chiSfile[255] ;
+char icInputFile [255] ;
+double T_ch, mu_b, mu_q, mu_s, gammaS, gammaFactor, exclVolume, etaS, zetaS, eCrit ;
+int icModel, glauberVariable=1 ; // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
+double epsilon0, alpha, impactPar, s0ScaleFactor ;
 
 
 int main(int argc, char **argv)
@@ -30,8 +44,17 @@ int main(int argc, char **argv)
   eos = new EoSChiral() ;
   EoS* eosH = new EoSHadron("eos/eosHadron3D.dat") ;
   
-  double e=0.5, p, nb=0.2, nq=0., ns=0., vx=0.8, vy=0., vz=0. ;
-  double Q [7] ;
+  // ==== test, Jan 2, 2014
+  double e, p, nb, nq, ns, vx, vy, vz ;
+  double Q [7] = {5.84382/0.82, 0.2551/0.82, -0.09191/0.82, 3.10939/0.82, 0.555881/0.82, 0.06406486/0.82, 0} ;
+  transformPV(eosH, Q, e, p, nb, nq, ns, vx, vy, vz) ;
+  cout << "test passed\n" ;
+  return 0 ;
+  
+  
+  // ==== previous tests ====
+  //double e=0.5, p, nb=0.2, nq=0., ns=0., vx=0.8, vy=0., vz=0. ;
+  //double Q [7] ;
   transformCV(e, eos->p(e,nb,nq,ns), nb, nq, ns, vx, vy, vz, Q) ;
   transformPV(eosH, Q, e, p, nb, nq, ns, vx, vy, vz) ;
   cout<<"HelloWorld;\n" ;

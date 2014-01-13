@@ -605,7 +605,7 @@ void Fluid::outputSurface(double tau)
     cc->getQ(QCube[1][jx][jy][jz]) ;
 	  ccube[1][jx][jy][jz] = e ;
 	  cc->getPrimVarPrev(eos,tau-dt,e,_p,_nb,_nq,_ns,_vx,_vy,_vz) ;
-    cc->getQ(QCube[0][jx][jy][jz]) ;
+    cc->getQprev(QCube[0][jx][jy][jz]) ;
 	  ccube[0][jx][jy][jz] = e ;
     // ---- get viscous tensor
 	  for(int ii=0; ii<4; ii++)
@@ -647,6 +647,9 @@ void Fluid::outputSurface(double tau)
     double _ns = 0.0 ;
     transformPV(eos, QC, eC, pC, nbC, nqC, _ns, vxC, vyC, vzC) ;
     eos->eos(eC,nbC,nqC,_ns,TC,mubC,muqC,musC,pC) ;
+    if(TC>0.4 || fabs(mubC)>0.85){
+      cout << "#### Error (surface): high T/mu_b ####\n" ;
+    }
     //double Teos ;
     //eos->eos(eC,0.,0.,0.,Teos, mub, muq, mus, p) ; // now temperature from EoS
     //if(fabs(eC-0.5)>0.01) {cout<<"+++ eC= "<<setw(14)<<eC<<", cell "<<ix<<" "<<iy<<" "<<iz<<endl;}
@@ -731,7 +734,7 @@ void Fluid::outputSurface(double tau)
     <<setw(24)<< (-(1.0-alpha)*Asigma + Det)/(2.0*alpha*sigma2) <<endl ;
 */
   }
-  if(cornelius->get_Nelements()>1) cout << "oops, Nelements>1\n" ;
+  //if(cornelius->get_Nelements()>1) cout << "oops, Nelements>1\n" ;
 //----- end Cornelius
  }
  E=E*dx*dy*dz ;
