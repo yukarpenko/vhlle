@@ -248,15 +248,15 @@ void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode)
 }
 
 
-void Hydro::source(double tau1, double x, double y, double z, double e, double p, double nb, double nq, double ns,
-				   double vx, double vy, double vz, double S[7])
+void Hydro::source(double tau1, double x, double y, double z, double Q[7], double S[7])
 {
-	double Q [7] ;
-	transformCV(e, p, nb, nq, ns, vx, vy, vz, Q) ;
-	S[T_] = -Q[T_]*vz*vz - p*(1.+vz*vz) ;
+	double _Q [7], e, p, nb, nq, ns, vx, vy, vz ;
+  for(int i=0; i<7; i++) _Q[i] = Q[i]/tau1 ;  // no tau factor in  _Q
+	transformPV(eos, _Q, e, p, nb, nq, ns, vx, vy, vz) ;
+	S[T_] = -_Q[T_]*vz*vz - p*(1.+vz*vz) ;
 	S[X_] = 0. ;
 	S[Y_] = 0. ;
-	S[Z_] = -Q[Z_] ;
+	S[Z_] = -_Q[Z_] ;
 	S[NB_] = 0. ;
 	S[NQ_] = 0. ;
 	S[NS_] = 0. ;
@@ -271,30 +271,24 @@ void Hydro::source_step(int ix, int iy, int iz, int mode)
 	else 
 		_dt = dt ;
 
-	double e, p, nb, nq, ns, vx, vy, vz ;
+	double tau1 ;
+  double Q[7], Q2 [7], Q3[7], Q4[7] ;
 	double k[7] ;
 
 	double x = f->getX(ix), y = f->getY(iy), z = f->getZ(iz) ;
 	Cell *c = f->getCell(ix, iy, iz) ;
 
 	if(mode==PREDICT){
-	c->getPrimVar(eos, tau, e, p, nb, nq, ns, vx, vy, vz) ;
-//	c->getQ(Q) ;
+	c->getQ(Q) ;
+  tau1 = tau ;
 	}else{
-	c->getPrimVarHCenter(eos, tau+dt/2., e, p, nb, nq, ns, vx, vy, vz) ;
-//	c->getQh(Q) ;
+	c->getQh(Q) ;
+  tau1 = tau+0.5*dt ;
 	}
+  source(tau1, x, y, z, Q, k) ;
+  for(int i=0; i<7; i++) k[i] *= _dt ;
 
-	source(tau, x, y, z, e, p, nb, nq, ns, vx, vy, vz, k) ;  // setting k1
-	for(int i=0; i<7; i++) k[i] *= _dt ;
-
-	if(!(k[NB_]>=0. || k[NB_]<0.)){
-		cout<<"---- error in source_step: k_nb undefined!\n" ;
-		cout << setw(12) << k[0] << setw(12) << k[1] << setw(12) << k[2] << setw(12) << k[3] << endl ;
-		cout << setw(12) << k[4] << setw(12) << k[5] << setw(12) << k[6] << endl ;
-		exit(1) ;
-	}
-		c->addFlux(k[T_], k[X_], k[Y_], k[Z_], k[NB_], k[NQ_], k[NS_]) ;
+	c->addFlux(k[T_], k[X_], k[Y_], k[Z_], k[NB_], k[NQ_], k[NS_]) ;
 }
 
 
