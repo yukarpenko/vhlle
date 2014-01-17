@@ -566,9 +566,11 @@ void Fluid::outputSurface(double tau)
   c->getQ(Q) ;
   eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
   eta=getZ(iz) ;
-  E += tau*(e+p)/(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz))*(cosh(eta)-tanh(vz)*sinh(eta)) - tau*p*cosh(eta) ;
+  const double cosh_int = (sinh(eta+0.5*dz)-sinh(eta-0.5*dz))/dz ;
+  const double sinh_int = (cosh(eta+0.5*dz)-cosh(eta-0.5*dz))/dz ;
+  E += tau*(e+p)/(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz))*(cosh_int-tanh(vz)*sinh_int) - tau*p*cosh_int ;
   Nb1 += Q[NB_] ;
-  Nb2 += tau*nb*(cosh(eta)-tanh(vz)*sinh(eta))/sqrt(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz)) ;
+  Nb2 += tau*nb*(cosh_int-tanh(vz)*sinh_int)/sqrt(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz)) ;
 //---- inf check
   if(isinf(E)){
    cout<<"EEinf"<<setw(14)<<e<<setw(14)<<p<<setw(14)<<vx<<setw(14)<<vy<<setw(14)<<vz<<endl ;

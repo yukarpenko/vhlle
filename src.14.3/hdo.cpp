@@ -64,13 +64,13 @@ void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode)
 	right->getPrimVarLeft(eos, tau, er, pr, nbr, nqr, nsr, vxr, vyr, vzr, direction) ;
 	El = (el+pl)/(1-vxl*vxl-vyl*vyl-vzl*vzl) ;
 	Er = (er+pr)/(1-vxr*vxr-vyr*vyr-vzr*vzr) ;
-	tauFactor = tau ;
+	tauFactor = tau + 0.25*dt ;
 	}else{
 	left->getPrimVarHRight(eos, tau, el, pl, nbl, nql, nsl, vxl, vyl, vzl, direction) ;
 	right->getPrimVarHLeft(eos, tau, er, pr, nbr, nqr, nsr, vxr, vyr, vzr, direction) ;
 	El = (el+pl)/(1-vxl*vxl-vyl*vyl-vzl*vzl) ;
 	Er = (er+pr)/(1-vxr*vxr-vyr*vyr-vzr*vzr) ;
-	tauFactor = tau + dt/2. ;
+	tauFactor = tau + 0.5*dt ;
 	}
 
 	if(el<0.) { el=0. ; pl=0. ; }
@@ -176,7 +176,7 @@ void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode)
 		if(er==0.) br = 1. ;
 	}
 	if(direction==Z_){
-		double tau1 = tau_z ;
+		double tau1 = tauFactor ;
 		Ftl = U4l*vzl/tau1+pl*vzl/tau1 ;
 		Fxl = U1l*vzl/tau1 ;
 		Fyl = U2l*vzl/tau1 ;
