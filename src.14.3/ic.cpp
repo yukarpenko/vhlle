@@ -140,7 +140,7 @@ void IC::setIC(Fluid *f, EoS* eos, double tau)
     vx = vy = vz = 0.0 ; }
   }else{
   double eta1 = fabs(eta)<1.3 ? 0.0 : fabs(eta)-1.3 ;
-  e = eProfile(x,y)*exp(-eta1*eta1/2.1/2.1)*(fabs(eta)<5.3 ? 1.0 : 0.0) ; // see Huovinen,Hirano
+  e = eProfile(x,y) ;// *exp(-eta1*eta1/2.1/2.1)*(fabs(eta)<5.3 ? 1.0 : 0.0) ; // see Huovinen,Hirano
   //e = eProfile(x,y)*(fabs(eta)<2.0 ? 1.0 : 0.0) ; // box-like in z-dir
   nb = nq = 0.0 ;
   if(e<0.5) e=0 ;

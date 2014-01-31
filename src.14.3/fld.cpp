@@ -615,8 +615,8 @@ void Fluid::outputSurface(double tau)
       piSquare[jx][jy][jz][index44(ii,jj)] = cc->getpi(ii,jj) ;
     PiSquare[jx][jy][jz] = cc->getPi() ;
   }
-  //cornelius->find_surface_4d(ccube);
-  const int Nsegm = 0 ;//cornelius->get_Nelements() ;
+  cornelius->find_surface_4d(ccube);
+  const int Nsegm = cornelius->get_Nelements() ;
   for(int isegm=0; isegm<Nsegm; isegm++){
     //ffreeze<<"cell  "<<ix<<"  "<<iy<<"  "<<iz<<endl ;
     //for(int jx=0; jx<2; jx++)
