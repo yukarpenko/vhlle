@@ -542,6 +542,7 @@ void Fluid::outputSurface(double tau)
  double E = 0., Efull = 0., Px=0., vt_num=0., vt_den=0., vxvy_num=0., vxvy_den=0., pi0x_num=0., pi0x_den=0.,
  txxyy_num=0., txxyy_den=0., Nb1 = 0., Nb2 = 0. ;
  double eta=0 ;
+ int nelements=0 ;
 //-- Cornelius: allocating memory for corner points
   double ****ccube = new double***[2];
   for (int i1=0; i1 < 2; i1++) {
@@ -618,6 +619,7 @@ void Fluid::outputSurface(double tau)
   cornelius->find_surface_4d(ccube);
   const int Nsegm = cornelius->get_Nelements() ;
   for(int isegm=0; isegm<Nsegm; isegm++){
+    nelements++ ;
     //ffreeze<<"cell  "<<ix<<"  "<<iy<<"  "<<iz<<endl ;
     //for(int jx=0; jx<2; jx++)
     //for(int jy=0; jy<2; jy++)
@@ -762,4 +764,5 @@ void Fluid::outputSurface(double tau)
 #ifdef SWAP_EOS
   swap(eos, eosH) ;
 #endif
+  if(nelements==0) exit(0) ;
 }

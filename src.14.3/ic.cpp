@@ -122,7 +122,7 @@ void IC::setIC(Fluid *f, EoS* eos, double tau)
   cout << endl ;
 //--------------
 	double avv_num=0., avv_den=0. ;
-	double Etotal = 0.0 ;
+	double Etotal = 0.0, Stotal = 0.0 ;
 
 	for(int ix=0; ix<f->getNX(); ix++)
 	for(int iy=0; iy<f->getNY(); iy++)
@@ -140,7 +140,7 @@ void IC::setIC(Fluid *f, EoS* eos, double tau)
     vx = vy = vz = 0.0 ; }
   }else{
   double eta1 = fabs(eta)<1.3 ? 0.0 : fabs(eta)-1.3 ;
-  e = eProfile(x,y) ;// *exp(-eta1*eta1/2.1/2.1)*(fabs(eta)<5.3 ? 1.0 : 0.0) ; // see Huovinen,Hirano
+  e = eProfile(x,y)*exp(-eta1*eta1/2.1/2.1)*(fabs(eta)<5.3 ? 1.0 : 0.0) ; // see Huovinen,Hirano
   //e = eProfile(x,y)*(fabs(eta)<2.0 ? 1.0 : 0.0) ; // box-like in z-dir
   nb = nq = 0.0 ;
   if(e<0.5) e=0 ;
@@ -170,16 +170,19 @@ void IC::setIC(Fluid *f, EoS* eos, double tau)
 
 	c->setPrimVar(eos,tau,e,nb,nq,0.,vx,vy,vz) ;
 	double _p = eos->p(e,nb,nq,0.) ;
+	double _s = eos->s(e,nb,nq,0.) ;
 	const double gamma2 = 1.0/(1.0-vx*vx-vy*vy-vz*vz) ;
 	Etotal += ( (e+_p)*gamma2*(cosh(eta) + vz*sinh(eta)) - _p*cosh(eta) ) ;
     c->saveQprev() ;
+	Stotal += _s*sqrt(gamma2) ;
 
 	if(e>0.) c->setAllM(1.) ;
 	}
 	fvel.close() ;
 	cout << "average initial flow = " << avv_num/avv_den << endl ;
-	cout << "total energy = " << Etotal*f->getDx()*f->getDy()*f->getDz()*tau << endl ;
-	//exit(1) ;
+	cout << "Etot = " << Etotal*f->getDx()*f->getDy()*f->getDz()*tau
+	 << "  Stot = " << Stotal*f->getDx()*f->getDy()*f->getDz()*tau << endl ;
+//	exit(1) ;
 }
 
 

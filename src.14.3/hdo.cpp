@@ -272,7 +272,7 @@ void Hydro::source_step(int ix, int iy, int iz, int mode)
 		_dt = dt ;
 
 	double tau1 ;
-  double Q[7], Q2 [7], Q3[7], Q4[7] ;
+  double Q[7] ;
 	double k[7] ;
 
 	double x = f->getX(ix), y = f->getY(iy), z = f->getZ(iz) ;
