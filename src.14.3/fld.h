@@ -16,6 +16,7 @@ private:
 	int nx, ny, nz ;
 	double minx, maxx, miny, maxy, minz, maxz ;
 	double dx, dy, dz, dt ;
+  double ecrit ;
   double vEff, EtotSurf ;
 	std::ofstream foutkw, foutkw_dim, foutxvisc, foutyvisc, foutdiagvisc,
 	 foutx, fouty, foutdiag, foutz, fout_aniz, fout2d, ffreeze ;
@@ -60,4 +61,5 @@ public:
 	void outputPDirections(double tau) ;
   void outputGnuplot(double tau) ;
 	void outputSurface(double tau) ;
+  void outputCorona(double tau) ;
 };

@@ -190,6 +190,7 @@ int main(int argc, char **argv)
 
   // hllev321v1 = with pre-advection
   f->initOutput(outputDir, maxstep, tau0, 2) ;
+  f->outputCorona(tau0) ;
 
 	for(int istep=0; istep<maxstep; istep++)
 	{

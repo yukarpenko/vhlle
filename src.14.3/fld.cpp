@@ -78,6 +78,7 @@ Fluid::Fluid(EoS *_eos, EoS *_eosH, TransportCoeff *_trcoeff, int _nx, int _ny, 
   double arrayDx [4] = {dt, dx, dy, dz} ;
   cornelius = new Cornelius ;
   cornelius->init(4, eCrit, arrayDx) ;
+  ecrit = eCrit ;
   vEff = 0. ;
   EtotSurf = 0.0 ;
 }
@@ -765,4 +766,168 @@ void Fluid::outputSurface(double tau)
   swap(eos, eosH) ;
 #endif
   if(nelements==0) exit(0) ;
+}
+
+
+void Fluid::outputCorona(double tau)
+{
+ static double nbSurf = 0.0 ;
+ double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz, Q[7] ;
+ double E = 0., Efull = 0., Px=0., vt_num=0., vt_den=0., vxvy_num=0., vxvy_den=0., pi0x_num=0., pi0x_den=0.,
+ txxyy_num=0., txxyy_den=0., Nb1 = 0., Nb2 = 0. ;
+ double eta=0 ;
+ int nelements=0 ;
+
+  double ccube [2][2][2] ;
+#ifdef SWAP_EOS
+ swap(eos, eosH) ;
+#endif
+ fout2d << endl ;
+ for(int ix=2; ix<nx-2; ix++)
+ for(int iy=2; iy<ny-2; iy++)
+ for(int iz=2; iz<nz-2; iz++){
+  Cell *c = getCell(ix,iy,iz) ;
+  getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz) ;
+  c->getQ(Q) ;
+  eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
+  eta=getZ(iz) ;
+  const double cosh_int = (sinh(eta+0.5*dz)-sinh(eta-0.5*dz))/dz ;
+  const double sinh_int = (cosh(eta+0.5*dz)-cosh(eta-0.5*dz))/dz ;
+  E += tau*(e+p)/(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz))*(cosh_int-tanh(vz)*sinh_int) - tau*p*cosh_int ;
+  Nb1 += Q[NB_] ;
+  Nb2 += tau*nb*(cosh_int-tanh(vz)*sinh_int)/sqrt(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz)) ;
+//---- inf check
+  if(isinf(E)){
+   cout<<"EEinf"<<setw(14)<<e<<setw(14)<<p<<setw(14)<<vx<<setw(14)<<vy<<setw(14)<<vz<<endl ;
+   exit(1) ;
+  }
+//--------------
+  Efull += tau*(e+p)/(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz))*(cosh(eta)-tanh(vz)*sinh(eta)) - tau*p*cosh(eta) ;
+  if(trcoeff->isViscous()) Efull += tau*c->getpi(0,0)*cosh(eta)+tau*c->getpi(0,3)*sinh(eta);
+  Px += tau*(e+p)*vx/(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz)) ;
+  vt_num += e/sqrt(1.-vx*vx-vy*vy)*sqrt(vx*vx+vy*vy) ;
+  vt_den += e/sqrt(1.-vx*vx-vy*vy) ;
+  vxvy_num += e*(fabs(vx)-fabs(vy)) ;
+  vxvy_den += e ;
+  txxyy_num += (e+p)/(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz))*(vx*vx-vy*vy) ;
+  txxyy_den += (e+p)/(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz))*(vx*vx+vy*vy)+2.*p ;
+  pi0x_num += e/(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz))*fabs(c->getpi(0,1)) ;
+  pi0x_den += e/(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz)) ;
+
+//----- Cornelius stuff
+  bool isCorona = true, isTail = true ;
+  double QCube[2][2][2][7] ;
+  double piSquare[2][2][2][10], PiSquare[2][2][2] ;
+  for(int jx=0; jx<2; jx++)
+  for(int jy=0; jy<2; jy++)
+  for(int jz=0; jz<2; jz++){
+    double _p, _nb, _nq, _ns, _vx, _vy, _vz ;
+	  Cell* cc = getCell(ix+jx,iy+jy,iz+jz) ;
+	  cc->getPrimVar(eos,tau,e,_p,_nb,_nq,_ns,_vx,_vy,_vz) ;
+    cc->getQ(QCube[jx][jy][jz]) ;
+	  if(e>ecrit) isCorona = false ;
+    if(e>0.01) isTail = false ;
+    // ---- get viscous tensor
+	  for(int ii=0; ii<4; ii++)
+	  for(int jj=0; jj<=ii; jj++)
+      piSquare[jx][jy][jz][index44(ii,jj)] = cc->getpi(ii,jj) ;
+    PiSquare[jx][jy][jz] = cc->getPi() ;
+  }
+  if(isCorona && !isTail){
+    nelements++ ;
+          ffreeze.precision(15) ;
+	  ffreeze<<setw(24)<<tau<<setw(24)<<getX(ix)+0.5*dx
+	  <<setw(24)<<getY(iy)+0.5*dy<<setw(24)<<getZ(iz)+0.5*dz ;
+    // ---- interpolation procedure
+    double vxC=0., vyC=0., vzC=0., TC=0., mubC=0., muqC=0., musC=0., piC[10], PiC=0., nbC=0., nqC=0. ; // values at the centre, to be interpolated
+    double QC [7] = {0., 0., 0., 0., 0., 0., 0.} ;
+    double eC=0., pC=0. ;
+    for(int ii=0; ii<10; ii++) piC[ii] = 0.0 ;
+    for(int jx=0; jx<2; jx++)
+    for(int jy=0; jy<2; jy++)
+    for(int jz=0; jz<2; jz++)
+    for(int i=0; i<7; i++){
+      QC[i] += QCube[jx][jy][jz][i]*0.125 ;
+    }
+    for(int i=0; i<7; i++) QC[i] = QC[i]/tau ;
+    double _ns = 0.0 ;
+    transformPV(eos, QC, eC, pC, nbC, nqC, _ns, vxC, vyC, vzC) ;
+    eos->eos(eC,nbC,nqC,_ns,TC,mubC,muqC,musC,pC) ;
+    if(TC>0.4 || fabs(mubC)>0.85){
+      cout << "#### Error (surface): high T/mu_b ####\n" ;
+    }
+    //double Teos ;
+    //eos->eos(eC,0.,0.,0.,Teos, mub, muq, mus, p) ; // now temperature from EoS
+    //if(fabs(eC-0.5)>0.01) {cout<<"+++ eC= "<<setw(14)<<eC<<", cell "<<ix<<" "<<iy<<" "<<iz<<endl;}
+    for(int jx=0; jx<2; jx++)
+    for(int jy=0; jy<2; jy++)
+    for(int jz=0; jz<2; jz++){
+      for(int ii=0; ii<10; ii++)
+        piC[ii] += piSquare[jx][jy][jz][ii]*0.125 ;
+      PiC += PiSquare[jx][jy][jz]*0.125 ;
+    }
+    double v2C = vxC*vxC+vyC*vyC+vzC*vzC ;
+    if(v2C>1.){
+      vxC *= sqrt(0.99/v2C) ;
+      vyC *= sqrt(0.99/v2C) ;
+      vzC *= sqrt(0.99/v2C) ;
+      v2C = 0.99 ;
+    }
+    double etaC = getZ(iz) + 0.5*dz ;
+    transformToLab(etaC, vxC, vyC, vzC) ; // viC is now in lab.frame!
+    double gammaC = 1./sqrt(1.-vxC*vxC-vyC*vyC-vzC*vzC) ;
+    //ffreeze<<setw(14)<<ccube[0][0][0][0]<<setw(14)<<ccube[0][1][0][0]<<endl<<setw(14)<<ccube[1][0][0][0]<<setw(14)<<ccube[1][1][0][0]<<endl ;
+    double uC [4] = {gammaC, gammaC*vxC, gammaC*vyC, gammaC*vzC} ;
+    const double tauC = tau ;
+    double dsigma [4] ;
+    // for(int ii=0; ii<4; ii++) dsigma[ii] = cornelius->get_normal_elem(0,ii) ;
+    // ---- transform dsigma to lab.frame :
+    const double ch = cosh(etaC) ;
+    const double sh = sinh(etaC) ;
+    dsigma [0] = tauC*( ch*dx*dy*dz ) ;
+    dsigma [3] = tauC*(-sh*dx*dy*dz );
+    dsigma [1] = 0.0 ;
+    dsigma [2] = 0.0 ;
+    double dVEff = 0.0 ;
+    for(int ii=0; ii<4; ii++) dVEff += dsigma[ii]*uC[ii] ; // normalize for Delta eta=1
+    vEff += dVEff ;
+    for(int ii=0; ii<4; ii++) ffreeze<<setw(24)<<dsigma[ii] ;
+    for(int ii=0; ii<4; ii++) ffreeze<<setw(24)<<uC[ii] ;
+    ffreeze<<setw(24)<<TC<<setw(24)<<mubC<<setw(24)<<muqC<<setw(24)<<musC ;
+#ifdef OUTPI
+    double picart[10] ;
+    /*pi00*/ picart[index44(0,0)] = ch*ch*piC[index44(0,0)]+2.*ch*sh*piC[index44(0,3)]+sh*sh*piC[index44(3,3)] ;
+    /*pi01*/ picart[index44(0,1)] = ch*piC[index44(0,1)]+sh*piC[index44(3,1)] ;
+    /*pi02*/ picart[index44(0,2)] = ch*piC[index44(0,2)]+sh*piC[index44(3,2)] ;
+    /*pi03*/ picart[index44(0,3)] = ch*sh*(piC[index44(0,0)]+piC[index44(3,3)])+(ch*ch+sh*sh)*piC[index44(0,3)] ;
+    /*pi11*/ picart[index44(1,1)] = piC[index44(1,1)] ;
+    /*pi12*/ picart[index44(1,2)] = piC[index44(1,2)] ;
+    /*pi13*/ picart[index44(1,3)] = sh*piC[index44(0,1)]+ch*piC[index44(3,1)] ;
+    /*pi22*/ picart[index44(2,2)] = piC[index44(2,2)] ;
+    /*pi23*/ picart[index44(2,3)] = sh*piC[index44(0,2)]+ch*piC[index44(3,2)] ;
+    /*pi33*/ picart[index44(3,3)] = sh*sh*piC[index44(0,0)]+ch*ch*piC[index44(3,3)]+2.*sh*ch*piC[index44(0,3)] ;
+    for(int ii=0; ii<10; ii++) ffreeze<<setw(24)<<picart[ii] ;
+    ffreeze<<setw(24)<<PiC<<endl ;
+#else
+    ffreeze<<setw(24)<<dVEff<<endl ;
+#endif
+    double dEsurfVisc = 0. ;
+    for(int i=0; i<4; i++) dEsurfVisc += picart[index44(0,i)]*dsigma[i] ;
+    EtotSurf += (eC+pC)*uC[0]*dVEff - pC*dsigma[0] + dEsurfVisc ;
+    nbSurf += nbC*dVEff ;
+  }
+//----- end Cornelius
+ }
+ E=E*dx*dy*dz ;
+ Efull=Efull*dx*dy*dz ;
+ Nb1 *= dx*dy*dz ; Nb2 *= dx*dy*dz ;
+ fout_aniz << setw(12) << tau << setw(14) << vt_num/vt_den <<
+ setw(14) << vxvy_num/vxvy_den << setw(14) << pi0x_num/pi0x_den << endl ;
+ cout << setw(10) << tau << setw(12) << "E = " << setw(14) << E << "  Efull = " << setw(14) << Efull <<"  Nb = " << setw(14) << nbSurf << endl ;
+// cout << setw(12) << "Px = " << setw(14) << Px << "  vEff = " << vEff << "  Esurf = " <<setw(14)<<EtotSurf << endl ;
+// cout << "Nb1 = " << setw(14) << Nb1 << "  Nb2 = " << setw(14) << Nb2 << endl ;
+#ifdef SWAP_EOS
+  swap(eos, eosH) ;
+#endif
+  cout << "corona elements : " << nelements << endl ;
 }
