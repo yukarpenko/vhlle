@@ -9,6 +9,7 @@
 #include "hdo.h"
 #include "ic.h"
 #include "ickw.h"
+#include "icPartUrqmd.h"
 #include "eos.h"
 #include "eo3.h"
 #include "eo1.h"
@@ -25,7 +26,7 @@ char outputDir[255], eosFile[255], chiBfile[255], chiSfile[255] ;
 char icInputFile [255] ;
 double T_ch, mu_b, mu_q, mu_s, gammaS, gammaFactor, exclVolume, etaS, zetaS, eCrit ;
 int icModel, glauberVariable=1 ; // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
-double epsilon0, alpha, impactPar, s0ScaleFactor ;
+double epsilon0, Rgauss, impactPar, s0ScaleFactor ;
 
 void readParameters(char *parFile)
 {
@@ -68,7 +69,7 @@ void readParameters(char *parFile)
 	 else if(strcmp(parName,"gammaFactor")==0) gammaFactor = atof(parValue) ;
 	 else if(strcmp(parName,"exclVolume")==0) exclVolume = atof(parValue) ;
 	 else if(strcmp(parName,"epsilon0")==0) epsilon0 = atof(parValue) ;
-	 else if(strcmp(parName,"alpha")==0) alpha = atof(parValue) ;
+	 else if(strcmp(parName,"Rg")==0) Rgauss = atof(parValue) ;
 	 else if(strcmp(parName,"impactPar")==0) impactPar = atof(parValue) ;
 	 else if(strcmp(parName,"s0ScaleFactor")==0) s0ScaleFactor = atof(parValue) ;
 	 else if(parName[0]=='!') cout << "CCC " << sline.str() << endl ;
@@ -110,7 +111,7 @@ void printParameters()
   cout << "gammaFactor = " << gammaFactor << endl ;
   cout << "exclVolume = " << exclVolume << endl ;
   cout << "epsilon0 = " << epsilon0 << endl ;
-  cout << "alpha = " << alpha << endl ;
+  cout << "Rg = " << Rgauss << endl ;
   cout << "impactPar = " << impactPar << endl ;
   cout << "s0ScaleFactor = " << s0ScaleFactor << endl ;
   cout << "======= end parameters =======\n" ;
@@ -168,9 +169,8 @@ int main(int argc, char **argv)
   cout << "fluid allocation done\n" ;
 
   // initilal conditions
-  IC *ic = new IC(epsilon0, impactPar, alpha) ; // pure Glauber
-  //IC_KW *ic = new IC_KW("ic/zzz6.ico") ;
-  ic->setIC(f,eos, tau0) ;
+  IcPartUrqmd *ic = new IcPartUrqmd(f,icInputFile,Rgauss,tau0) ;
+  ic->setIC(f,eos) ;
   delete ic ;
 	cout<<"IC done\n" ;
 	//checkmemory_(&memory) ;

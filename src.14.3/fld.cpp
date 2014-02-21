@@ -449,8 +449,6 @@ void Fluid::outputPDirections(double tau)
 	// 2d output - for escape4 calculation
 	for(int ix=2; ix<nx-2; ix++)
 	for(int iy=2; iy<ny-2; iy++){
-	double x = getX(ix) ;
-	double y = getY(iy) ;
 	getCMFvariables(getCell(ix,iy,nz/2), tau, e, nb, nq, ns, vx, vy, vz) ;
   eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
 	fout2d << " " << vx << " " << vy << " " << e << " " << t << " " << 0.0 << endl ;
@@ -778,7 +776,6 @@ void Fluid::outputCorona(double tau)
  double eta=0 ;
  int nelements=0 ;
 
-  double ccube [2][2][2] ;
 #ifdef SWAP_EOS
  swap(eos, eosH) ;
 #endif
