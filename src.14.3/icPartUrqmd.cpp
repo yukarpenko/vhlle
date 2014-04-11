@@ -196,8 +196,6 @@ void IcPartUrqmd::setIC(Fluid *f, EoS *eos)
 {
   double E = 0.0, Px=0.0, Py=0.0, Pz=0.0, Nb = 0.0 ;
   double Q[7], e, p, nb, nq, ns, vx, vy, vz ;
-  ofstream fout("__initial.tb") ; // TODO
-  fout<<"# "<<nx<<"  "<<ny<<"  "<<nz<<endl ;
   for(int ix=0; ix<nx; ix++)
   for(int iy=0; iy<ny; iy++)
   for(int iz=0; iz<nz; iz++){
@@ -226,10 +224,7 @@ void IcPartUrqmd::setIC(Fluid *f, EoS *eos)
    Px += tau0*(e+p)*u[1]*u[0] *dx*dy*dz ;
    Py += tau0*(e+p)*u[2]*u[0] *dx*dy*dz ;
     Nb += tau0*nb*u[0]*dx*dy*dz ;
-    fout<<setw(14)<<xmin+ix*dx<<setw(14)<<ymin+iy*dy<<setw(14)<<zmin+iz*dz
-    <<setw(14)<<e<<setw(14)<<nb<<setw(14)<<nq<<setw(14)<<vx<<setw(14)<<vy<<setw(14)<<vz<<endl ; // {v_i} are in Milne coordinates, vz=vz*tau
   }
-  fout.close() ;
   cout<<"hydrodynamic E = "<<E<<"  Pz = "<<Pz<<"  Nbar = "<<Nb<<endl
   <<"  Px = "<<Px<<"  Py = "<<Py<<endl ;
 }
