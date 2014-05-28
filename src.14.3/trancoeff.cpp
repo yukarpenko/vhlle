@@ -18,6 +18,11 @@ void TransportCoeff::getEta(double e, double T, double &_etaS, double &_zetaS)
 
 void TransportCoeff::getTau(double T, double &_taupi, double &_tauPi)
 {
-	if(T>0.) _taupi=std::max(5./5.068*etaS/T,0.003) ; else _taupi=0.1 ;
-	if(T>0.) _tauPi=std::max(5./5.068*(1./4./C_PI)/T,0.005) ; else _tauPi=0.1 ;
+  #ifdef GUBSER_FLOW
+  _taupi = 0.02; _tauPi = 0.02 ;
+  #else
+	if(T>0.) _taupi=std::max(3.0/5.068*etaS/T,0.003) ; else _taupi=0.1 ;
+	//if(T>0.) _tauPi=std::max(3.0/5.068*(1./4./C_PI)/T,0.005) ; else _tauPi=0.1 ;
+  _tauPi = 0.1 ; // for I-S analytical solution
+  #endif
 }

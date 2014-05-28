@@ -14,7 +14,7 @@
 #define OUTPI
 
 // change to hadron EoS (e.g. Laine) to calculate v,T,mu at the surface
-#define SWAP_EOS
+//#define SWAP_EOS
 
 using namespace std ;
 
@@ -130,6 +130,7 @@ void Fluid::initOutput(char *dir, int maxstep, double tau0, int cmpr2dOut)
       fout2d << tau0 << "  " << tau0+0.05*maxstep << "  " << getX(2) << "  " << getX(getNX()-3) << "  "
 	  << getY(2) << "  " << getY(getNY()-3) << endl ;
       outputPDirections(tau0);
+      fout_aniz<<"#  tau  <<v_T>>  e_p  e'_p  (to compare with SongHeinz)\n" ;
 }
 
 
@@ -522,6 +523,24 @@ void Fluid::outputGnuplot(double tau)
 	}
 	foutz << endl ;
 
+	// averaged quantities for y=0
+  double T0xx=0.0, T0yy=0.0, Txx=0.0, Tyy=0.0, vtNum=0.0, vtDen=0.0 ;
+	for(int ix=0; ix<nx; ix++)
+  for(int iy=0; iy<ny; iy++){
+	Cell *c = getCell(ix,iy,nz/2) ;
+	getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz) ;
+	eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
+  double dTxx = (e+p)*vx*vx/(1.0-vx*vx-vy*vy-pow(tanh(vz),2))+p ;
+  double dTyy = (e+p)*vy*vy/(1.0-vx*vx-vy*vy-pow(tanh(vz),2))+p ;
+  T0xx += dTxx ;
+  T0yy += dTyy ;
+  Txx  += dTxx + c->getpi(1,1) ;
+  Tyy  += dTyy + c->getpi(2,2) ;
+  vtNum += sqrt(vx*vx+vy*vy)*e/sqrt(1.0-vx*vx-vy*vy-pow(tanh(vz),2)) ;
+  vtDen +=                   e/sqrt(1.0-vx*vx-vy*vy-pow(tanh(vz),2)) ;
+  }
+  fout_aniz<<setw(14)<<tau<<setw(14)<<vtNum/vtDen<<setw(14)<<(T0xx-T0yy)/(T0xx+T0yy)
+  <<setw(14)<<(Txx-Tyy)/(Txx+Tyy)<<endl ;
 }
 
 
@@ -737,8 +756,8 @@ void Fluid::outputSurface(double tau)
  E=E*dx*dy*dz ;
  Efull=Efull*dx*dy*dz ;
  Nb1 *= dx*dy*dz ; Nb2 *= dx*dy*dz ;
- fout_aniz << setw(12) << tau << setw(14) << vt_num/vt_den <<
- setw(14) << vxvy_num/vxvy_den << setw(14) << pi0x_num/pi0x_den << endl ;
+// fout_aniz << setw(12) << tau << setw(14) << vt_num/vt_den <<
+// setw(14) << vxvy_num/vxvy_den << setw(14) << pi0x_num/pi0x_den << endl ;
  cout << endl << setw(12) << "E = " << setw(14) << E << "  Efull = " << setw(14) << Efull <<"  Nb = " << setw(14) << nbSurf << endl ;
  cout << setw(12) << "Px = " << setw(14) << Px << "  vEff = " << vEff << "  Esurf = " <<setw(14)<<EtotSurf << endl ;
  cout << "Nb1 = " << setw(14) << Nb1 << "  Nb2 = " << setw(14) << Nb2 << endl ;

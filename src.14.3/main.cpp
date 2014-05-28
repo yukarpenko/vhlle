@@ -154,8 +154,8 @@ int main(int argc, char **argv)
   // EoS
   char * eosfile = "eos/Laine_nf3.dat" ;
   int ncols = 3, nrows = 286 ;
-  //eos = new EoSs(eosfile,ncols) ;
-  eos = new EoSChiral() ;
+  eos = new EoSs(eosfile,ncols) ;
+  //eos = new EoSChiral() ;
   EoS* eosH = new EoSHadron("eos/eosHadron3D.dat") ;
   
   
@@ -185,7 +185,7 @@ int main(int argc, char **argv)
   int maxstep = ceil((tauMax-tau0)/dtau) ;
   start = 0;
   time(&start);
-  //h->setNSvalues() ; // initialize viscous terms
+  h->setNSvalues() ; // initialize viscous terms
   h->setQfull() ; // set Qfull in each cell, in order to output IC correctly
 
   // hllev321v1 = with pre-advection

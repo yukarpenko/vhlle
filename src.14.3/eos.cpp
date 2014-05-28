@@ -13,8 +13,8 @@ const double bagt = pow(247.19/197.32,4)/gevtofm ;
 const double deg = 16.0+3.0*12.0*(7.0/8.0);
 
 // EoS choise
-#define TABLE // Laine, etc
-//#define SIMPLE  // p=e/3
+//#define TABLE // Laine, etc
+#define SIMPLE  // p=e/3
 
 
 double EoS::s(double e, double nb, double nq, double ns)
@@ -95,9 +95,14 @@ double EoSs::t(double e)
 #if defined TABLE
 	return gT->Eval(e) ;
 #elif defined SIMPLE
+
+#ifdef GUBSER_FLOW
+  return e>0. ? pow(e,0.25) : 0. ;
+#else
 	const double cnst = (16+0.5*21.0*2.5)*
 	 pow(C_PI,2)/30.0/pow(0.197326968,3) ;
-	return e>0. ? 1.3*pow(e/cnst,0.25) : 0. ;
+	return e>0. ? 1.0*pow(e/cnst,0.25) : 0. ;
+#endif
 #endif
 }
 

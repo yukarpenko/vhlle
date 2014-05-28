@@ -469,7 +469,12 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double& Pi, double 
 	 pi[i][j]=0.0 ;
 	for(int k=0; k<4; k++)
 	for(int l=0; l<4; l++){
+   #ifdef GUBSER_FLOW
+   if(e1<1e-5) e1=0. ;
+   pi[i][j]+=Z[i][j][k][l]*dmu[k][l]*2.0*etaS*pow(e1,0.75) ;
+   #else
 	 pi[i][j]+=Z[i][j][k][l]*dmu[k][l]*2.0*etaS*s/5.068 ;
+   #endif
 	}
 	}
 	Pi=-zetaS*s*(dmu[0][0]+dmu[1][1]+dmu[2][2]+dmu[3][3])/5.068 ; // fm^{-4} --> GeV/fm^3
@@ -535,7 +540,11 @@ void Hydro::setNSvalues()
   eos->eos(e,nb,nq,ns,T,mub,muq,mus,p) ;
   trcoeff->getEta(e, T, etaS, zetaS) ;
   for(int i=0; i<4; i++) for(int j=0; j<4; j++) piNS[i][j] = 0.0 ; // reset piNS
+  #ifdef GUBSER_FLOW
+  piNS[1][1] = piNS[2][2] = 2.0/3.0*etaS*pow(e,0.75)/tau ;
+  #else
   piNS[1][1] = piNS[2][2] = 2.0/3.0*etaS*s/tau/5.068 ;
+  #endif
   piNS[3][3] = -2.0*piNS[1][1] ;
   PiNS = 0.0 ;
 	for(int i=0; i<4; i++)
@@ -614,13 +623,15 @@ void Hydro::ISformal()
     u[2] = u[0]*vy; u[3]=u[0]*vz ;
     for(int i=0; i<4; i++)
     for(int j=0; j<=i; j++){
+     #ifndef GUBSER_FLOW
      c->addpiH0(i,j, -4./3.*c->getpi(i,j)*du/gamma*dt/2. ) ;
+     #endif
      for(int k=0; k<4; k++) // terms to achieve better transverality to u^mu
      for(int l=0; l<4; l++)
       c->addpiH0(i,j,- c->getpi(i,k)*u[j]*u[l]*dmu[l][k]*gmumu[k]/gamma*dt/2. 
                      - c->getpi(j,k)*u[i]*u[l]*dmu[l][k]*gmumu[k]/gamma*dt/2. ) ;
 	}
-    c->addPiH0( -4./3.*c->getPi()*du/gamma*dt/2. ) ;
+   // c->addPiH0( -4./3.*c->getPi()*du/gamma*dt/2. ) ; // cut IS for bulk for test!
 	// 1) relaxation(piH)+source(piH) terms for full-step
 	for(int i=0; i<4; i++)
 	for(int j=0; j<=i; j++){
@@ -646,7 +657,9 @@ void Hydro::ISformal()
     // source from full IS equations (see draft for the description)
     for(int i=0; i<4; i++)
     for(int j=0; j<=i; j++){
+     #ifndef GUBSER_FLOW
      c->addpi0(i,j, -4./3.*c->getpiH0(i,j)*du/gamma*dt );
+     #endif
      for(int k=0; k<4; k++) // terms to achieve better transverality to u^mu
      for(int l=0; l<4; l++)
       c->addpi0(i,j,- c->getpiH0(i,k)*u[j]*u[l]*dmu[l][k]*gmumu[k]/gamma*dt 
@@ -655,7 +668,7 @@ void Hydro::ISformal()
 	//	  cout<<setw(5)<<ix<<setw(5)<<i<<setw(5)<<j<<setw(14)<<dpi<<setw(14)<<vx<<setw(14)<<vy<<endl ;
 	//  }
 	}
-    c->addPi0( -4./3.*c->getPiH0()*du/gamma*dt ) ;
+    // c->addPi0( -4./3.*c->getPiH0()*du/gamma*dt ) ; // cut IS for bulk for test!
     } // end non-empty cell
     } // end loop #1
 

@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <TF1.h>
 #include <TF2.h>
+#include <TGraph.h>
 
 #include "fld.h"
 #include "eos.h"
@@ -16,7 +17,7 @@ using namespace std ;
   const double A = 197.0 ;
   const double Ra = 6.37 ;
   const double dlt = 0.54 ;
-  const double sigma = 5.1 ;
+  const double sigma = 4.0 ;
 
  const int nphi = 301 ;
 
@@ -84,7 +85,8 @@ void IC::setIC(Fluid *f, EoS* eos, double tau)
 	const double bn = 1. ;
 	Cell *c ;
 	ofstream fvel ("velocity_debug.txt");
-
+  // initial state from Gubser solution
+  TGraph *graphGubserIC = new TGraph("output/aug2013/gubserVisc.anal/tableGubserViscH002t1.dat") ;
 
   TF2 *ff = 0;
   double prms2[2], intgr2;
@@ -134,35 +136,24 @@ void IC::setIC(Fluid *f, EoS* eos, double tau)
 
   if(icModel==3){
     icurqmd::getIC(x, y, eta, e, nb, nq, vx, vy, vz) ;
-//    e = e*1.5 ;
-   // vz = -tanh(eta) ; // for v_z=0 (in Cartesian coordinates)
     if(e<0.4){ e = nb = nq = 0.0 ;
     vx = vy = vz = 0.0 ; }
   }else{
-  double eta1 = fabs(eta)<1.3 ? 0.0 : fabs(eta)-1.3 ;
-  e = eProfile(x,y)*exp(-eta1*eta1/2.1/2.1)*(fabs(eta)<5.3 ? 1.0 : 0.0) ; // see Huovinen,Hirano
-  //e = eProfile(x,y)*(fabs(eta)<2.0 ? 1.0 : 0.0) ; // box-like in z-dir
-  nb = nq = 0.0 ;
-  if(e<0.5) e=0 ;
+  e = eProfile(x,y) ;
   vx = vy = 0. ;
+  // ====== Gubser flow ======
+  //const double _t = 1.0 ;
+  //const double q = 1.0 ;
+  //const double r = sqrt(x*x+y*y) ;
+  //const double _k = 2.*q*q*_t*r/(1.+q*q*_t*_t+q*q*r*r) ;
+  //e = 4.*q*q/(1.+2.*q*q*(_t*_t+r*r)+pow(q*q*(_t*_t-r*r),2))/_t ;
+  //if(e<0.) e=0. ;
+  //e = pow(e, 4./3.) ;
+  //vx = x/(r+1e-50)*_k ;
+  //vy = y/(r+1e-50)*_k ;
+  nb = nq = 0.0 ;
   vz = 0. ;
   }
-  //------- test
-  //e=30.*exp( - x*x -y*y - eta*eta ) ;
-  //if(e<0.01) e=0. ;
-  //vx = vy = vz = 0. ;
-  //------------
-
-		//if(e>0.5){
-		//vx = x/sqrt(x*x+y*y+1e-50)*tanh(alpha*sqrt(x*x+y*y)/pow(rPhi(atan2(y,x)),2)) ;
-		//vy = y/sqrt(x*x+y*y+1e-50)*tanh(alpha*sqrt(x*x+y*y)/pow(rPhi(atan2(y,x)),2)) ;
-		//if(ix==f->getNX()/2) vx = 0. ;
-		//if(iy==f->getNY()/2) vy = 0. ;
-		//}else{
-		//e = 0. ;
-		//p = 0. ;
-		//vx = vy = 0. ;
-		//}
 
 	avv_num += sqrt(vx*vx+vy*vy)*e ;
 	avv_den += e ;
