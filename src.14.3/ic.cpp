@@ -22,7 +22,7 @@ using namespace std ;
  const int nphi = 301 ;
 
  extern char icInputFile [255] ;
- extern int icModel ;
+ extern int icModel, glauberVariable ;
  extern double s0ScaleFactor ;
 
 IC::IC(double e, double impactPar, double a)
@@ -85,8 +85,6 @@ void IC::setIC(Fluid *f, EoS* eos, double tau)
 	const double bn = 1. ;
 	Cell *c ;
 	ofstream fvel ("velocity_debug.txt");
-  // initial state from Gubser solution
-  TGraph *graphGubserIC = new TGraph("output/aug2013/gubserVisc.anal/tableGubserViscH002t1.dat") ;
 
   TF2 *ff = 0;
   double prms2[2], intgr2;
@@ -112,10 +110,6 @@ void IC::setIC(Fluid *f, EoS* eos, double tau)
   rho0 = 2.0 * tpp * (1.0 - pow((1.0 - sigma*tpp/A), A));
   if(icModel==2){
   s95p::loadSongIC(icInputFile, s0ScaleFactor) ;
-  //s95p::loadSongIC("/home/yura/Downloads/results-CGC-part-0005-id/Initial/KLN00-05_Part.dat2", 17.75) ;
-  }
-  if(icModel==3){
-    icurqmd::loadIC(icInputFile) ;
   }
 
   findRPhi() ; // fill in R(phi) table
@@ -134,25 +128,32 @@ void IC::setIC(Fluid *f, EoS* eos, double tau)
 		double y = f->getY(iy) ;
 		double eta = f->getZ(iz) ;
 
-  if(icModel==3){
-    icurqmd::getIC(x, y, eta, e, nb, nq, vx, vy, vz) ;
-    if(e<0.4){ e = nb = nq = 0.0 ;
-    vx = vy = vz = 0.0 ; }
-  }else{
-  e = eProfile(x,y) ;
-  vx = vy = 0. ;
-  // ====== Gubser flow ======
-  //const double _t = 1.0 ;
-  //const double q = 1.0 ;
-  //const double r = sqrt(x*x+y*y) ;
-  //const double _k = 2.*q*q*_t*r/(1.+q*q*_t*_t+q*q*r*r) ;
-  //e = 4.*q*q/(1.+2.*q*q*(_t*_t+r*r)+pow(q*q*(_t*_t-r*r),2))/_t ;
-  //if(e<0.) e=0. ;
-  //e = pow(e, 4./3.) ;
-  //vx = x/(r+1e-50)*_k ;
-  //vy = y/(r+1e-50)*_k ;
+  if(icModel==1 || icModel==2){
+  // ====== initial conditions from Glauber model / table
+  double etaFactor ;
+  if(icModel==2){
+    double eta1 = fabs(eta)<1.3 ? 0.0 : fabs(eta)-1.3 ;
+    etaFactor = exp(-eta1*eta1/2.1/2.1)*(fabs(eta)<5.3 ? 1.0 : 0.0) ;
+  }
+  else etaFactor = 1.0 ;
+  e = eProfile(x,y)*etaFactor ;
+  if(icModel==2 && e<0.5) e = 0.0 ;
+  vx = vy = 0.0 ;
   nb = nq = 0.0 ;
-  vz = 0. ;
+  vz = 0.0 ;
+  }else{
+  // ====== Gubser flow ======
+  const double _t = 1.0 ;
+  const double q = 1.0 ;
+  const double r = sqrt(x*x+y*y) ;
+  const double _k = 2.*q*q*_t*r/(1.+q*q*_t*_t+q*q*r*r) ;
+  e = 4.*q*q/(1.+2.*q*q*(_t*_t+r*r)+pow(q*q*(_t*_t-r*r),2))/_t ;
+  if(e<0.) e=0. ;
+  e = pow(e, 4./3.) ;
+  vx = x/(r+1e-50)*_k ;
+  vy = y/(r+1e-50)*_k ;
+  nb = nq = 0.0 ;
+  vz = 0.0 ;
   }
 
 	avv_num += sqrt(vx*vx+vy*vy)*e ;
@@ -170,7 +171,6 @@ void IC::setIC(Fluid *f, EoS* eos, double tau)
 	fvel.close() ;
 	cout << "average initial flow = " << avv_num/avv_den << endl ;
 	cout << "total energy = " << Etotal*f->getDx()*f->getDy()*f->getDz()*tau << endl ;
-	//exit(1) ;
 }
 
 
