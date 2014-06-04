@@ -12,9 +12,6 @@
 
 #define OUTPI
 
-// change to hadron EoS (e.g. Laine) to calculate v,T,mu at the surface
-//#define SWAP_EOS
-
 using namespace std ;
 
 // returns the velocities in cartesian coordinates, fireball rest frame. Y=longitudinal rapidity of fluid
@@ -284,35 +281,6 @@ void Fluid::correctImagCellsFull(void)
 	}
 }
 
-/*
-void Fluid::updateM(double tau, double dt)
-{
-	for(int iy=0; iy<getNY(); iy++)
-	for(int iz=0; iz<getNZ(); iz++)
-	for(int ix=0; ix<getNX(); ix++){
-//		if(getCell(ix,iy,iz)->getM(X_)<1. && (getCell(ix-1,iy,iz)->getM(X_)==1. || getCell(ix+1,iy,iz)->getM(X_)==1.))
-		if(getCell(ix,iy,iz)->getM(X_)<1. && (getCell(ix-1,iy,iz)->getLM()==1. || getCell(ix+1,iy,iz)->getLM()==1.))
-		{ getCell(ix,iy,iz)->addM(X_, dt/dx) ; ix++; }
-	}
-
-	for(int iz=0; iz<getNZ(); iz++)
-	for(int ix=0; ix<getNX(); ix++)
-	for(int iy=0; iy<getNY(); iy++){
-//		if(getCell(ix,iy,iz)->getM(Y_)<1. && (getCell(ix,iy-1,iz)->getM(Y_)==1. || getCell(ix,iy+1,iz)->getM(Y_)==1.))
-		if(getCell(ix,iy,iz)->getM(Y_)<1. && (getCell(ix,iy-1,iz)->getLM()==1. || getCell(ix,iy+1,iz)->getLM()==1.))
-		{ getCell(ix,iy,iz)->addM(Y_, dt/dy) ; iy++; }
-	}
-
-
-	for(int ix=0; ix<getNX(); ix++)
-	for(int iy=0; iy<getNY(); iy++)
-	for(int iz=0; iz<getNZ(); iz++){
-//		if(getCell(ix,iy,iz)->getM(Z_)<1. && (getCell(ix,iy,iz-1)->getM(Z_)==1. || getCell(ix,iy,iz+1)->getM(Z_)==1.))
-		if(getCell(ix,iy,iz)->getM(Z_)<1. && (getCell(ix,iy,iz-1)->getLM()==1. || getCell(ix,iy,iz+1)->getLM()==1.))
-		{ getCell(ix,iy,iz)->addM(Z_, dt/dz/tau) ; iz++; }
-	}
-}
-*/
 
 void Fluid::updateM(double tau, double dt)
 {
@@ -365,13 +333,7 @@ void Fluid::outputPDirections(double tau)
 	getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz) ;
 	eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
 	foutx << setw(6) << x << setw(14) << vx << setw(14) << vy << setw(14) << e << setw(14) << nb <<  setw(14) << t <<  setw(14) << mub << endl ;
-	//foutx << setw(6) << " " << setw(14) << (e+p)*vx*vx/(1.-vx*vx-vy*vy-vz*vz)+p << setw(14) << c->pi[1][1] << endl ;
-	//if(ix==36){
-	//c->getQ(Q) ;
-	//foutx << "(36,50,2)Qideal  " ; for(int i=0; i<4; i++) foutx<<setw(14)<<Q[i]; foutx<<endl ;
-	//c->getQfull(Q) ;
-	//foutx << "(36,50,2)Qfull  " ; for(int i=0; i<4; i++) foutx<<setw(14)<<Q[i]; foutx<<endl ;
-	//}
+
 	foutxvisc << setw(6) << x ;
 	foutxvisc << setw(14) << c->getpi(0,0) << setw(14) << c->getpi(0,1) << setw(14) << c->getpi(0,2); 
 	foutxvisc << setw(14) <<c->getpi(0,3) << setw(14) << c->getpi(1,1) << setw(14) << c->getpi(1,2); 
@@ -381,8 +343,6 @@ void Fluid::outputPDirections(double tau)
 	(c->getpi(0,0)-c->getpi(1,1)-c->getpi(2,2)-c->getpi(3,3))/(c->getpi(1,1)+c->getpi(2,2)+1e-50) <<
 	setw(10) << "transv." <<
 	(c->getpi(0,0)-c->getpi(0,1)*vx-c->getpi(0,2)*vy-c->getpi(0,3)*vz)/(fabs(c->getpi(3,3))+1e-50) << endl ;
-//	foutxvisc << setw(14) << "tmunu_id/corr" << setw(14) << (e+p)/(1.-vx*vx-vy*vy-vz*vz)-p
-//	 << setw(14) << c->pi[3][3] << setw(14) << c->Pi*(1.-1./(1.-vx*vx-vy*vy-vz*vz)) << endl ;
 	}
 	foutx << endl ;
 	foutxvisc << endl ;
@@ -396,15 +356,6 @@ void Fluid::outputPDirections(double tau)
 	getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz) ;
 	eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
 	fouty << setw(6) << y << setw(14) << vy << setw(14) << vx << setw(14) << e << setw(14) << nb <<  setw(14) << t <<  setw(14) << mub << endl ;
-//  foutyvisc << setw(6) << y ;
-//	foutyvisc << setw(14) << c->pi[0][0] << setw(14) << c->pi[0][1] << setw(14) << c->pi[0][2]; 
-//	foutyvisc << setw(14) <<c->pi[0][3] << setw(14) << c->pi[1][1] << setw(14) << c->pi[1][2]; 
-//	foutyvisc << setw(14) <<c->pi[1][3] << setw(14) << c->pi[2][2] << setw(14) << c->pi[2][3]; 
-//	foutyvisc << setw(14) <<c->pi[3][3] << setw(14) << c->Pi << endl;
-//	foutyvisc << setw(20) << "anomalies tr pi/pi=" << setw(14) << 
-//	(c->pi[0][0]-c->pi[1][1]-c->pi[2][2]-c->pi[3][3])/(c->pi[1][1]+c->pi[2][2]+1e-50) <<
-//	setw(10) << "transv." <<
-//	(c->pi[0][0]-c->pi[0][1]*vx-c->pi[0][2]*vy-c->pi[0][3]*vz)/(fabs(c->pi[3][3])+1e-50) << endl ;
 	}
 	fouty << endl ;
   foutyvisc << endl ;
@@ -418,15 +369,6 @@ void Fluid::outputPDirections(double tau)
 	getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz) ;
 	eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
 	foutdiag << setw(14) << sqrt(2.)*x << setw(14) << vx << setw(14) << vy << setw(14) << e << setw(14) << nb <<  setw(14) << t <<  setw(14) << mub << endl ;
-//  foutdiagvisc << setw(14) << sqrt(2.)*x ;
-//	foutdiagvisc << setw(14) << c->pi[0][0] << setw(14) << c->pi[0][1] << setw(14) << c->pi[0][2]; 
-//	foutdiagvisc << setw(14) <<c->pi[0][3] << setw(14) << c->pi[1][1] << setw(14) << c->pi[1][2]; 
-//	foutdiagvisc << setw(14) <<c->pi[1][3] << setw(14) << c->pi[2][2] << setw(14) << c->pi[2][3]; 
-//	foutdiagvisc << setw(14) <<c->pi[3][3] << setw(14) << c->Pi << endl;
-//	foutdiagvisc << setw(20) << "anomalies tr pi/pi=" << setw(14) << 
-//	(c->pi[0][0]-c->pi[1][1]-c->pi[2][2]-c->pi[3][3])/(c->pi[1][1]+c->pi[2][2]+1e-50) <<
-//	setw(10) << "transv." <<
-//	(c->pi[0][0]-c->pi[0][1]*vx-c->pi[0][2]*vy-c->pi[0][3]*vz)/(fabs(c->pi[3][3])+1e-50) << endl ;
 	}
 	foutdiag << endl ;
   foutdiagvisc << endl ;
@@ -585,8 +527,6 @@ void Fluid::calcTotals(double tau)
  Efull=Efull*dx*dy*dz ;
  Nb1 *= dx*dy*dz ; Nb2 *= dx*dy*dz ;
  S *= dx*dy*dz ;
-// fout_aniz << setw(12) << tau << setw(14) << vt_num/vt_den <<
-// setw(14) << vxvy_num/vxvy_den << setw(14) << pi0x_num/pi0x_den << endl ;
  cout << endl << setw(12) << "(cT)E = " << setw(14) << E << "  Efull = " << setw(14) << Efull <<"  Nb = " << setw(14) << nbSurf << endl ;
  cout << setw(12) << "Px = " << setw(14) << Px << "  vEff = " << vEff << "  Esurf = " <<setw(14)<<EtotSurf << endl ;
  cout << "Nb1 = " << setw(14) << Nb1 << "  Nb2 = " << setw(14) << Nb2 << "  S = " << setw(14) << S << endl ;

@@ -4,16 +4,10 @@
 #include <cstring>
 #include <ctime>
 #include <sstream>
-//#include <TMath.h>
 #include "fld.h"
 #include "hdo.h"
 #include "ic.h"
-#include "ickw.h"
 #include "eos.h"
-#include "eo3.h"
-#include "eo1.h"
-#include "eoChiral.h"
-#include "eoHadron.h"
 #include "trancoeff.h"
 
 using namespace std ;
@@ -138,7 +132,6 @@ int main(int argc, char **argv)
   
   time(&start);
   int memory = 0 ;
-  //checkmemory_(&memory) ;
 
   // read parameters from file
 	char* parFile ;
@@ -155,16 +148,13 @@ int main(int argc, char **argv)
   char * eosfile = "eos/Laine_nf3.dat" ;
   int ncols = 3, nrows = 286 ;
   eos = new EoSs(eosfile,ncols) ;
-  //eos = new EoSChiral() ;
-  EoS* eosH = new EoSHadron("eos/eosHadron3D.dat") ;
   
   
   // transport coefficients
   trcoeff = new TransportCoeff(etaS, zetaS, eos) ;
   
   
-  f = new Fluid(eos, eosH, trcoeff, nx, ny, nz, xmin, xmax, ymin, ymax, etamin, etamax, dtau, eCrit) ;
-  //checkmemory_(&memory) ;
+  f = new Fluid(eos, eos, trcoeff, nx, ny, nz, xmin, xmax, ymin, ymax, etamin, etamax, dtau, eCrit) ;
   cout << "fluid allocation done\n" ;
 
   // initilal conditions
@@ -173,7 +163,6 @@ int main(int argc, char **argv)
   ic->setIC(f,eos, tau0) ;
   delete ic ;
 	cout<<"IC done\n" ;
-	//checkmemory_(&memory) ;
 	
 
   time_t tinit=0 ;
@@ -188,7 +177,6 @@ int main(int argc, char **argv)
   h->setNSvalues() ; // initialize viscous terms
   h->setQfull() ; // set Qfull in each cell, in order to output IC correctly
 
-  // hllev321v1 = with pre-advection
   f->initOutput(outputDir, maxstep, tau0, 2) ;
   f->calcTotals(h->getTau()) ;
 
@@ -209,13 +197,7 @@ int main(int argc, char **argv)
   time(&end); float diff2 = difftime(end, start);
   cout<<"Execution time = "<<diff2<< " [sec]" << endl;
     
-	//checkmemory_(&memory) ;
-	
   delete f ;
   delete h ;
   delete eos ;
-  delete eosH ;
-  //checkmemory_(&memory) ;
-
-	//checkmemory_(&memory) ;
 }

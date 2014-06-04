@@ -2,8 +2,6 @@
 #include <iosfwd>
 #include <algorithm>
 #include "inc.h"
-//#include "eos.h"
-//#include "rmn.h"
 class EoS ;
 
 int index44(const int &i, const int &j) ;
@@ -43,9 +41,8 @@ public :
 	inline void setQfull(double *_Qf){
 		for(int i=0; i<7; i++) Qfull[i] = _Qf[i] ;
 		if(Qfull[T_]<0.){ for(int i=0; i<7; i++) Qfull[i]=0. ; 
-		/*cout<<"Cell: Qfull[0]<0 "; for(int j=0;j<4;j++)cout<<"  "<<Qfull[j] ;
-		cout<<endl ;*/ }
-	}
+	  }
+  }
 
   inline double getpi(const int &i, const int &j){ return pi[index44(i,j)] ; }
   inline double getpiH(const int &i, const int &j){ return piH[index44(i,j)] ; }
