@@ -190,6 +190,7 @@ int main(int argc, char **argv)
 
   // hllev321v1 = with pre-advection
   f->initOutput(outputDir, maxstep, tau0, 2) ;
+  f->calcTotals(h->getTau()) ;
 
 	for(int istep=0; istep<maxstep; istep++)
 	{
@@ -201,7 +202,7 @@ int main(int argc, char **argv)
     }
     cout << "step= " << istep << "  dtau= " << dtau/nSubSteps << "\n" << endl ; // "\r" << flush
     f->outputPDirections(h->getTau());
-    f->outputSurface(h->getTau()) ;
+    f->calcTotals(h->getTau()) ;
 	}
 
   end=0 ;

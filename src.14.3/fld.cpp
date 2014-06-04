@@ -9,7 +9,6 @@
 #include "cll.h"
 #include "eos.h"
 #include "trancoeff.h"
-#include "cornelius.h"
 
 #define OUTPI
 
@@ -74,10 +73,6 @@ Fluid::Fluid(EoS *_eos, EoS *_eosH, TransportCoeff *_trcoeff, int _nx, int _ny, 
 	output_nx = 0 ;
 	output_ny = 0 ;
   
-//---- Cornelius init
-  double arrayDx [4] = {dt, dx, dy, dz} ;
-  cornelius = new Cornelius ;
-  cornelius->init(4, eCrit, arrayDx) ;
   vEff = 0. ;
   EtotSurf = 0.0 ;
 }
@@ -554,28 +549,14 @@ void transformToLab(double eta, double &vx, double &vy, double &vz)
 }
 
 
-void Fluid::outputSurface(double tau)
+void Fluid::calcTotals(double tau)
 {
  static double nbSurf = 0.0 ;
  double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz, Q[7] ;
  double E = 0., Efull = 0., Px=0., vt_num=0., vt_den=0., vxvy_num=0., vxvy_den=0., pi0x_num=0., pi0x_den=0.,
- txxyy_num=0., txxyy_den=0., Nb1 = 0., Nb2 = 0. ;
+ txxyy_num=0., txxyy_den=0., Nb1 = 0., Nb2 = 0., S = 0. ;
  double eta=0 ;
-//-- Cornelius: allocating memory for corner points
-  double ****ccube = new double***[2];
-  for (int i1=0; i1 < 2; i1++) {
-    ccube[i1] = new double**[2];
-    for (int i2=0; i2 < 2; i2++) {
-      ccube[i1][i2] = new double*[2];
-      for (int i3=0; i3 < 2; i3++) {
-        ccube[i1][i2][i3] = new double[2];
-      }
-    }
-  }
-//----end Cornelius
-#ifdef SWAP_EOS
- swap(eos, eosH) ;
-#endif
+
  fout2d << endl ;
  for(int ix=2; ix<nx-2; ix++)
  for(int iy=2; iy<ny-2; iy++)
@@ -584,196 +565,29 @@ void Fluid::outputSurface(double tau)
   getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz) ;
   c->getQ(Q) ;
   eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
+  double s = eos->s(e, nb, nq, ns) ;
   eta=getZ(iz) ;
   E += tau*(e+p)/(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz))*(cosh(eta)-tanh(vz)*sinh(eta)) - tau*p*cosh(eta) ;
   Nb1 += Q[NB_] ;
   Nb2 += tau*nb*(cosh(eta)-tanh(vz)*sinh(eta))/sqrt(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz)) ;
-//---- inf check
-  if(isinf(E)){
-   cout<<"EEinf"<<setw(14)<<e<<setw(14)<<p<<setw(14)<<vx<<setw(14)<<vy<<setw(14)<<vz<<endl ;
-   exit(1) ;
-  }
-//--------------
+  // -- noneq. corrections to entropy flux
+  const double gmumu[4] = {1., -1., -1., -1.} ;
+  double deltas = 0. ;
+  for(int i=0; i<4; i++)
+  for(int j=0; j<4; j++)
+  deltas += pow(c->getpi(i,j),2)*gmumu[i]*gmumu[j] ;
+  if(t>0.025) s += 1.5*deltas/((e+p)*t) ;
+  S += tau*s*(cosh(eta)-tanh(vz)*sinh(eta))/sqrt(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz)) ;
   Efull += tau*(e+p)/(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz))*(cosh(eta)-tanh(vz)*sinh(eta)) - tau*p*cosh(eta) ;
   if(trcoeff->isViscous()) Efull += tau*c->getpi(0,0)*cosh(eta)+tau*c->getpi(0,3)*sinh(eta);
-  Px += tau*(e+p)*vx/(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz)) ;
-  vt_num += e/sqrt(1.-vx*vx-vy*vy)*sqrt(vx*vx+vy*vy) ;
-  vt_den += e/sqrt(1.-vx*vx-vy*vy) ;
-  vxvy_num += e*(fabs(vx)-fabs(vy)) ;
-  vxvy_den += e ;
-  txxyy_num += (e+p)/(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz))*(vx*vx-vy*vy) ;
-  txxyy_den += (e+p)/(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz))*(vx*vx+vy*vy)+2.*p ;
-  pi0x_num += e/(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz))*fabs(c->getpi(0,1)) ;
-  pi0x_den += e/(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz)) ;
-
-  /*if(ix%compress2dOut==0&&iy%compress2dOut==0)*/
-  //fout2d<<setw(10)<<tau<<setw(4)<<iz<<setw(4)<<ix<<setw(4)<<iy<<setw(14)<<e<<setw(14)<<vx<<setw(14)<<vy<<setw(14)<<vz
-  //<<setw(14)<<c->getViscCorrCutFlag()<<setw(14)<<c->getpi(0,0)<<setw(14)<<c->getpi(0,1)<<setw(14)<<c->getpi(0,2)
-  //<<setw(14)<<c->getpi(0,3)<<setw(14)<<c->getpi(1,1)<<setw(14)<<c->getpi(1,2)<<setw(14)<<c->getpi(1,3)<<setw(14)
-  //<<c->getpi(2,2)<<setw(14)<<c->getpi(2,3)<<setw(14)<<c->getpi(3,3)<<setw(14)<<Q[0]<<setw(14)<<Q[1]<<setw(14)<<Q[2]<<setw(14)<<Q[3]
-  //<<endl ;
-//----- Cornelius stuff
-  double QCube[2][2][2][2][7] ;
-  double piSquare[2][2][2][10], PiSquare[2][2][2] ;
-  for(int jx=0; jx<2; jx++)
-  for(int jy=0; jy<2; jy++)
-  for(int jz=0; jz<2; jz++){
-    double _p, _nb, _nq, _ns, _vx, _vy, _vz ;
-	  Cell* cc = getCell(ix+jx,iy+jy,iz+jz) ;
-	  cc->getPrimVar(eos,tau,e,_p,_nb,_nq,_ns,_vx,_vy,_vz) ;
-    cc->getQ(QCube[1][jx][jy][jz]) ;
-	  ccube[1][jx][jy][jz] = e ;
-	  cc->getPrimVarPrev(eos,tau-dt,e,_p,_nb,_nq,_ns,_vx,_vy,_vz) ;
-    cc->getQ(QCube[0][jx][jy][jz]) ;
-	  ccube[0][jx][jy][jz] = e ;
-    // ---- get viscous tensor
-	  for(int ii=0; ii<4; ii++)
-	  for(int jj=0; jj<=ii; jj++)
-      piSquare[jx][jy][jz][index44(ii,jj)] = cc->getpi(ii,jj) ;
-    PiSquare[jx][jy][jz] = cc->getPi() ;
   }
-  cornelius->find_surface_4d(ccube);
-  const int Nsegm = cornelius->get_Nelements() ;
-  for(int isegm=0; isegm<Nsegm; isegm++){
-    //ffreeze<<"cell  "<<ix<<"  "<<iy<<"  "<<iz<<endl ;
-    //for(int jx=0; jx<2; jx++)
-    //for(int jy=0; jy<2; jy++)
-    //for(int jz=0; jz<2; jz++)
-    //ffreeze<<"["<<jx<<","<<jy<<","<<jz<<"] --> "<<setw(14)<<ccube[0][jx][jy][jz]<<setw(14)<<ccube[1][jx][jy][jz]<<endl ;
-          ffreeze.precision(15) ;
-	  ffreeze<<setw(24)<<tau+cornelius->get_centroid_elem(isegm,0)<<setw(24)<<getX(ix)+cornelius->get_centroid_elem(isegm,1)
-	  <<setw(24)<<getY(iy)+cornelius->get_centroid_elem(isegm,2)<<setw(24)<<getZ(iz)+cornelius->get_centroid_elem(isegm,3) ;
-	  //for(int m=0; m<4; m++) ffreeze<<setw(14)<<cornelius->get_centroid_elem(isegm,m) ;
-	  //for(int m=0; m<4; m++) ffreeze<<setw(14)<<cornelius->get_normal_elem(isegm,m) ;
-    //ffreeze<<endl ;
-    // ---- interpolation procedure
-    double vxC=0., vyC=0., vzC=0., TC=0., mubC=0., muqC=0., musC=0., piC[10], PiC=0., nbC=0., nqC=0. ; // values at the centre, to be interpolated
-    double QC [7] = {0., 0., 0., 0., 0., 0., 0.} ;
-    double eC=0., pC=0. ;
-    for(int ii=0; ii<10; ii++) piC[ii] = 0.0 ;
-    double wCenT[2] = {1. - cornelius->get_centroid_elem(isegm,0)/dt, cornelius->get_centroid_elem(isegm,0)/dt} ;
-    double wCenX[2] = {1. - cornelius->get_centroid_elem(isegm,1)/dx, cornelius->get_centroid_elem(isegm,1)/dx} ;
-    double wCenY[2] = {1. - cornelius->get_centroid_elem(isegm,2)/dy, cornelius->get_centroid_elem(isegm,2)/dy} ;
-    double wCenZ[2] = {1. - cornelius->get_centroid_elem(isegm,3)/dz, cornelius->get_centroid_elem(isegm,3)/dz} ;
-    for(int jt=0; jt<2; jt++)
-    for(int jx=0; jx<2; jx++)
-    for(int jy=0; jy<2; jy++)
-    for(int jz=0; jz<2; jz++)
-    for(int i=0; i<7; i++){
-      QC[i] += QCube[jt][jx][jy][jz][i]*wCenT[jt]*wCenX[jx]*wCenY[jy]*wCenZ[jz] ;
-    }
-    for(int i=0; i<7; i++) QC[i] = QC[i]/(tau+cornelius->get_centroid_elem(isegm,0)) ;
-    double _ns = 0.0 ;
-    transformPV(eos, QC, eC, pC, nbC, nqC, _ns, vxC, vyC, vzC) ;
-    eos->eos(eC,nbC,nqC,_ns,TC,mubC,muqC,musC,pC) ;
-    //double Teos ;
-    //eos->eos(eC,0.,0.,0.,Teos, mub, muq, mus, p) ; // now temperature from EoS
-    //if(fabs(eC-0.5)>0.01) {cout<<"+++ eC= "<<setw(14)<<eC<<", cell "<<ix<<" "<<iy<<" "<<iz<<endl;}
-    for(int jx=0; jx<2; jx++)
-    for(int jy=0; jy<2; jy++)
-    for(int jz=0; jz<2; jz++){
-      for(int ii=0; ii<10; ii++)
-        piC[ii] += piSquare[jx][jy][jz][ii]*wCenX[jx]*wCenY[jy]*wCenZ[jz] ;
-      PiC += PiSquare[jx][jy][jz]*wCenX[jx]*wCenY[jy]*wCenZ[jz] ;
-    }
-    double v2C = vxC*vxC+vyC*vyC+vzC*vzC ;
-    if(v2C>1.){
-      vxC *= sqrt(0.99/v2C) ;
-      vyC *= sqrt(0.99/v2C) ;
-      vzC *= sqrt(0.99/v2C) ;
-      v2C = 0.99 ;
-    }
-    double etaC = getZ(iz) + cornelius->get_centroid_elem(isegm,3) ;
-    transformToLab(etaC, vxC, vyC, vzC) ; // viC is now in lab.frame!
-    double gammaC = 1./sqrt(1.-vxC*vxC-vyC*vyC-vzC*vzC) ;
-    //ffreeze<<setw(14)<<ccube[0][0][0][0]<<setw(14)<<ccube[0][1][0][0]<<endl<<setw(14)<<ccube[1][0][0][0]<<setw(14)<<ccube[1][1][0][0]<<endl ;
-    double uC [4] = {gammaC, gammaC*vxC, gammaC*vyC, gammaC*vzC} ;
-    const double tauC = tau+cornelius->get_centroid_elem(isegm,0) ;
-    double dsigma [4] ;
-    // for(int ii=0; ii<4; ii++) dsigma[ii] = cornelius->get_normal_elem(0,ii) ;
-    // ---- transform dsigma to lab.frame :
-    const double ch = cosh(etaC) ;
-    const double sh = sinh(etaC) ;
-    dsigma [0] = tauC*( ch*cornelius->get_normal_elem(0,0) - sh/tauC*cornelius->get_normal_elem(0,3) ) ;
-    dsigma [3] = tauC*(-sh*cornelius->get_normal_elem(0,0) + ch/tauC*cornelius->get_normal_elem(0,3) );
-    dsigma [1] = tauC*cornelius->get_normal_elem(0,1) ;
-    dsigma [2] = tauC*cornelius->get_normal_elem(0,2) ;
-    double dVEff = 0.0 ;
-    for(int ii=0; ii<4; ii++) dVEff += dsigma[ii]*uC[ii] ; // normalize for Delta eta=1
-    vEff += dVEff ;
-    for(int ii=0; ii<4; ii++) ffreeze<<setw(24)<<dsigma[ii] ;
-    for(int ii=0; ii<4; ii++) ffreeze<<setw(24)<<uC[ii] ;
-    ffreeze<<setw(24)<<TC<<setw(24)<<mubC<<setw(24)<<muqC<<setw(24)<<musC ;
-#ifdef OUTPI
-    double picart[10] ;
-    /*pi00*/ picart[index44(0,0)] = ch*ch*piC[index44(0,0)]+2.*ch*sh*piC[index44(0,3)]+sh*sh*piC[index44(3,3)] ;
-    /*pi01*/ picart[index44(0,1)] = ch*piC[index44(0,1)]+sh*piC[index44(3,1)] ;
-    /*pi02*/ picart[index44(0,2)] = ch*piC[index44(0,2)]+sh*piC[index44(3,2)] ;
-    /*pi03*/ picart[index44(0,3)] = ch*sh*(piC[index44(0,0)]+piC[index44(3,3)])+(ch*ch+sh*sh)*piC[index44(0,3)] ;
-    /*pi11*/ picart[index44(1,1)] = piC[index44(1,1)] ;
-    /*pi12*/ picart[index44(1,2)] = piC[index44(1,2)] ;
-    /*pi13*/ picart[index44(1,3)] = sh*piC[index44(0,1)]+ch*piC[index44(3,1)] ;
-    /*pi22*/ picart[index44(2,2)] = piC[index44(2,2)] ;
-    /*pi23*/ picart[index44(2,3)] = sh*piC[index44(0,2)]+ch*piC[index44(3,2)] ;
-    /*pi33*/ picart[index44(3,3)] = sh*sh*piC[index44(0,0)]+ch*ch*piC[index44(3,3)]+2.*sh*ch*piC[index44(0,3)] ;
-    for(int ii=0; ii<10; ii++) ffreeze<<setw(24)<<picart[ii] ;
-    ffreeze<<setw(24)<<PiC<<endl ;
-#else
-    ffreeze<<setw(24)<<dVEff<<endl ;
-#endif
-    double dEsurfVisc = 0. ;
-    for(int i=0; i<4; i++) dEsurfVisc += picart[index44(0,i)]*dsigma[i] ;
-    EtotSurf += (eC+pC)*uC[0]*dVEff - pC*dsigma[0] + dEsurfVisc ;
-    nbSurf += nbC*dVEff ;
-    /*if(fabs(eC-0.5)>0.01){ cout<<"Warning: eC = "<<setw(14)<<eC
-    <<setw(14)<<getX(ix)<<setw(14)<<getY(iy)<<setw(14)<<getZ(iz)<<endl ;
-    for(int i=0; i<2; i++)
-    for(int j=0; j<2; j++){
-      cout<<"cube: " ;
-      for(int k=0; k<2; k++)
-      for(int l=0; l<2; l++)
-        cout<<setw(14)<<eCube[i][j][k][l] ;
-      cout<<endl ;
-    }
-    } */ // end eC check
-    //EtotSurf += (0.5+0.0795)*uC[0]*dVEff - 0.0795*dsigma[0] + dEsurfVisc ;
-  // root search for EoS switching
-/*  const double _p = eos->p(0.5,0.,0.,0.) ;
-  const double alpha = 0.159 ;
-  const double sigma2 = dsigma[0]*dsigma[0]-dsigma[1]*dsigma[1]-dsigma[2]*dsigma[2]-dsigma[3]*dsigma[3] ;
-  const double AA = (0.5 + _p)*(0.5 - _p)*dVEff*dVEff + _p*_p*sigma2 ;
-  const double Asigma = (0.5 + _p)*dVEff*dVEff - _p*sigma2 ;
-  //ffreeze<<setw(5)<<"DDD"<<setw(24)<< AA ;
-  //ffreeze<<setw(24)<< Asigma << setw(24) << 0.5*_p*dsigma2 << endl ;
-  const double Det = sqrt((1.0-alpha)*(1.0-alpha)*Asigma*Asigma+4.0*alpha*sigma2*AA) ;
-  ffreeze<<setw(5)<<"DDD"<<setw(24)<< (-(1.0-alpha)*Asigma - Det)/(2.0*alpha*sigma2)
-    <<setw(24)<< (-(1.0-alpha)*Asigma + Det)/(2.0*alpha*sigma2) <<endl ;
-*/
-  }
-  if(cornelius->get_Nelements()>1) cout << "oops, Nelements>1\n" ;
-//----- end Cornelius
- }
  E=E*dx*dy*dz ;
  Efull=Efull*dx*dy*dz ;
  Nb1 *= dx*dy*dz ; Nb2 *= dx*dy*dz ;
+ S *= dx*dy*dz ;
 // fout_aniz << setw(12) << tau << setw(14) << vt_num/vt_den <<
 // setw(14) << vxvy_num/vxvy_den << setw(14) << pi0x_num/pi0x_den << endl ;
- cout << endl << setw(12) << "E = " << setw(14) << E << "  Efull = " << setw(14) << Efull <<"  Nb = " << setw(14) << nbSurf << endl ;
+ cout << endl << setw(12) << "(cT)E = " << setw(14) << E << "  Efull = " << setw(14) << Efull <<"  Nb = " << setw(14) << nbSurf << endl ;
  cout << setw(12) << "Px = " << setw(14) << Px << "  vEff = " << vEff << "  Esurf = " <<setw(14)<<EtotSurf << endl ;
- cout << "Nb1 = " << setw(14) << Nb1 << "  Nb2 = " << setw(14) << Nb2 << endl ;
-//-- Cornelius: all done, let's free memory
-  for (int i1=0; i1 < 2; i1++) {
-    for (int i2=0; i2 < 2; i2++) {
-      for (int i3=0; i3 < 2; i3++) {
-        delete[] ccube[i1][i2][i3];
-      }
-      delete[] ccube[i1][i2];
-    }
-    delete[] ccube[i1];
-  }
-  delete[] ccube;
-//----end Cornelius
-#ifdef SWAP_EOS
-  swap(eos, eosH) ;
-#endif
+ cout << "Nb1 = " << setw(14) << Nb1 << "  Nb2 = " << setw(14) << Nb2 << "  S = " << setw(14) << S << endl ;
 }

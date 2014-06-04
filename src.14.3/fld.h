@@ -59,5 +59,5 @@ public:
 
 	void outputPDirections(double tau) ;
   void outputGnuplot(double tau) ;
-	void outputSurface(double tau) ;
+  void calcTotals(double tau) ;
 };
