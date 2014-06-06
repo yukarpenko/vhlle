@@ -70,8 +70,6 @@ Fluid::Fluid(EoS *_eos, EoS *_eosH, TransportCoeff *_trcoeff, int _nx, int _ny, 
 	output_nx = 0 ;
 	output_ny = 0 ;
   
-  vEff = 0. ;
-  EtotSurf = 0.0 ;
 }
 
 
@@ -528,6 +526,6 @@ void Fluid::calcTotals(double tau)
  Nb1 *= dx*dy*dz ; Nb2 *= dx*dy*dz ;
  S *= dx*dy*dz ;
  cout << endl << setw(12) << "(cT)E = " << setw(14) << E << "  Efull = " << setw(14) << Efull <<"  Nb = " << setw(14) << nbSurf << endl ;
- cout << setw(12) << "Px = " << setw(14) << Px << "  vEff = " << vEff << "  Esurf = " <<setw(14)<<EtotSurf << endl ;
+ cout << setw(12) << "Px = " << setw(14) << Px << endl ;
  cout << "Nb1 = " << setw(14) << Nb1 << "  Nb2 = " << setw(14) << Nb2 << "  S = " << setw(14) << S << endl ;
 }

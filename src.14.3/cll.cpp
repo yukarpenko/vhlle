@@ -7,6 +7,8 @@
 
 using namespace std ;
 
+
+// slope limiter; chooses minimal abs of the neighbouring slopes
 double minmod(double a, double b)
 {
 	if(a*b<=0.) return 0. ;
@@ -62,10 +64,6 @@ void Cell::correctQideal(EoS *eos, double tau)
 {
 	double e,p,nb,nq,ns,vx,vy,vz ;
 	getPrimVarFull(eos,e,p,nb,nq,ns,vx,vy,vz) ;
-	//if(ix==60&&iy==50&&iz==2){
-		//cout<<"Cell::correctQideal:\n" ;
-		//cout<<setw(14)<<e<<setw(14)<<vx<<setw(14)<<vy<<setw(14)<<vz<<endl ;
-	//}
 	const double gamma2 = 1./(1-vx*vx-vy*vy-vz*vz) ;
 	Q[T_] = tau*(e+p*(vx*vx+vy*vy+vz*vz))*gamma2 ;
 	Q[X_] = tau*(e+p)*vx*gamma2 ;
@@ -74,11 +72,6 @@ void Cell::correctQideal(EoS *eos, double tau)
 	Q[NB_] = tau*nb*sqrt(gamma2) ;
 	Q[NQ_] = tau*nq*sqrt(gamma2) ;
 	Q[NS_] = tau*ns*sqrt(gamma2) ;
-	//if(ix==60&&iy==50&&iz==2){
-		//cout<<"Cell::correctQideal(after computing Q:\n" ;
-		//transformPV(eos,Q,e,p,nb,nq,ns,vx,vy,vz) ;
-		//cout<<setw(14)<<e<<setw(14)<<vx<<setw(14)<<vy<<setw(14)<<vz<<endl ;
-	//}
 }
 
 
@@ -88,7 +81,7 @@ void Cell::getPrimVar(EoS *eos, double tau, double &_e, double &_p, double &_nb,
  for(int i=0; i<7; i++) _Q[i] = Q[i]/tau ;
  transformPV(eos, _Q, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz) ; 
 //-------------------- debug ---------------
- if(!(_nb<0. || _nb>=0.)){
+ if(_nb!=_nb){
 	cout << "---error in getPrimVar:\n" ;
 	Dump(tau) ;
  }
@@ -110,7 +103,7 @@ void Cell::getPrimVarLeft(EoS *eos, double tau, double &_e, double &_p, double &
 			transformPV(eos, Ql, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz) ;
 	//	else	transformPV(eos, Q, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz) ;
 //-------------------- debug ---------------
-	if(!(_nb<0. || _nb>=0.)){
+	if(_nb!=_nb){
 		cout << "---error in getPrimVarLeft:\n" ;
 		Dump(tau) ;
 		next[dir-1]->Dump(tau) ;
@@ -133,7 +126,7 @@ void Cell::getPrimVarRight(EoS *eos, double tau, double &_e, double &_p, double 
 			transformPV(eos, Qr, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz) ;
 	//	else	transformPV(eos, Q, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz) ;
 //-------------------- debug ---------------
-	if(!(_nb<0. || _nb>=0.)){
+	if(_nb!=_nb){
 		cout << "---error in getPrimVarRight:\n" ;
 		Dump(tau) ;
 		next[dir-1]->Dump(tau) ;
@@ -157,7 +150,7 @@ void Cell::getPrimVarHLeft(EoS *eos, double tau, double &_e, double &_p, double 
 			transformPV(eos, Ql, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz) ;
 	//	else	transformPV(eos, Qh, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz) ;
 //-------------------- debug ---------------
-	if(!(_nb<0. || _nb>=0.)){
+	if(_nb!=_nb){
 		cout << "---error in getPrimVarHLeft:\n" ;
 		Dump(tau) ;
 		next[dir-1]->Dump(tau) ;
@@ -180,7 +173,7 @@ void Cell::getPrimVarHRight(EoS *eos, double tau, double &_e, double &_p, double
 			transformPV(eos, Qr, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz) ;
 	//	else	transformPV(eos, Qh, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz) ;
 //-------------------- debug ---------------
-	if(!(_nb<0. || _nb>=0.)){
+	if(_nb!=_nb){
 		cout << "---error in getPrimVarHRight:\n" ;
 		Dump(tau) ;
 		next[dir-1]->Dump(tau) ;
@@ -211,7 +204,7 @@ void Cell::getPrimVarFull(EoS *eos, double &_e, double &_p, double &_nb, double 
 	for(int i=4; i<7; i++) Qideal[i] = Qfull[i] ;
 	transformPVBulk(eos, Pi, Qideal, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz) ;
 //-------------------- debug ---------------
-	if(!(_nb<0. || _nb>=0.)){
+	if(_nb!=_nb){
 		cout << "---error in getPrimVarHRight:\n" ;
 		//Dump(tau) ;
 	}
@@ -231,7 +224,7 @@ void Cell::setPrimVar(EoS *eos, double tau, double _e, double _nb, double _nq, d
 	Q[NB_] = tau*_nb*sqrt(gamma2) ;
 	Q[NQ_] = tau*_nq*sqrt(gamma2) ;
 	Q[NS_] = tau*_ns*sqrt(gamma2) ;
-	if(!(Q[NB_]<0. || Q[NB_]>=0.)){
+	if(Q[NB_]!=Q[NB_]){
 		cout << "init error!\n" ;
 		eos->p(_e, _nb, _nq, _ns) ;
 		cout << "e = " << _e << " p = " << p << " vx = " << _vx << " vy = " << _vy << " vz = " << _vz << " gamma2 = " << gamma2 << endl ;
