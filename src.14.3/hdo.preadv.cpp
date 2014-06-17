@@ -350,10 +350,10 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double& Pi, double 
 	Cell *c = f->getCell(ix, iy, iz) ;
 	double dx=f->getDx(), dy=f->getDy(), dz=f->getDz() ;
 	// check if the cell is next to vacuum from +-x, +-y side:
-	if(c->getNext(X_)->getLM()<=0.9 || c->getNext(Y_)->getLM()<=0.9 ||
-	c->getPrev(X_)->getLM()<=0.9 || c->getPrev(Y_)->getLM()<=0.9 ||
-	f->getCell(ix+1,iy+1,iz)->getLM()<=0.9 || f->getCell(ix+1,iy-1,iz)->getLM()<=0.9 ||
-	f->getCell(ix-1,iy+1,iz)->getLM()<=0.9 || f->getCell(ix-1,iy-1,iz)->getLM()<=0.9){
+	if(c->getNext(X_)->getMaxM()<=0.9 || c->getNext(Y_)->getMaxM()<=0.9 ||
+	c->getPrev(X_)->getMaxM()<=0.9 || c->getPrev(Y_)->getMaxM()<=0.9 ||
+	f->getCell(ix+1,iy+1,iz)->getMaxM()<=0.9 || f->getCell(ix+1,iy-1,iz)->getMaxM()<=0.9 ||
+	f->getCell(ix-1,iy+1,iz)->getMaxM()<=0.9 || f->getCell(ix-1,iy-1,iz)->getMaxM()<=0.9){
 	 for(int i=0; i<4; i++)
 	 for(int j=0; j<4; j++){ pi[i][j]=0. ; dmu[i][j]=0. ; }
 	 Pi=du=0. ;

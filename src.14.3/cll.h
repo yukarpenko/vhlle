@@ -17,17 +17,17 @@ private :
 	double Qh[7] ;  // half-step updated values
 	double Qprev [7] ;  // values at the end of previous timestep
 	double Qfull [7] ;  // full T^{0\mu} with viscous terms, WITHOUT tau factor
-  double pi[10], piH[10] ; // pi^{mu nu}, WITHOUT tau factor, final and half-step updated
-  double Pi, PiH ;  // Pi, WITHOUT tau factor, final and half-step updated
+  double pi[10], piH[10] ; // pi^{mu nu}, WITHOUT tau factor, final (pi) and half-step updated (piH)
+  double Pi, PiH ;  // Pi, WITHOUT tau factor, final (Pi) and half-step updated (PiH)
   double pi0[10], piH0[10] ; // // pi^{mu nu}, WITHOUT tau factor, auxiliary
-  double Pi0, PiH0 ; //viscous, WITHOUT tau factor
+  double Pi0, PiH0 ; //viscous, WITHOUT tau factor, auxiliary
 	double flux[7] ;  // cumulative fluxes
 	Cell *next [3] ;  // pointer to the next cell in a given direction
 	Cell *prev [3] ;  // pointer to the previous cell in a given direction 
 	double m [3] ;  // extend of matter propagation inside cell [0...1]
 	double dm [3] ; // auxiliary
 	int ix, iy, iz ;  // cell coordinate on the grid
-  // flag if the viscous corrections are cut for this cell:
+  // viscCorrCut: flag if the viscous corrections are cut for this cell:
   // 1.0 = uncut, < 1 :  cut by this factor
   double viscCorrCut ;
 public :
@@ -52,6 +52,7 @@ public :
 	  }
   }
 
+  // getter and setter methods for the class members
   inline double getpi(const int &i, const int &j){ return pi[index44(i,j)] ; }
   inline double getpiH(const int &i, const int &j){ return piH[index44(i,j)] ; }
   inline double getpi0(const int &i, const int &j){ return pi0[index44(i,j)] ; }
@@ -86,7 +87,7 @@ public :
 	inline void setAllM(double value) { m[0] = m[1] = m[2] = value ; }
 	inline void addM(int dir, double inc) { m[dir-1] += inc; if(m[dir-1]>0.9) for(int i=0; i<3; i++) m[i]=1. ; }
 	inline double getM(int dir) { return m[dir-1] ; }
-	inline double getLM(void) { return std::max(m[0],std::max(m[1],m[2])) ; }
+	inline double getMaxM(void) { return std::max(m[0],std::max(m[1],m[2])) ; }
 	inline void setDM(int dir, double value) { dm[dir-1] = value ; }
 	inline double getDM(int dir) { return dm[dir-1] ; }
 	
@@ -125,5 +126,5 @@ public :
 	void correctQideal(EoS *eos, double tau) ;  // correct Q based on Qfull and pi^{mu nu}
   inline void setViscCorrCutFlag(double value) { viscCorrCut=value ; }
   inline double getViscCorrCutFlag(void) { return viscCorrCut ; }
-	void Dump(double tau) ;
+	void Dump(double tau) ; // dump the contents of the cell into dump.dat
 };

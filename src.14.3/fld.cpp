@@ -289,14 +289,14 @@ void Fluid::updateM(double tau, double dt)
 	c->setDM(X_, 0.) ;
 	c->setDM(Y_, 0.) ;
 	c->setDM(Z_, 0.) ;
-	if(getCell(ix,iy,iz)->getLM()<1.){
+	if(getCell(ix,iy,iz)->getMaxM()<1.){
 		if(getCell(ix+1,iy,iz)->getM(X_)>=1. || getCell(ix-1,iy,iz)->getM(X_)>=1.) c->setDM(X_, dt/dx) ;
 		if(getCell(ix,iy+1,iz)->getM(Y_)>=1. || getCell(ix,iy-1,iz)->getM(Y_)>=1.) c->setDM(Y_, dt/dy) ;
 		if(getCell(ix,iy,iz+1)->getM(Z_)>=1. || getCell(ix,iy,iz-1)->getM(Z_)>=1.) c->setDM(Z_, dt/dz/tau) ;
 
 		if(c->getDM(X_)==0. && c->getDM(Y_)==0.){
-			if(getCell(ix+1,iy+1,iz)->getLM()>=1. || getCell(ix+1,iy-1,iz)->getLM()>=1. ||
-			getCell(ix-1,iy+1,iz)->getLM()>=1. || getCell(ix-1,iy-1,iz)->getLM()>=1.){
+			if(getCell(ix+1,iy+1,iz)->getMaxM()>=1. || getCell(ix+1,iy-1,iz)->getMaxM()>=1. ||
+			getCell(ix-1,iy+1,iz)->getMaxM()>=1. || getCell(ix-1,iy-1,iz)->getMaxM()>=1.){
 				c->setDM(X_, 0.707*dt/dx) ;
 				c->setDM(Y_, 0.707*dt/dy) ;
 			}

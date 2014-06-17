@@ -14,10 +14,11 @@
 
 using namespace std ;
 
-  const double A = 197.0 ;
-  const double Ra = 6.37 ;
-  const double dlt = 0.54 ;
-  const double sigma = 4.0 ;
+// Au nucleus parameters for optical Glauber
+  const double A = 197.0 ;   // mass number
+  const double Ra = 6.37 ;   // radius
+  const double dlt = 0.54 ;  // diffuseness
+  const double sigma = 4.0 ; // NN cross section in fm^2
 
  const int nphi = 301 ;
 
@@ -25,12 +26,14 @@ using namespace std ;
  extern int icModel, glauberVariable ;
  extern double s0ScaleFactor ;
 
+
 IC::IC(double e, double impactPar, double a)
 {
     epsilon = e ;
     alpha = a ;
     b=impactPar ;
 }
+
 
 IC::~IC(void)
 {

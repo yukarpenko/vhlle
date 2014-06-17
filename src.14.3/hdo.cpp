@@ -19,7 +19,8 @@ extern double sign(double x) ;
 
 // this version contains NO PRE-ADVECTION for the IS solution
 
-// use formal solution for the relaxation part of Israel-Stewart equations (not recommended)
+// enable this to use formal solution for the relaxation part of
+// Israel-Stewart equations (not recommended)
 //#define FORMAL_SOLUTION
 // else: use 1st order finite difference update
 
@@ -50,6 +51,8 @@ void Hydro::setDtau(double deltaTau)
 
 void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode)
 {
+  // for all variables, suffix "l" = left state, "r" = right state
+  // with respect to the cell boundary
 	double el, er, pl, pr, nbl, nql, nsl, nbr, nqr, nsr, vxl, vxr, vyl, vyr, vzl, vzr, bl, br, csb, vb, El, Er, dx ;
 	double Ftl, Fxl, Fyl, Fzl, Fbl, Fql, Fsl, Ftr, Fxr, Fyr, Fzr, Fbr, Fqr, Fsr ;
 	double U1l, U2l, U3l, U4l, Ubl, Uql, Usl, U1r, U2r, U3r, U4r, Ubr, Uqr, Usr ;
@@ -57,12 +60,15 @@ void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode)
 	const double dta = mode==0 ? dt/2. : dt ;
 	double tauFactor ; // fluxes are also multiplied by tau
 	if(mode==PREDICT){
+    // get primitive quantities from Q_{i+} at previous timestep
 	left->getPrimVarRight(eos, tau, el, pl, nbl, nql, nsl, vxl, vyl, vzl, direction) ;
+  // ... and Q_{(i+1)-}
 	right->getPrimVarLeft(eos, tau, er, pr, nbr, nqr, nsr, vxr, vyr, vzr, direction) ;
 	El = (el+pl)/(1-vxl*vxl-vyl*vyl-vzl*vzl) ;
 	Er = (er+pr)/(1-vxr*vxr-vyr*vyr-vzr*vzr) ;
 	tauFactor = tau ;
 	}else{
+  // use half-step updated Q's for corrector step
 	left->getPrimVarHRight(eos, tau, el, pl, nbl, nql, nsl, vxl, vyl, vzl, direction) ;
 	right->getPrimVarHLeft(eos, tau, er, pr, nbr, nqr, nsr, vxr, vyr, vzr, direction) ;
 	El = (el+pl)/(1-vxl*vxl-vyl*vyl-vzl*vzl) ;
@@ -85,7 +91,7 @@ void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode)
 	exit(0) ;
 	}
 
-	//vacuum treatment
+	// skip the procedure for two empty cells
 	if(el==0. && er==0.) return ;
 	if(pr<0.){
 		cout << "Negative pressure" << endl ;
@@ -93,7 +99,7 @@ void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode)
 		right->getPrimVarLeft(eos, tau, er, pr, nbr, nqr, nsr, vxr, vyr, vzr, direction) ;
 	}
 
-	//
+	// skip the procedure for two partially vacuum cells
 	if(left->getM(direction)<1. && right->getM(direction)<1.) return ;
 
 	double gammal = 1./sqrt(1-vxl*vxl-vyl*vyl-vzl*vzl) ;
@@ -139,7 +145,7 @@ void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode)
 
 		dx = f->getDx() ;
 
-			// boundary with vacuum
+			// bl or br in the case of boundary with vacuum
 		if(el==0.) bl = -1. ;
 		if(er==0.) br = 1. ;
 	}
@@ -168,7 +174,7 @@ void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode)
 
 		dx = f->getDy() ;
 
-			// boundary with vacuum
+			// bl or br in the case of boundary with vacuum
 		if(el==0.) bl = -1. ;
 		if(er==0.) br = 1. ;
 	}
@@ -201,14 +207,14 @@ void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode)
 
 		dx = f->getDz() ;
 
-			// boundary with vacuum
+			// bl or br in the case of boundary with vacuum
 		if(el==0.) bl = -1./tau ;
 		if(er==0.) br = 1./tau ;
 	}
 	
 	if(bl==0. && br==0.) return ;
 
-
+  // finally, HLLE formula for the fluxes
 	flux[T_] = tauFactor*dta/dx*( -bl*br*(U4l-U4r) + br*Ftl - bl*Ftr ) / (-bl + br) ;
 	flux[X_] = tauFactor*dta/dx*( -bl*br*(U1l-U1r) + br*Fxl - bl*Fxr ) / (-bl + br) ;
 	flux[Y_] = tauFactor*dta/dx*( -bl*br*(U2l-U2r) + br*Fyl - bl*Fyr ) / (-bl + br) ;
@@ -217,7 +223,7 @@ void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode)
 	flux[NQ_] = tauFactor*dta/dx*( -bl*br*(Uql-Uqr) + br*Fql - bl*Fqr ) / (-bl + br) ;
 	flux[NS_] = tauFactor*dta/dx*( -bl*br*(Usl-Usr) + br*Fsl - bl*Fsr ) / (-bl + br) ;
 
-	if(!(flux[NB_]>=0. || flux[NB_]<0.)){
+	if(flux[NB_] != flux[NB_]){ // if things failed
 		cout<<"---- error in hlle_flux: f_nb undefined!\n" ;
 		cout << setw(12) << U4l << setw(12) << U1l << setw(12) << U2l << setw(12) << U3l << endl ;
 		cout << setw(12) << U4r << setw(12) << U1r << setw(12) << U2r << setw(12) << U3r << endl ;
@@ -228,6 +234,7 @@ void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode)
 		exit(1) ;
 	}
 	
+  // update the cumulative fluxes in both neighbouring cells
 	left->addFlux(-flux[T_], -flux[X_], -flux[Y_], -flux[Z_], -flux[NB_], -flux[NQ_], -flux[NS_]) ;
 	right->addFlux(flux[T_], flux[X_], flux[Y_], flux[Z_], flux[NB_], flux[NQ_], flux[NS_]) ;
 
@@ -272,7 +279,7 @@ void Hydro::source_step(int ix, int iy, int iz, int mode)
 	source(tau, x, y, z, e, p, nb, nq, ns, vx, vy, vz, k) ;  // setting k1
 	for(int i=0; i<7; i++) k[i] *= _dt ;
 
-	if(!(k[NB_]>=0. || k[NB_]<0.)){
+	if(k[NB_] != k[NB_]){ // something failed
 		cout<<"---- error in source_step: k_nb undefined!\n" ;
 		cout << setw(12) << k[0] << setw(12) << k[1] << setw(12) << k[2] << setw(12) << k[3] << endl ;
 		cout << setw(12) << k[4] << setw(12) << k[5] << setw(12) << k[6] << endl ;
@@ -306,9 +313,11 @@ void Hydro::visc_source_step(int ix, int iy, int iz)
 		c->addFlux(k[T_], k[X_], k[Y_], k[Z_], 0., 0., 0.) ;
 }
 
+
+// for the procedure below, the following approximations are used:
 // dv/d(tau) = v^{t+dt}_ideal - v^{t}
-// dv/dx_i ~ v^{x+dx}-v{x-dx}
-// makes sense after non-viscous step
+// dv/dx_i ~ v^{x+dx}-v{x-dx},
+// which makes sense after non-viscous step
 void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double& Pi, double dmu[4][4], double &du)
 {
 	const double VMIN=1e-2 ;
@@ -323,10 +332,10 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double& Pi, double 
 	Cell *c = f->getCell(ix, iy, iz) ;
 	double dx=f->getDx(), dy=f->getDy(), dz=f->getDz() ;
 	// check if the cell is next to vacuum from +-x, +-y side:
-	if(c->getNext(X_)->getLM()<=0.9 || c->getNext(Y_)->getLM()<=0.9 ||
-	c->getPrev(X_)->getLM()<=0.9 || c->getPrev(Y_)->getLM()<=0.9 ||
-	f->getCell(ix+1,iy+1,iz)->getLM()<=0.9 || f->getCell(ix+1,iy-1,iz)->getLM()<=0.9 ||
-	f->getCell(ix-1,iy+1,iz)->getLM()<=0.9 || f->getCell(ix-1,iy-1,iz)->getLM()<=0.9){
+	if(c->getNext(X_)->getMaxM()<=0.9 || c->getNext(Y_)->getMaxM()<=0.9 ||
+	c->getPrev(X_)->getMaxM()<=0.9 || c->getPrev(Y_)->getMaxM()<=0.9 ||
+	f->getCell(ix+1,iy+1,iz)->getMaxM()<=0.9 || f->getCell(ix+1,iy-1,iz)->getMaxM()<=0.9 ||
+	f->getCell(ix-1,iy+1,iz)->getMaxM()<=0.9 || f->getCell(ix-1,iy-1,iz)->getMaxM()<=0.9){
 	 for(int i=0; i<4; i++)
 	 for(int j=0; j<4; j++){ pi[i][j]=0. ; dmu[i][j]=0. ; }
 	 Pi=du=0. ;

@@ -8,6 +8,8 @@
 
 using namespace std ;
 
+// flag optionally needed to track 
+// problems in the transformation procedures
 bool debugRiemann ;
 
 
@@ -27,12 +29,18 @@ void handler(int sig) {
 
 void transformPV(EoS *eos, double Q[7], double &e, double &p, double &nb, double &nq, double &ns, double &vx, double &vy, double &vz)
 {
-	const int MAXIT = 100 ;
-	const double dpe = 1./3. ;
-	const double corrf = 0.9999 ;
+  // conserved -> primitive transtormation requires
+  // a numerical solution to 1D nonlinear algebraic equation:
+  // v = M / ( Q_t + p(Q_t-M*v, n) )       (A.2)
+  // M being the modulo of the vector {Q_x, Q_y, Q_z}.
+  // Bisection/Newton methods are used to solve the equation.
+	const int MAXIT = 100 ; // maximum number of iterations
+	const double dpe = 1./3. ; // dp/de estimate for Newton method
+	const double corrf = 0.9999 ; // corrected value of M
+               // when it brakes the speed of light limit, M>Q_t
 	double v, vl = 0., vh = 1., dvold, dv, f, df ;
 	if(debugRiemann){
-	cout << "Riemann debug---------------\n" ;
+	cout << "transformPV debug---------------\n" ;
 	cout << setw(14) << Q[0] << setw(14) << Q[1] << setw(14) << Q[2] << setw(14) << Q[3] << endl ;
 	cout << setw(14) << Q[4] << setw(14) << Q[5] << setw(14) << Q[6] << endl ;
 	}
@@ -119,7 +127,7 @@ void transformPVBulk(EoS *eos, double Pi, double Q[7], double &e, double &p, dou
 	const double corrf = 0.9999 ;
 	double v, vl = 0., vh = 1., dvold, dv, f, df ;
 	if(debugRiemann){
-	cout << "Riemann debug---------------\n" ;
+	cout << "transformPVBulk debug---------------\n" ;
 	cout << setw(14) << Q[0] << setw(14) << Q[1] << setw(14) << Q[2] << setw(14) << Q[3] << endl ;
 	cout << setw(14) << Q[4] << setw(14) << Q[5] << setw(14) << Q[6] << endl ;
 	}

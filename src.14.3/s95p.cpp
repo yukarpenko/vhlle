@@ -59,6 +59,7 @@ void loadSongIC(char* filename, double factor)
 
 double getSongEps(double x, double y)
 {
+ // linear interpolation in 2D is used
  const double dx = (xmax-xmin)/(NX-1) ;
  const double dy = (ymax-ymin)/(NY-1) ;
  const int ix = (int)((x-xmin)/dx) ;
@@ -68,12 +69,12 @@ double getSongEps(double x, double y)
  const double sy = y - ymin - iy*dy ;
  double wx [2] = {(1.-sx/dx), sx/dx} ;
  double wy [2] = {(1.-sy/dy), sy/dy} ;
- double res=0 ;
+ double result=0 ;
  for(int jx=0; jx<2; jx++)
  for(int jy=0; jy<2; jy++){
-	 res += wx[jx]*wy[jy]*e[ix+jx][iy+jy] ;
+	 result += wx[jx]*wy[jy]*e[ix+jx][iy+jy] ;
  }
- return res ;
+ return result ;
 }
 
 } // end s95p

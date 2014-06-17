@@ -3,20 +3,27 @@ class EoS ;
 class Fluid ;
 class TF1 ;
 
+
+// this class takes care of the initial conditions for hydrodynamic evolution
 class IC
 {
- TF1 *iff ;
- double rho0, prms[4] ;
+ TF1 *iff ;  // instance of TF1 class used for numerical integration relevant to the initial conditions from optical Glauber approach
+ double rho0, prms[4] ; // relevant to the initial conditions from optical Glauber approach
  double *_rphi ;
  void findRPhi(void) ;
  double rPhi(double phi) ;
  
-  double WoodSaxon(double *x, double *p);
-  double Thickness(double *x, double *p);  
+  double WoodSaxon(double *x, double *p); // Wood-Saxon profile
+  double Thickness(double *x, double *p); // nuclear thickness profile function for optical Glauber approach
+// epsilon: normalization of the initial energy density
+// alpha: parameter relevant to the initial transverse flow
+// b: impact parameter (for optical Glauber)
 double epsilon, alpha, b ;
 public:
 	IC(double e, double impactPar, double a);
 	~IC(void);
+  // energy density profile at given point in transverse plane
 	double eProfile(double x, double y) ;
+  // setIC: initializes entire hydro grid at a given initial proper time tau
 	void setIC(Fluid *f, EoS* eos, double tau) ;
 };
