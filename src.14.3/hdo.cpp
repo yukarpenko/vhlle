@@ -15,7 +15,12 @@ using namespace std ;
 
 extern bool debugRiemann ;
 
-extern double sign(double x) ;
+double sign(double x)
+{
+	if(x>0) return 1. ;
+	else if(x<0.) return -1. ;
+	else return 0. ;
+}
 
 // this version contains NO PRE-ADVECTION for the IS solution
 
@@ -53,8 +58,10 @@ void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode)
 {
   // for all variables, suffix "l" = left state, "r" = right state
   // with respect to the cell boundary
-	double el, er, pl, pr, nbl, nql, nsl, nbr, nqr, nsr, vxl, vxr, vyl, vyr, vzl, vzr, bl, br, csb, vb, El, Er, dx ;
-	double Ftl, Fxl, Fyl, Fzl, Fbl, Fql, Fsl, Ftr, Fxr, Fyr, Fzr, Fbr, Fqr, Fsr ;
+	double el, er, pl, pr, nbl, nql, nsl, nbr, nqr, nsr, vxl, vxr, vyl, vyr,
+   vzl, vzr, bl=0., br=0., csb, vb, El, Er, dx=0. ;
+	double Ftl=0., Fxl=0., Fyl=0., Fzl=0., Fbl=0., Fql=0., Fsl=0., Ftr=0., Fxr=0.,
+   Fyr=0., Fzr=0., Fbr=0., Fqr=0., Fsr=0. ;
 	double U1l, U2l, U3l, U4l, Ubl, Uql, Usl, U1r, U2r, U3r, U4r, Ubr, Uqr, Usr ;
 	double flux [7] ;
 	const double dta = mode==0 ? dt/2. : dt ;
@@ -467,7 +474,7 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double& Pi, double 
 
 void Hydro::setNSvalues()
 {
-	double e, p, nb, nq, ns, vx, vy, vz, piNS[4][4], PiNS, dmu[4][4], du ;
+	double e, p, nb, nq, ns, vx, vy, vz, piNS[4][4], PiNS ;
 	for(int ix=0; ix<f->getNX(); ix++)
 	for(int iy=0; iy<f->getNY(); iy++)
 	for(int iz=0; iz<f->getNZ(); iz++){
@@ -702,7 +709,7 @@ void Hydro::visc_flux(Cell *left, Cell *right, int direction)
 {
  double flux[4] ;
  int ind2=0 ;
- double dxa ;
+ double dxa=0. ;
  // exit if noth cells are not full with matter
  if(left->getM(direction)<1. && right->getM(direction)<1.) return ;
 

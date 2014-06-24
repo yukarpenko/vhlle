@@ -87,7 +87,8 @@ void Fluid::initOutput(char *dir, int maxstep, double tau0, int cmpr2dOut)
     cout << "maxstep=" << maxstep << endl ;
       char command [255] ;
       sprintf(command, "mkdir -p %s",dir) ;
-      system(command) ;
+      int return_mkdir = system(command) ;
+      cout<<"mkdir returns: "<<return_mkdir<<endl ;
       string outx = dir ; outx.append("/outx.dat");
       string outxvisc = dir ; outxvisc.append("/outx.visc.dat");
       string outyvisc = dir ; outyvisc.append("/outy.visc.dat");
@@ -384,8 +385,6 @@ void Fluid::outputPDirections(double tau)
 	// 2d output - for escape4 calculation
 	for(int ix=2; ix<nx-2; ix++)
 	for(int iy=2; iy<ny-2; iy++){
-	double x = getX(ix) ;
-	double y = getY(iy) ;
 	getCMFvariables(getCell(ix,iy,nz/2), tau, e, nb, nq, ns, vx, vy, vz) ;
   eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
 	fout2d << " " << vx << " " << vy << " " << e << " " << t << " " << 0.0 << endl ;
@@ -493,8 +492,7 @@ void Fluid::calcTotals(double tau)
 {
  static double nbSurf = 0.0 ;
  double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz, Q[7] ;
- double E = 0., Efull = 0., Px=0., vt_num=0., vt_den=0., vxvy_num=0., vxvy_den=0., pi0x_num=0., pi0x_den=0.,
- txxyy_num=0., txxyy_den=0., Nb1 = 0., Nb2 = 0., S = 0. ;
+ double E = 0., Efull = 0., Px=0., Nb1 = 0., Nb2 = 0., S = 0. ;
  double eta=0 ;
 
  fout2d << endl ;

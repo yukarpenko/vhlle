@@ -20,7 +20,7 @@ CXXFLAGS     += $(ROOTCFLAGS) $(EXTRA_FLAGS)
 LIBS          = $(ROOTLIBS) $(SYSLIBS)
 GLIBS         = $(ROOTGLIBS) $(SYSLIBS)
 
-HYDROO        = cll.o eos.o eo3.o eo1.o eoChiral.o eoHadron.o trancoeff.o fld.o hdo.o s95p.o icurqmd.o ic.o ickw.o main.o rmn.o
+HYDROO        = cll.o eos.o trancoeff.o fld.o hdo.o s95p.o icurqmd.o ic.o main.o rmn.o
  
 VPATH=src.14.3
               

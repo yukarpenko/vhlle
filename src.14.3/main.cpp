@@ -15,9 +15,9 @@ using namespace std ;
 // program parameters, to be read from file
 int nx, ny, nz, eosType ;
 double xmin, xmax, ymin, ymax, etamin, etamax, tau0, tauMax, dtau ;
-char outputDir[255], eosFile[255], chiBfile[255], chiSfile[255] ;
+char outputDir[255] ;
 char icInputFile [255] ;
-double T_ch, mu_b, mu_q, mu_s, gammaS, gammaFactor, exclVolume, etaS, zetaS, eCrit ;
+double etaS, zetaS, eCrit ;
 int icModel, glauberVariable=1 ; // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
 double epsilon0, alpha, impactPar, s0ScaleFactor ;
 
@@ -33,9 +33,6 @@ void readParameters(char *parFile)
 	 sline >> parName >> parValue ;
 	 if     (strcmp(parName,"outputDir")==0) strcpy(outputDir, parValue) ;
 	 else if(strcmp(parName,"eosType")==0) eosType = atoi(parValue) ;
-	 else if(strcmp(parName,"eosFile")==0) strcpy(eosFile, parValue) ;
-	 else if(strcmp(parName,"chiBfile")==0) strcpy(chiBfile, parValue) ;
-	 else if(strcmp(parName,"chiSfile")==0) strcpy(chiSfile, parValue) ;
 	 else if(strcmp(parName,"icInputFile")==0) strcpy(icInputFile, parValue) ;
 	 else if(strcmp(parName,"nx")==0) nx = atoi(parValue) ;
 	 else if(strcmp(parName,"ny")==0) ny = atoi(parValue) ;
@@ -51,16 +48,9 @@ void readParameters(char *parFile)
 	 else if(strcmp(parName,"tau0")==0) tau0 = atof(parValue) ;
 	 else if(strcmp(parName,"tauMax")==0) tauMax = atof(parValue) ;
 	 else if(strcmp(parName,"dtau")==0) dtau = atof(parValue) ;
-	 else if(strcmp(parName,"T_ch")==0) T_ch = atof(parValue) ;
-	 else if(strcmp(parName,"mu_b")==0) mu_b = atof(parValue) ;
-	 else if(strcmp(parName,"mu_q")==0) mu_q = atof(parValue) ;
-	 else if(strcmp(parName,"mu_s")==0) mu_s = atof(parValue) ;
    else if(strcmp(parName,"e_crit")==0) eCrit = atof(parValue) ;
    else if(strcmp(parName,"etaS")==0) etaS = atof(parValue) ;
    else if(strcmp(parName,"zetaS")==0) zetaS = atof(parValue) ;
-	 else if(strcmp(parName,"gammaS")==0) gammaS = atof(parValue) ;
-	 else if(strcmp(parName,"gammaFactor")==0) gammaFactor = atof(parValue) ;
-	 else if(strcmp(parName,"exclVolume")==0) exclVolume = atof(parValue) ;
 	 else if(strcmp(parName,"epsilon0")==0) epsilon0 = atof(parValue) ;
 	 else if(strcmp(parName,"alpha")==0) alpha = atof(parValue) ;
 	 else if(strcmp(parName,"impactPar")==0) impactPar = atof(parValue) ;
@@ -76,9 +66,6 @@ void printParameters()
   cout << "====== parameters ======\n" ;
   cout << "outputDir = " << outputDir << endl ;
   cout << "eosType = " << eosType << endl ;
-  cout << "eosFile = " << eosFile << endl ;
-  cout << "chiBfile = " << chiBfile << endl ;
-  cout << "chiSfile = " << chiSfile << endl ;
   cout << "nx = " <<  nx << endl ;
   cout << "ny = " << ny << endl ;
   cout << "nz = " << nz << endl ;
@@ -93,16 +80,9 @@ void printParameters()
   cout << "tau0 = " << tau0 << endl ;
   cout << "tauMax = " << tauMax << endl ;
   cout << "dtau = " << dtau << endl ;
-  cout << "T_ch = " << T_ch << endl ;
-  cout << "mu_b = " << mu_b << endl ;
-  cout << "mu_q = " << mu_q << endl ;
-  cout << "mu_s = " << mu_s << endl ;
   cout << "e_crit = " << eCrit << endl ;
   cout << "eta/s = " << etaS << endl ;
   cout << "zeta/s = " << zetaS << endl ;
-  cout << "gammaS = " << gammaS << endl ;
-  cout << "gammaFactor = " << gammaFactor << endl ;
-  cout << "exclVolume = " << exclVolume << endl ;
   cout << "epsilon0 = " << epsilon0 << endl ;
   cout << "alpha = " << alpha << endl ;
   cout << "impactPar = " << impactPar << endl ;
@@ -131,7 +111,6 @@ int main(int argc, char **argv)
   time_t start=0, end ;
   
   time(&start);
-  int memory = 0 ;
 
   // read parameters from file
 	char* parFile ;
@@ -145,8 +124,8 @@ int main(int argc, char **argv)
 	printParameters() ;
   
   // EoS
-  char * eosfile = "eos/Laine_nf3.dat" ;
-  int ncols = 3, nrows = 286 ;
+  char eosfile [] = "eos/Laine_nf3.dat" ;
+  int ncols = 3 ;
   eos = new EoSs(eosfile,ncols) ;
   
   

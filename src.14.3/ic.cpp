@@ -50,7 +50,8 @@ double IC::eProfile(double x, double y)
     return epsilon*pow(1./rho0 * (tpp * (1.0 - pow((1.0 - sigma*tmm/A), A)) + tmm * (1.0 - pow((1.0 - sigma*tpp/A), A))), 1.0);
     }else if(icModel==2){
 	return s95p::getSongEps(x,y) ;
-    }
+    }else{
+      cout<<"icModel != 1,2 not implemented\n"; exit(1); }
 }
 
 
@@ -59,7 +60,7 @@ void IC::findRPhi(void)
   _rphi = new double [nphi] ;
   for(int iphi=0; iphi<nphi; iphi++){
     double phi = iphi*C_PI*2./(nphi-1) ;
-    double r, r1 = 0., r2 = 2.*Ra ;
+    double r=0., r1 = 0., r2 = 2.*Ra ;
     while(fabs((r2-r1)/r2)>0.001 && r2>0.001){
       r = 0.5*(r1+r2) ;
       if(eProfile(r*cos(phi),r*sin(phi))>0.5) r1 = r ;
@@ -83,9 +84,7 @@ double IC::rPhi(double phi)
 
 void IC::setIC(Fluid *f, EoS* eos, double tau)
 {
-	double e, nb, nq, e_corr, p, vx = 0. , vy = 0., vz = 0. ;
-	const double be = 1. ;
-	const double bn = 1. ;
+	double e, nb, nq, vx = 0., vy = 0., vz = 0. ;
 	Cell *c ;
 	ofstream fvel ("velocity_debug.txt");
 
