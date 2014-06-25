@@ -1,3 +1,21 @@
+/******************************************************************************
+*                                                                             *
+*            vHLLE : a 3D viscous hydrodynamic code                           *
+*            version 1.0,            November 2013                            *
+*            by Iurii Karpenko                                                *
+*  contact:  yu.karpenko@gmail.com                                            *
+*  For the detailed description please refer to:                              *
+*  http://arxiv.org/abs/1312.4160                                             *
+*                                                                             *
+*  This code can be freely used and redistributed, provided that this         *
+*  copyright appear in all the copies. If you decide to make modifications    *
+*  to the code, please contact the authors, especially if you plan to publish *
+* the results obtained with such modified code. Any publication of results    *
+* obtained using this code must include the reference to                      *
+* arXiv:1312.4160 [nucl-th] or the published version of it, when available.   *
+*                                                                             *
+*******************************************************************************/
+
 #include <iostream>
 #include <fstream>
 #include <iomanip>
@@ -490,7 +508,6 @@ void transformToLab(double eta, double &vx, double &vy, double &vz)
 
 void Fluid::calcTotals(double tau)
 {
- static double nbSurf = 0.0 ;
  double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz, Q[7] ;
  double E = 0., Efull = 0., Px=0., Nb1 = 0., Nb2 = 0., S = 0. ;
  double eta=0 ;
@@ -523,7 +540,6 @@ void Fluid::calcTotals(double tau)
  Efull=Efull*dx*dy*dz ;
  Nb1 *= dx*dy*dz ; Nb2 *= dx*dy*dz ;
  S *= dx*dy*dz ;
- cout << endl << setw(12) << "(cT)E = " << setw(14) << E << "  Efull = " << setw(14) << Efull <<"  Nb = " << setw(14) << nbSurf << endl ;
- cout << setw(12) << "Px = " << setw(14) << Px << endl ;
- cout << "Nb1 = " << setw(14) << Nb1 << "  Nb2 = " << setw(14) << Nb2 << "  S = " << setw(14) << S << endl ;
+ cout << setw(16) << "calcTotals: E = " << setw(14) << E << "  Efull = " << setw(14) << Efull << endl ;
+ cout << setw(16) << "Px = " << setw(14) << Px << "      S = " << setw(14) << S << endl ;
 }

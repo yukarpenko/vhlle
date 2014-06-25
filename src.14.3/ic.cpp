@@ -10,7 +10,6 @@
 #include "ic.h"
 #include "inc.h"
 #include "s95p.h"
-#include "icurqmd.h"
 
 using namespace std ;
 
