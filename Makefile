@@ -1,38 +1,33 @@
-CXX           =
-ObjSuf        = o
-SrcSuf        = cxx
-ExeSuf        =
-DllSuf        = so
-OutPutOpt     = -o
 
 ROOTCFLAGS   := $(shell root-config --cflags)
 ROOTLIBS     := $(shell root-config --libs)
-ROOTGLIBS    := $(shell root-config --glibs)
 
 CXX           = g++
 CXXFLAGS      = -Wall -fPIC -O3 -march=native
 LD            = g++
 LDFLAGS       = -O3 -march=native
-SOFLAGS       = -shared
 
 CXXFLAGS     += $(ROOTCFLAGS)
 LIBS          = $(ROOTLIBS) $(SYSLIBS)
-GLIBS         = $(ROOTGLIBS) $(SYSLIBS)
 
-HYDROO        = cll.o eos.o eo3.o eo1.o eoChiral.o eoHadron.o trancoeff.o fld.o hdo.o s95p.o icurqmd.o ic.o ickw.o icPartUrqmd.o main.o rmn.o cornelius.o
- 
-VPATH=src.14.3
+vpath %.cpp src
+objdir     = obj
+
+SRC        = cll.cpp eos.cpp eo3.cpp eo1.cpp eoChiral.cpp eoHadron.cpp trancoeff.cpp fld.cpp hdo.cpp s95p.cpp icurqmd.cpp ic.cpp ickw.cpp icPartUrqmd.cpp main.cpp rmn.cpp cornelius.cpp
+OBJS       = $(patsubst %.cpp,$(objdir)/%.o,$(SRC)) 
               
-TARGET	    = hlle_visc.14.3
+TARGET	   = hlle_visc.14.3
 #------------------------------------------------------------------------------
-$(TARGET):       $(HYDROO)
-		$(LD)  $(LDFLAGS) $^ $(OutPutOpt) $@ $(LIBS)
+$(TARGET):       $(OBJS)
+		$(LD)  $(LDFLAGS) $^ -o $@ $(LIBS)
 		@echo "$@ done"
 clean:
-		@rm -f $(HYDROO) $(TARGET)
+		@rm -f $(OBJS) $(TARGET)
 
-%.o : %.cxx
-	$(CXX) $(CXXFLAGS) -c $<
+$(OBJS): | $(objdir)
+
+$(objdir):
+	@mkdir -p $(objdir)
 	
-%.o : %.cpp
-	$(CXX) $(CXXFLAGS) -c $<
+obj/%.o : %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
