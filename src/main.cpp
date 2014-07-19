@@ -14,6 +14,7 @@
 #include "eo3.h"
 #include "eo1.h"
 #include "eoChiral.h"
+#include "eoAZH.h"
 #include "eoHadron.h"
 #include "trancoeff.h"
 
@@ -153,10 +154,11 @@ int main(int argc, char **argv)
 	printParameters() ;
   
   // EoS
-  char * eosfile = "eos/Laine_nf3.dat" ;
-  int ncols = 3, nrows = 286 ;
+  //char * eosfile = "eos/Laine_nf3.dat" ;
+  //int ncols = 3, nrows = 286 ;
   //eos = new EoSs(eosfile,ncols) ;
-  eos = new EoSChiral() ;
+  //eos = new EoSChiral() ;
+  eos = new EoSAZH() ;
   EoS* eosH = new EoSHadron("eos/eosHadron3D.dat") ;
   
   
