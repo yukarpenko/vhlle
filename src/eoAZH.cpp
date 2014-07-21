@@ -20,9 +20,11 @@ class EoSAZHaux{
   public:
     EoSAZHaux(const char *filename) ;
     ~EoSAZHaux() ;
+    inline double emin_() { return emin; }
     inline double emax() { return emin + de*(ne-1); }
     inline double nmax() { return nmin + dn*(nn-1); }
     double get(double e, double nb) ;
+    double getLow(double e, double nb) ;
 };
 
 EoSAZHaux::EoSAZHaux(const char *filename)
@@ -56,7 +58,7 @@ EoSAZHaux::~EoSAZHaux()
 
 double EoSAZHaux::get(double e, double nb)
 {
-	if(e<0.) { return 0.0; }
+ if(e<=0.) { return 0.0; }
   int ie = (int)((e-emin)/de) ;
   int in = (int)((nb-nmin)/dn);
   if(ie<0.) ie=0 ;
@@ -74,7 +76,26 @@ double EoSAZHaux::get(double e, double nb)
 	for(int jn=0; jn<2; jn++)
 		value += we[je]*wn[jn]*tab[ie+je][in+jn] ;
 //	if(value<0.0) value = 0.0 ;
+ if(value!=value) cout<<"EoSAZH: "<<e<<"  "<<nb<<"  "<<ie<<"  "<<in<<endl ;
  return value ;
+}
+
+
+double EoSAZHaux::getLow(double e, double nb)
+{
+ if(e<=0.) { return 0.0; }
+  if((nb-nmin)/dn>10000){
+   cout<<"getLow: "<<e<<"  "<<nb*e/emin<<endl ;
+   exit(1) ;
+  }
+  int in = (int)((nb-nmin)/dn);
+  if(in<0.) in=0 ;
+  if(in>nn-2) in=nn-2 ;
+  const double nm = (nb-nmin-in*dn)/dn ;
+  double wn [2] = {1.-nm, nm} ;
+ double value = wn[0]*tab[0][in]+wn[1]*tab[0][in+1] ;
+ if(value!=value) cout<<"EoSAZH,getLow: "<<e<<"  "<<nb<<"  "<<in<<endl ;
+ return value*e/emin ;
 }
 
 
@@ -107,9 +128,15 @@ void EoSAZH::eos(double e, double nb, double nq, double ns,
   T = T2->get(e, fabs(nb)) ;
   mub = mu2->get(e, nb) ;
  }else{
+  if(e>p1->emin_()){
   p = p1->get(e, fabs(nb)) ;
   T = T1->get(e, fabs(nb)) ;
   mub = mu1->get(e, nb) ;
+  }else{
+  p = p1->getLow(e, fabs(nb)) ;
+  T = T1->getLow(e, fabs(nb)) ;
+  mub = mu1->getLow(e, nb) ;
+  }
  }
  muq = mus = 0.0 ;
 }
@@ -119,6 +146,8 @@ double EoSAZH::p(double e, double nb, double nq, double ns)
 {
  if(e>p1->emax())
   return p2->get(e, fabs(nb)) ;
- else
-  return p1->get(e, fabs(nb)) ;
+ else if(e>p1->emin_())
+   return p1->get(e, fabs(nb)) ;
+  else
+   return p1->getLow(e, fabs(nb)) ;
 }

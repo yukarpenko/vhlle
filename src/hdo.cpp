@@ -13,7 +13,7 @@
 
 using namespace std ;
 
-extern bool debugRiemann ;
+//extern bool debugRiemann ;
 
 extern double sign(double x) ;
 
@@ -79,12 +79,12 @@ void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode)
 	if(el>1e10){
 		cout << "e>1e10; debug info below:\n" ;
 		left->Dump(tau) ;
-		debugRiemann = true ;
+		//debugRiemann = true ;
 	if(mode==PREDICT)
 	left->getPrimVarRight(eos, tau, el, pl, nbl, nql, nsl, vxl, vyl, vzl, direction) ;
 	else
 	left->getPrimVarHRight(eos, tau, el, pl, nbl, nql, nsl, vxl, vyl, vzl, direction) ;
-	debugRiemann = false ;
+	//debugRiemann = false ;
 	exit(0) ;
 	}
 
@@ -834,7 +834,7 @@ void Hydro::visc_flux(Cell *left, Cell *right, int direction)
 
 void Hydro::performStep(void)
 {
-  debugRiemann = false ; // turn off debug output
+ //debugRiemann = false ; // turn off debug output
 
 	f->updateM(tau, dt) ;
 
