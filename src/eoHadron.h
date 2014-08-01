@@ -2,8 +2,9 @@ class EoS ;
 
 class EoSHadron : public EoS
 {
-  double emax, nbmax, nqmax, emin, nbmin, nqmin ;
+  double e0, n0, logemin, logemax, lognmax ;
   int ne, nnb, nnq ;
+  double nb_abs_min, nq_abs_min, e_min ;
   double *ptab, *Ttab, *mubtab, *muqtab, *mustab ;
   int *statustab ;
   inline int index3(int ie, int inb, int inq)

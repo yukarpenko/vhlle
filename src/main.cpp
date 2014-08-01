@@ -159,8 +159,7 @@ int main(int argc, char **argv)
   //eos = new EoSs(eosfile,ncols) ;
   //eos = new EoSChiral() ;
   eos = new EoSAZH() ;
-  EoS* eosH = new EoSHadron("eos/eosHadron3D.dat") ;
-  
+  EoS* eosH = new EoSHadron("eos/eosHadronLog.dat") ;
   
   // transport coefficients
   trcoeff = new TransportCoeff(etaS, zetaS, eos) ;
