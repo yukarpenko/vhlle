@@ -538,10 +538,10 @@ void Fluid::outputSurface(double tau)
 {
  static double nbSurf = 0.0 ;
  double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz, Q[7] ;
- double E = 0., Efull = 0., Px=0., vt_num=0., vt_den=0., vxvy_num=0., vxvy_den=0., pi0x_num=0., pi0x_den=0.,
- txxyy_num=0., txxyy_den=0., Nb1 = 0., Nb2 = 0. ;
+ double E=0., Efull=0., S=0., Px=0., vt_num=0., vt_den=0., vxvy_num=0.,
+  vxvy_den=0., pi0x_num=0., pi0x_den=0., txxyy_num=0., txxyy_den=0., Nb1 = 0., Nb2 = 0. ;
  double eta=0 ;
- int nelements=0 ;
+ int nelements=0, nsusp=0 ; // all surface emenents and suspicious ones
 //-- Cornelius: allocating memory for corner points
   double ****ccube = new double***[2];
   for (int i1=0; i1 < 2; i1++) {
@@ -565,6 +565,7 @@ void Fluid::outputSurface(double tau)
   getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz) ;
   c->getQ(Q) ;
   eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
+  double s = eos->s(e, nb, nq, ns) ;
   eta=getZ(iz) ;
   const double cosh_int = (sinh(eta+0.5*dz)-sinh(eta-0.5*dz))/dz ;
   const double sinh_int = (cosh(eta+0.5*dz)-cosh(eta-0.5*dz))/dz ;
@@ -579,6 +580,17 @@ void Fluid::outputSurface(double tau)
 //--------------
   Efull += tau*(e+p)/(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz))*(cosh(eta)-tanh(vz)*sinh(eta)) - tau*p*cosh(eta) ;
   if(trcoeff->isViscous()) Efull += tau*c->getpi(0,0)*cosh(eta)+tau*c->getpi(0,3)*sinh(eta);
+  // -- noneq. corrections to entropy flux
+  const double gmumu[4] = {1., -1., -1., -1.} ;
+  double deltas = 0. ;
+  if(trcoeff->isViscous())
+  for(int i=0; i<4; i++)
+  for(int j=0; j<4; j++)
+  deltas += pow(c->getpi(i,j),2)*gmumu[i]*gmumu[j] ;
+  if(t>0.02){
+   s += 1.5*deltas/((e+p)*t) ;
+   S += tau*s*(cosh_int-tanh(vz)*sinh_int)/sqrt(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz)) ;
+  }
   Px += tau*(e+p)*vx/(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz)) ;
   vt_num += e/sqrt(1.-vx*vx-vy*vy)*sqrt(vx*vx+vy*vy) ;
   vt_den += e/sqrt(1.-vx*vx-vy*vy) ;
@@ -653,6 +665,7 @@ void Fluid::outputSurface(double tau)
     if(TC>0.4 || fabs(mubC)>0.85){
       cout << "#### Error (surface): high T/mu_b ####\n" ;
     }
+    if(eC>ecrit*2.0 || eC<ecrit*0.5) nsusp++ ;
     //double Teos ;
     //eos->eos(eC,0.,0.,0.,Teos, mub, muq, mus, p) ; // now temperature from EoS
     //if(fabs(eC-0.5)>0.01) {cout<<"+++ eC= "<<setw(14)<<eC<<", cell "<<ix<<" "<<iy<<" "<<iz<<endl;}
@@ -742,10 +755,12 @@ void Fluid::outputSurface(double tau)
  }
  E=E*dx*dy*dz ;
  Efull=Efull*dx*dy*dz ;
+ S=S*dx*dy*dz ;
  Nb1 *= dx*dy*dz ; Nb2 *= dx*dy*dz ;
  fout_aniz << setw(12) << tau << setw(14) << vt_num/vt_den <<
  setw(14) << vxvy_num/vxvy_den << setw(14) << pi0x_num/pi0x_den << endl ;
- cout << setw(10) << tau << setw(12) << "E = " << setw(14) << E << "  Efull = " << setw(14) << Efull <<"  Nb = " << setw(14) << nbSurf << endl ;
+ cout << setw(10) << tau << setw(13) << E << setw(13) << Efull << setw(13) << nbSurf
+   << setw(13) << S << setw(10) << nelements << setw(10) << nsusp << endl ;
 // cout << setw(12) << "Px = " << setw(14) << Px << "  vEff = " << vEff << "  Esurf = " <<setw(14)<<EtotSurf << endl ;
 // cout << "Nb1 = " << setw(14) << Nb1 << "  Nb2 = " << setw(14) << Nb2 << endl ;
 //-- Cornelius: all done, let's free memory
@@ -771,8 +786,8 @@ void Fluid::outputCorona(double tau)
 {
  static double nbSurf = 0.0 ;
  double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz, Q[7] ;
- double E = 0., Efull = 0., Px=0., vt_num=0., vt_den=0., vxvy_num=0., vxvy_den=0., pi0x_num=0., pi0x_den=0.,
- txxyy_num=0., txxyy_den=0., Nb1 = 0., Nb2 = 0. ;
+ double E=0., Efull=0., S=0., Px=0., vt_num=0., vt_den=0., vxvy_num=0.,
+  vxvy_den=0., pi0x_num=0., pi0x_den=0., txxyy_num=0., txxyy_den=0., Nb1 = 0., Nb2 = 0. ;
  double eta=0 ;
  int nelements=0 ;
 
@@ -787,6 +802,7 @@ void Fluid::outputCorona(double tau)
   getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz) ;
   c->getQ(Q) ;
   eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
+  double s = eos->s(e, nb, nq, ns) ;
   eta=getZ(iz) ;
   const double cosh_int = (sinh(eta+0.5*dz)-sinh(eta-0.5*dz))/dz ;
   const double sinh_int = (cosh(eta+0.5*dz)-cosh(eta-0.5*dz))/dz ;
@@ -801,6 +817,17 @@ void Fluid::outputCorona(double tau)
 //--------------
   Efull += tau*(e+p)/(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz))*(cosh(eta)-tanh(vz)*sinh(eta)) - tau*p*cosh(eta) ;
   if(trcoeff->isViscous()) Efull += tau*c->getpi(0,0)*cosh(eta)+tau*c->getpi(0,3)*sinh(eta);
+  // -- noneq. corrections to entropy flux
+  const double gmumu[4] = {1., -1., -1., -1.} ;
+  double deltas = 0. ;
+  if(trcoeff->isViscous())
+  for(int i=0; i<4; i++)
+  for(int j=0; j<4; j++)
+  deltas += pow(c->getpi(i,j),2)*gmumu[i]*gmumu[j] ;
+  if(t>0.02){
+   s += 1.5*deltas/((e+p)*t) ;
+   S += tau*s*(cosh_int-tanh(vz)*sinh_int)/sqrt(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz)) ;
+  }
   Px += tau*(e+p)*vx/(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz)) ;
   vt_num += e/sqrt(1.-vx*vx-vy*vy)*sqrt(vx*vx+vy*vy) ;
   vt_den += e/sqrt(1.-vx*vx-vy*vy) ;
@@ -917,10 +944,14 @@ void Fluid::outputCorona(double tau)
  }
  E=E*dx*dy*dz ;
  Efull=Efull*dx*dy*dz ;
+ S=S*dx*dy*dz ;
  Nb1 *= dx*dy*dz ; Nb2 *= dx*dy*dz ;
  fout_aniz << setw(12) << tau << setw(14) << vt_num/vt_den <<
  setw(14) << vxvy_num/vxvy_den << setw(14) << pi0x_num/pi0x_den << endl ;
- cout << setw(10) << tau << setw(12) << "E = " << setw(14) << E << "  Efull = " << setw(14) << Efull <<"  Nb = " << setw(14) << nbSurf << endl ;
+ cout << setw(10) << "tau" << setw(13) << "E" << setw(13) << "Efull" << setw(13) << "Nb"
+  << setw(13) << "Sfull" << setw(10) << "elements" << setw(10) << "susp." << endl ;
+ cout << setw(10) << tau << setw(13) << E << setw(13) << Efull << setw(13) << nbSurf
+  << setw(13) << S << endl ;
 // cout << setw(12) << "Px = " << setw(14) << Px << "  vEff = " << vEff << "  Esurf = " <<setw(14)<<EtotSurf << endl ;
 // cout << "Nb1 = " << setw(14) << Nb1 << "  Nb2 = " << setw(14) << Nb2 << endl ;
 #ifdef SWAP_EOS
