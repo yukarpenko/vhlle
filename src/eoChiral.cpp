@@ -104,8 +104,8 @@ void EoSaux::get(double e, double nb, double& p, double& T, double& mub, double 
   const double em =  e-emin-ie*de ;
   const double nm = nb-nmin-in*dn ;
                 
-	double we [2] = {1.-em, em} ;
-	double wn [2] = {1.-nm, nm} ;
+	double we [2] = {1.-em/de, em/de} ;
+	double wn [2] = {1.-nm/dn, nm/dn} ;
 
 	T = mub = mus = p = 0.0 ;
 	for(int je=0; je<2; je++)
@@ -134,8 +134,8 @@ double EoSaux::p(double e, double nb)
   const double em =  e-emin-ie*de ;
   const double nm = nb-nmin-in*dn ;
                 
-	double we [2] = {1.-em, em} ;
-	double wn [2] = {1.-nm, nm} ;
+	double we [2] = {1.-em/de, em/de} ;
+	double wn [2] = {1.-nm/dn, nm/dn} ;
 
 	double p = 0.0 ;
 	for(int je=0; je<2; je++)
