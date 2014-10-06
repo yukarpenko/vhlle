@@ -22,7 +22,7 @@ class IcPartUrqmd
   void makeSmoothTable(int npart) ;
   
   public:
-  IcPartUrqmd(Fluid *f, char* filename, double Rgauss, double tau0) ;
+  IcPartUrqmd(Fluid *f, char* filename, double _Rgt, double _Rgz, double tau0) ;
   ~IcPartUrqmd() ;
   void setIC(Fluid *f, EoS *eos) ;
 };

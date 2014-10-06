@@ -13,7 +13,7 @@
 
 using namespace std ;
 
-IcPartUrqmd::IcPartUrqmd(Fluid *f, char* filename, double Rgauss, double _tau0)
+IcPartUrqmd::IcPartUrqmd(Fluid *f, char* filename, double _Rgt, double _Rgz, double _tau0)
 {
   nx = f->getNX() ;
   ny = f->getNY() ;
@@ -29,9 +29,9 @@ IcPartUrqmd::IcPartUrqmd(Fluid *f, char* filename, double Rgauss, double _tau0)
   zmax = f->getZ(nz-1) ;
 
   tau0 = _tau0 ;
-  Rgx = Rgauss ;
-  Rgy = Rgauss ;
-  Rgz = Rgauss ;
+  Rgx = _Rgt ;
+  Rgy = _Rgt ;
+  Rgz = _Rgz ;
   nsmoothx = (int)(6.0*Rgx/dx) ; // smoothly distribute to +- this many cells
   nsmoothy = (int)(6.0*Rgy/dy) ;
   nsmoothz = (int)(1.5*Rgz/dz) ;
@@ -209,7 +209,7 @@ void IcPartUrqmd::setIC(Fluid *f, EoS *eos)
     if(ix==nx/2 && iy==ny/2 && iz==nz/2) cout<<"IcUrqmd, center: "<<xmin+ix*dx<<"  "<<zmin+iz*dz<<
     "  "<<Q[T_]<<"  "<<Q[Z_]<<endl ;
     transformPV(eos, Q, e, p, nb, nq, ns, vx, vy, vz) ;
-    if(e<1e-10 || fabs(f->getX(ix))>10. || fabs(f->getY(iy))>10. || fabs(f->getZ(iz))>4.)
+    if(e<1e-7 || fabs(f->getX(ix))>10. || fabs(f->getY(iy))>10. || fabs(f->getZ(iz))>5.)
     { e = nb = nq = 0.0 ;
     vx = vy = vz = 0.0 ; }
     Cell* c = f->getCell(ix,iy,iz) ;

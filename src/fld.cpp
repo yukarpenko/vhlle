@@ -542,6 +542,7 @@ void Fluid::outputSurface(double tau)
   vxvy_den=0., pi0x_num=0., pi0x_den=0., txxyy_num=0., txxyy_den=0., Nb1 = 0., Nb2 = 0. ;
  double eta=0 ;
  int nelements=0, nsusp=0 ; // all surface emenents and suspicious ones
+ int nCoreCells=0, nCoreCutCells=0 ; // cells with e>eCrit and cells with cut visc.corr.
 //-- Cornelius: allocating memory for corner points
   double ****ccube = new double***[2];
   for (int i1=0; i1 < 2; i1++) {
@@ -580,6 +581,10 @@ void Fluid::outputSurface(double tau)
 //--------------
   Efull += tau*(e+p)/(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz))*(cosh(eta)-tanh(vz)*sinh(eta)) - tau*p*cosh(eta) ;
   if(trcoeff->isViscous()) Efull += tau*c->getpi(0,0)*cosh(eta)+tau*c->getpi(0,3)*sinh(eta);
+  if(e>ecrit){
+   nCoreCells++ ;
+   if(c->getViscCorrCutFlag()<0.9) nCoreCutCells++ ;
+  }
   // -- noneq. corrections to entropy flux
   const double gmumu[4] = {1., -1., -1., -1.} ;
   double deltas = 0. ;
@@ -760,7 +765,8 @@ void Fluid::outputSurface(double tau)
  fout_aniz << setw(12) << tau << setw(14) << vt_num/vt_den <<
  setw(14) << vxvy_num/vxvy_den << setw(14) << pi0x_num/pi0x_den << endl ;
  cout << setw(10) << tau << setw(13) << E << setw(13) << Efull << setw(13) << nbSurf
-   << setw(13) << S << setw(10) << nelements << setw(10) << nsusp << endl ;
+   << setw(13) << S << setw(10) << nelements << setw(10) << nsusp 
+   << setw(13) << (float)(nCoreCutCells)/(float)(nCoreCells) << endl ;
 // cout << setw(12) << "Px = " << setw(14) << Px << "  vEff = " << vEff << "  Esurf = " <<setw(14)<<EtotSurf << endl ;
 // cout << "Nb1 = " << setw(14) << Nb1 << "  Nb2 = " << setw(14) << Nb2 << endl ;
 //-- Cornelius: all done, let's free memory
@@ -949,7 +955,7 @@ void Fluid::outputCorona(double tau)
  fout_aniz << setw(12) << tau << setw(14) << vt_num/vt_den <<
  setw(14) << vxvy_num/vxvy_den << setw(14) << pi0x_num/pi0x_den << endl ;
  cout << setw(10) << "tau" << setw(13) << "E" << setw(13) << "Efull" << setw(13) << "Nb"
-  << setw(13) << "Sfull" << setw(10) << "elements" << setw(10) << "susp." << endl ;
+  << setw(13) << "Sfull" << setw(10) << "elements" << setw(10) << "susp." << setw(13) << "\%cut" << endl ;
  cout << setw(10) << tau << setw(13) << E << setw(13) << Efull << setw(13) << nbSurf
   << setw(13) << S << endl ;
 // cout << setw(12) << "Px = " << setw(14) << Px << "  vEff = " << vEff << "  Esurf = " <<setw(14)<<EtotSurf << endl ;

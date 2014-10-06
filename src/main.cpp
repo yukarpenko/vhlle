@@ -27,7 +27,7 @@ char outputDir[255], eosFile[255], chiBfile[255], chiSfile[255] ;
 char icInputFile [255] ;
 double T_ch, mu_b, mu_q, mu_s, gammaS, gammaFactor, exclVolume, etaS, zetaS, eCrit ;
 int icModel, glauberVariable=1 ; // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
-double epsilon0, Rgauss, impactPar, s0ScaleFactor ;
+double epsilon0, Rgt, Rgz, impactPar, s0ScaleFactor ;
 
 void readParameters(char *parFile)
 {
@@ -70,7 +70,8 @@ void readParameters(char *parFile)
 	 else if(strcmp(parName,"gammaFactor")==0) gammaFactor = atof(parValue) ;
 	 else if(strcmp(parName,"exclVolume")==0) exclVolume = atof(parValue) ;
 	 else if(strcmp(parName,"epsilon0")==0) epsilon0 = atof(parValue) ;
-	 else if(strcmp(parName,"Rg")==0) Rgauss = atof(parValue) ;
+	 else if(strcmp(parName,"Rg")==0) Rgt = atof(parValue) ;
+	 else if(strcmp(parName,"Rgz")==0) Rgz = atof(parValue) ;
 	 else if(strcmp(parName,"impactPar")==0) impactPar = atof(parValue) ;
 	 else if(strcmp(parName,"s0ScaleFactor")==0) s0ScaleFactor = atof(parValue) ;
 	 else if(parName[0]=='!') cout << "CCC " << sline.str() << endl ;
@@ -112,7 +113,7 @@ void printParameters()
   cout << "gammaFactor = " << gammaFactor << endl ;
   cout << "exclVolume = " << exclVolume << endl ;
   cout << "epsilon0 = " << epsilon0 << endl ;
-  cout << "Rg = " << Rgauss << endl ;
+  cout << "Rgt = " << Rgt << "  Rgz = " << Rgz << endl ;
   cout << "impactPar = " << impactPar << endl ;
   cout << "s0ScaleFactor = " << s0ScaleFactor << endl ;
   cout << "======= end parameters =======\n" ;
@@ -171,7 +172,7 @@ int main(int argc, char **argv)
   cout << "fluid allocation done\n" ;
 
   // initilal conditions
-  IcPartUrqmd *ic = new IcPartUrqmd(f,icInputFile,Rgauss,tau0) ;
+  IcPartUrqmd *ic = new IcPartUrqmd(f,icInputFile,Rgt,Rgz,tau0) ;
   ic->setIC(f,eos) ;
   delete ic ;
 	cout<<"IC done\n" ;
