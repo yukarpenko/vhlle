@@ -102,9 +102,7 @@ void Cell::getPrimVarLeft(EoS *eos, double tau, double &_e, double &_p, double &
 		for(int i=0; i<7; i++) dQ[i] = minmod((Qr[i]-Q[i])/2., (Q[i]-Ql[i])/2.) ;
 
 		for(int i=0; i<7; i++) Ql[i] = (Q[i] - dQ[i])/tau ;
-	//	if(Ql[T_]<sqrt(Ql[X_]*Ql[X_]+Ql[Y_]*Ql[Y_]+Ql[Z_]*Ql[Z_])) 
 			transformPV(eos, Ql, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz) ;
-	//	else	transformPV(eos, Q, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz) ;
 //-------------------- debug ---------------
 	if(_nb!=_nb){
 		cout << "---error in getPrimVarLeft:\n" ;
@@ -125,9 +123,7 @@ void Cell::getPrimVarRight(EoS *eos, double tau, double &_e, double &_p, double 
 		for(int i=0; i<7; i++) dQ[i] = minmod((Qr[i]-Q[i])/2., (Q[i]-Ql[i])/2.) ;
 
 		for(int i=0; i<7; i++) Qr[i] = (Q[i] + dQ[i])/tau ;
-	//	if(Qr[T_]<sqrt(Qr[X_]*Qr[X_]+Qr[Y_]*Qr[Y_]+Qr[Z_]*Qr[Z_])) 
 			transformPV(eos, Qr, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz) ;
-	//	else	transformPV(eos, Q, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz) ;
 //-------------------- debug ---------------
 	if(_nb!=_nb){
 		cout << "---error in getPrimVarRight:\n" ;
@@ -149,9 +145,7 @@ void Cell::getPrimVarHLeft(EoS *eos, double tau, double &_e, double &_p, double 
 		for(int i=0; i<7; i++) dQ[i] = minmod((Qr[i]-Qh[i])/2., (Qh[i]-Ql[i])/2.) ;
 
 		for(int i=0; i<7; i++) Ql[i] = (Qh[i] - dQ[i])/tau ;
-	//	if(Ql[T_]<sqrt(Ql[X_]*Ql[X_]+Ql[Y_]*Ql[Y_]+Ql[Z_]*Ql[Z_])) 
 			transformPV(eos, Ql, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz) ;
-	//	else	transformPV(eos, Qh, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz) ;
 //-------------------- debug ---------------
 	if(_nb!=_nb){
 		cout << "---error in getPrimVarHLeft:\n" ;
@@ -172,9 +166,7 @@ void Cell::getPrimVarHRight(EoS *eos, double tau, double &_e, double &_p, double
 		for(int i=0; i<7; i++) dQ[i] = minmod((Qr[i]-Qh[i])/2., (Qh[i]-Ql[i])/2.) ;
 
 		for(int i=0; i<7; i++) Qr[i] = (Qh[i] + dQ[i])/tau ;
-	//	if(Qr[T_]<sqrt(Qr[X_]*Qr[X_]+Qr[Y_]*Qr[Y_]+Qr[Z_]*Qr[Z_])) 
 			transformPV(eos, Qr, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz) ;
-	//	else	transformPV(eos, Qh, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz) ;
 //-------------------- debug ---------------
 	if(_nb!=_nb){
 		cout << "---error in getPrimVarHRight:\n" ;

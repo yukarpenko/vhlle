@@ -2,8 +2,6 @@
 #include <iosfwd>
 #include <algorithm>
 #include "inc.h"
-//#include "eos.h"
-//#include "rmn.h"
 class EoS ;
 
 int index44(const int &i, const int &j) ;

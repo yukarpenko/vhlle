@@ -1,3 +1,21 @@
+/******************************************************************************
+*                                                                             *
+*            vHLLE : a 3D viscous hydrodynamic code                           *
+*            version 1.1,            October 2014                            *
+*            by Iurii Karpenko                                                *
+*  contact:  yu.karpenko@gmail.com                                            *
+*  For the detailed description please refer to:                              *
+*  http://arxiv.org/abs/1312.4160                                             *
+*                                                                             *
+*  This code can be freely used and redistributed, provided that this         *
+*  copyright appear in all the copies. If you decide to make modifications    *
+*  to the code, please contact the authors, especially if you plan to publish *
+* the results obtained with such modified code. Any publication of results    *
+* obtained using this code must include the reference to                      *
+* arXiv:1312.4160 [nucl-th] or the published version of it, when available.   *
+*                                                                             *
+*******************************************************************************/
+
 #include <iostream>
 #include <fstream>
 #include <iomanip>
@@ -33,7 +51,6 @@ Hydro::Hydro(Fluid *_f, EoS *_eos, TransportCoeff *_trcoeff, double _t0, double 
 	f = _f ;
 	dt = _dt ;
 	tau = _t0 ;
-	//foutNS.open("outputNS.dat") ;
 }
 
 Hydro::~Hydro()
@@ -208,15 +225,10 @@ void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode)
 		if(el==0.) bl = -1./tau ;
 		if(er==0.) br = 1./tau ;
 	}
-//	bl = min(0., (vxl-EoS::cs(el))/(1-vxl*EoS::cs(el)) ) ;
-//	br = max(0., (vxr+EoS::cs(er))/(1+vxr*EoS::cs(er)) ) ;
 	
 	if(bl==0. && br==0.) return ;
 
 
-//	if(br>bl){
-//	double Qr [7] ; right->getQ(Qr) ; // incorrect !
-//	double Ql [7] ; left->getQ(Ql) ;
 	flux[T_] = tauFactor*dta/dx*( -bl*br*(U4l-U4r) + br*Ftl - bl*Ftr ) / (-bl + br) ;
 	flux[X_] = tauFactor*dta/dx*( -bl*br*(U1l-U1r) + br*Fxl - bl*Fxr ) / (-bl + br) ;
 	flux[Y_] = tauFactor*dta/dx*( -bl*br*(U2l-U2r) + br*Fyl - bl*Fyr ) / (-bl + br) ;
@@ -224,12 +236,6 @@ void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode)
 	flux[NB_] = tauFactor*dta/dx*( -bl*br*(Ubl-Ubr) + br*Fbl - bl*Fbr ) / (-bl + br) ;
 	flux[NQ_] = tauFactor*dta/dx*( -bl*br*(Uql-Uqr) + br*Fql - bl*Fqr ) / (-bl + br) ;
 	flux[NS_] = tauFactor*dta/dx*( -bl*br*(Usl-Usr) + br*Fsl - bl*Fsr ) / (-bl + br) ;
-//	}
-//	else{// br<bl
-//		cout << "HLLE : failed\n" ; exit(1) ;
-//		if(fabs(bl)>fabs(br)) { flux[T_] = dta/f->getDx()*Ftl ; flux[X_] = dta/f->getDx()*Fxl ; flux[Y_] = flux[Z_] = 0. ; }
-//		else { flux[T_] = dta/f->getDx()*Ftr ; flux[X_] = dta/f->getDx()*Fxr ; flux[Y_] = flux[Z_] = 0. ; }
-//	}
 
 	if(!(flux[NB_]>=0. || flux[NB_]<0.)){
 		cout<<"---- error in hlle_flux: f_nb undefined!\n" ;
@@ -312,19 +318,7 @@ void Hydro::visc_source_step(int ix, int iy, int iz)
 	k[Y_] = -(c->getpiH(0,2)+c->getPiH()*uuu[0]*uuu[2])/(tau-0.5*dt) ;
 	k[Z_] = -2.0*(c->getpiH(0,3)+c->getPiH()*uuu[0]*uuu[3])/(tau-0.5*dt) ;
 	for(int i=0; i<4; i++) k[i] *= dt ;
-
-//	if(!(k[NB_]>=0. || k[NB_]<0.)){
-//		cout<<"---- error in source_step: k_nb undefined!\n" ;
-//		cout << setw(12) << k[0] << setw(12) << k[1] << setw(12) << k[2] << setw(12) << k[3] << endl ;
-//		cout << setw(12) << k[4] << setw(12) << k[5] << setw(12) << k[6] << endl ;
-//		exit(1) ;
-//	}
-//----- debug
-	//if(ix==36&&iy==50&&iz==2){
-	 //cout<<"visc_source_step:" ;
-	 //for(int i=0; i<4; i++)cout<<setw(14)<<k[i]; cout<<endl ;
-	//}
-		c->addFlux(k[T_], k[X_], k[Y_], k[Z_], 0., 0., 0.) ;
+	c->addFlux(k[T_], k[X_], k[Y_], k[Z_], 0., 0., 0.) ;
 }
 
 // dv/d(tau) = v^{t+dt}_ideal - v^{t}
@@ -384,10 +378,6 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double& Pi, double 
 		if(e1<=0. || e0<=0.){ // matter-vacuum
 		dmu[0][0]=dmu[0][1]=dmu[0][2]=dmu[0][3]=0. ;
 		}
-		//if(fabs(dmu[0][0])>200){
-			//cout<<"|dmu[0][0]|>2000  triggered"<<ut1<<"  "<<ut0<<endl ;
-			//exit(1) ;
-		//}
 		// d_x u^\mu
 		f->getCell(ix+1, iy, iz)->getPrimVarHCenter(eos, tau, e1, p, nb, nq, ns, vx1, vy1, vz1) ;
 		f->getCell(ix-1, iy, iz)->getPrimVarHCenter(eos, tau, e0, p, nb, nq, ns, vx0, vy0, vz0) ;
@@ -478,37 +468,6 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double& Pi, double 
 	 exit(1) ;
 	 }
 	}
-	//for(int i=0; i<4; i++){
-	//ccccc transversality check for pi[][]
-	 //if(fabs(pi[i][0]*uuu[0]-pi[i][1]*uuu[1]-pi[i][2]*uuu[2]-pi[i][3]*tau*tau*uuu[3])/
-	 //max(fabs(pi[i][0]),max(fabs(pi[i][1]),max(fabs(pi[i][2]),fabs(pi[i][3]))))>1e-2)
-	  //cout << "non-transverse: "<<setw(14)<<pi[i][0]<<setw(14)<<pi[i][1]
-	  //<<setw(14)<<pi[i][2]<<setw(14)<<pi[i][3]<<endl
-	  //<<setw(14)<<uuu[0]<<setw(14)<<uuu[1]<<setw(14)<<uuu[2]<<setw(14)<<uuu[3]<<endl ;
-	  //ccccc transversality check for Delta[][]
-	  //double _sum = dmu[i][0]*uuu[0]-dmu[i][1]*uuu[1]-dmu[i][2]*uuu[2]-dmu[i][3]*uuu[3]/tau/tau ;
-	  //double _sum = (gmunu[0][i]-uuu[i]*uuu[0])*uuu[0] - (gmunu[1][i]-uuu[i]*uuu[1])*uuu[1]
-	  // - (gmunu[2][i]-uuu[i]*uuu[2])*uuu[2] -(gmunu[3][i]-uuu[i]*uuu[3])*uuu[3]/tau/tau ;
-	 //if(fabs(_sum)/max(fabs(uuu[0]),max(fabs(uuu[1]),max(fabs(uuu[2]),fabs(uuu[3]))))>1e-5)
-	  //cout << "non-transverse: dir= "<<setw(5)<<i<<setw(14)<<_sum<<endl
-	  //<<setw(14)<<uuu[0]<<setw(14)<<uuu[1]<<setw(14)<<uuu[2]<<setw(14)<<uuu[3]<<endl ;
-	//}
-//    if(Pi!=0. && iy==f->getNY()/2 && iz==f->getNZ()/2)
-//    cout << setw(14) << "trace pi/pi=" << setw(14) << 
-//	(pi[0][0]-pi[1][1]-pi[2][2]-tau*tau*pi[3][3])/(pi[3][3]+1e-50) << endl ;
-
-//----- debug - finding the maximal value of dmu
- //double dmumax=0. ;
- //for(int i=0; i<4; i++)
- //for(int j=0; j<4; j++)
-  //if(fabs(dmu[i][j])>dmumax) dmumax=fabs(dmu[i][j]) ;
- //if(dmumax>200){
-  //cout<<"dmu>200 triggered; cell # " << ix << " " << iy << " " << iz << ", dmu matrix below\n" ;
-  //for(int i=0; i<4; i++){
-  //for(int j=0; j<4; j++) cout << setw(14) << dmu[i][j] ;
-  //cout << endl ;
-  //}
- //}
 }
 
 
@@ -561,20 +520,11 @@ void Hydro::ISformal()
      }
     c->setPiH0(0.0) ;
     c->setPi0(0.0) ;
-//############# debug output: expansion rate, gamma derivative
-//    if(iz==f->getNZ()/2){
-//    foutNS<<setw(14)<<tau<<setw(4)<<ix<<setw(4)<<iy ;
-//    for(int p=0; p<7; p++) foutNS<<setw(14)<<0 ;  foutNS<<endl ;}
     }else{ // non-empty cell
 	// 1) relaxation(pi)+source(pi) terms for half-step
 	double gamma=1.0/sqrt(1.0-vx*vx-vy*vy-vz*vz) ;
 	NSquant(ix, iy, iz, piNS, PiNS, dmu, du) ;
 	eos->eos(e,nb,nq,ns,T,mub,muq,mus,p) ;
-//############# debug output: expansion rate, gamma derivative
-//    if(iz==f->getNZ()/2){
-//    double s = eos->s(e,nb,nq,ns) ;
-//    foutNS<<setw(14)<<tau<<setw(4)<<ix<<setw(4)<<iy<<setw(14)<<du<<setw(14)<<dmu[0][0]
-//    <<setw(14)<<s<<setw(14)<<piNS[0][0]<<setw(14)<<piNS[0][1]<<setw(14)<<piNS[1][1]<<setw(14)<<piNS[3][3]<<endl ;}
 //############# get relaxation times
     double taupi, tauPi ;
     trcoeff->getTau(T, taupi, tauPi) ;
@@ -645,9 +595,6 @@ void Hydro::ISformal()
      for(int l=0; l<4; l++)
       c->addpi0(i,j,- c->getpiH0(i,k)*u[j]*u[l]*dmu[l][k]*gmumu[k]/gamma*dt 
                     - c->getpiH0(j,k)*u[i]*u[l]*dmu[l][k]*gmumu[k]/gamma*dt) ;
-      //if((ix==38 || ix==62)&&iy==f->getNY()/2&&iz==f->getNZ()/2&&i==0&&j==2){
-	//	  cout<<setw(5)<<ix<<setw(5)<<i<<setw(5)<<j<<setw(14)<<dpi<<setw(14)<<vx<<setw(14)<<vy<<endl ;
-	//  }
 	}
     c->addPi0( -4./3.*c->getPiH0()*du/gamma*dt ) ;
     } // end non-empty cell
@@ -686,24 +633,10 @@ void Hydro::ISformal()
 	for(int j=0; j<4; j++){
 	 pi[i][j]+=wx[jx]*wy[jy]*wz[jz]*c1->getpi0(i,j) ;
 	 piH[i][j]+=wxH[jx]*wyH[jy]*wzH[jz]*c1->getpiH0(i,j) ;
-	 //if(ix==45&&iy==32&&iz==0&&i==3&&j==3) // debug
-	 //cout<<setw(10)<<ix+jx*sign(xm)<<setw(10)<<iy+jy*sign(ym)<<setw(14)<<iz+jz*sign(zm)
-	 //<<c1->pi0[i][j]<<endl ;
     }
 	Pi+=wx[jx]*wy[jy]*wz[jz]*c1->getPi0() ;
 	PiH+=wxH[jx]*wyH[jy]*wzH[jz]*c1->getPiH0() ;
     }
-	//if(ix==45&&iy==32&&iz==0){ // debug
-	 //cout<<"advection result (45,32,0):\n" ;
-	 //for(int i=0; i<4; i++){
-	  //for(int j=0; j<4; j++)
-	  //cout << setw(14) << pi[i][j] ; cout<<endl ;
-	 //}
-	 //cout<<setw(14)<<wx[0]<<setw(14)<<wx[1]<<setw(14)<<wy[0]<<setw(14)<<wy[1]
-	 //<<setw(14)<<wz[0]<<setw(14)<<wz[1]<<endl;
-	 //cout << "du = " << du << " gamma = " << gamma << endl ;
-	//}
-
 	//--------- debug part: trace check, diag check, transversality check
 	for(int i=0; i<4; i++)
 	for(int j=0; j<4; j++){
@@ -739,14 +672,6 @@ void Hydro::ISformal()
 	}
   if(rescaled) c->setViscCorrCutFlag(maxT0/maxpi) ;
   else c->setViscCorrCutFlag(1.) ;
-	//if(ix==22&&iy==25&&iz==0){
-	 //cout<<"ISformal (22,25,0):  " << rescaled << endl ;
-	 //for(int i=0; i<4; i++){
-	  //for(int j=0; j<4; j++)
-	  //cout << setw(14) << pi[i][j] ; cout<<endl ;
-	 //}
-	 //cout<<"ideal part:"<<setw(14)<<e<<setw(14)<<vx<<setw(14)<<vy<<setw(14)<<vz<<endl ;
-    //}
     // updating to the new values
     for(int i=0; i<4; i++)
 	for(int j=0; j<=i; j++){
@@ -776,11 +701,6 @@ void Hydro::setQfull()
 	 uuu[3]=vz*uuu[0];
 	 for(int i=0; i<4; i++) Q[i] += - c->getPi()*(gmunu[0][i]-uuu[0]*uuu[i]) + c->getpi(0,i) ;
 	 c->setQfull(Q) ;
-	 //----debug
-	 //if(ix==60&&iy==50&&iz==2){
-	 //cout<<"setQfull:\n" ;
-	 //cout<<setw(14)<<e<<setw(14)<<vx<<setw(14)<<vy<<setw(14)<<vz<<setw(14)<<c->Pi<<endl ;
-	 //}
 	}
 }
 
@@ -816,16 +736,6 @@ void Hydro::visc_flux(Cell *left, Cell *right, int direction)
   if(ind1==ind2) flux[ind1] += -0.5*(left->getPiH()+right->getPiH())*gmumu[ind1] ; // gmunu is diagonal
   flux[ind1] += 0.5*(left->getPiH()+right->getPiH())*uuu[ind1]*uuu[ind2] ;
  }
- //---- debug
-// if(fabs(flux[Z_])>1e+6){ cout << "flux bug!" << endl ;
- //if(left->getX()==50&&left->getY()==50&&left->getZ()==2){ cout << "flux here:" << endl ;
- //for(int i=0; i<4; i++) cout << setw(14) << flux[i] ; cout<<endl ;
- //for(int i=0; i<4; i++) cout << setw(14) << uuu[i] ; cout<<endl ;
- //for(int i=0; i<4; i++){
-	 //for(int j=0; j<4; j++)
-	 //cout << setw(14) << right->pi[i][j] ; cout<<endl ;}
- //}
- //---- end debug
  for(int i=0; i<4; i++) flux[i] = flux[i]*dt/dxa ;
 	left->addFlux(-flux[T_], -flux[X_], -flux[Y_], -flux[Z_], 0., 0., 0.) ;
 	right->addFlux(flux[T_], flux[X_], flux[Y_], flux[Z_], 0., 0., 0.) ;
@@ -949,12 +859,6 @@ if(trcoeff->isViscous()){
 		visc_source_step(ix, iy, iz) ;
 		f->getCell(ix, iy, iz)->updateQfullByFlux() ;
 		f->getCell(ix, iy, iz)->correctQideal(eos,tau) ;
-		//if(ix==60&&iy==50&&iz==2){
-		 //double e,p,nb,nq,ns,vx,vy,vz;
-		 //f->getCell(ix, iy, iz)->getPrimVar(eos, e, p, nb, nq, ns, vx, vy, vz) ;
-	     //cout<<"correctQideal:\n" ;
-	     //cout<<setw(14)<<e<<setw(14)<<vx<<setw(14)<<vy<<setw(14)<<vz<<endl ;
-	    //}
 	}
 }else{ // end viscous part
     

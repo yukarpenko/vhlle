@@ -1,10 +1,27 @@
+/******************************************************************************
+*                                                                             *
+*            vHLLE : a 3D viscous hydrodynamic code                           *
+*            version 1.1,            October 2014                            *
+*            by Iurii Karpenko                                                *
+*  contact:  yu.karpenko@gmail.com                                            *
+*  For the detailed description please refer to:                              *
+*  http://arxiv.org/abs/1312.4160                                             *
+*                                                                             *
+*  This code can be freely used and redistributed, provided that this         *
+*  copyright appear in all the copies. If you decide to make modifications    *
+*  to the code, please contact the authors, especially if you plan to publish *
+* the results obtained with such modified code. Any publication of results    *
+* obtained using this code must include the reference to                      *
+* arXiv:1312.4160 [nucl-th] or the published version of it, when available.   *
+*                                                                             *
+*******************************************************************************/
+
 #include <iostream>
 #include <fstream>
 #include <iomanip>
 #include <cstring>
 #include <ctime>
 #include <sstream>
-//#include <TMath.h>
 #include "fld.h"
 #include "hdo.h"
 #include "ic.h"
@@ -141,7 +158,6 @@ int main(int argc, char **argv)
   
   time(&start);
   int memory = 0 ;
-  //checkmemory_(&memory) ;
 
   // read parameters from file
 	char* parFile ;
@@ -168,7 +184,6 @@ int main(int argc, char **argv)
   
   
   f = new Fluid(eos, eosH, trcoeff, nx, ny, nz, xmin, xmax, ymin, ymax, etamin, etamax, dtau, eCrit) ;
-  //checkmemory_(&memory) ;
   cout << "fluid allocation done\n" ;
 
   // initilal conditions
@@ -176,7 +191,6 @@ int main(int argc, char **argv)
   ic->setIC(f,eos) ;
   delete ic ;
 	cout<<"IC done\n" ;
-	//checkmemory_(&memory) ;
 	
 
   time_t tinit=0 ;
@@ -191,7 +205,6 @@ int main(int argc, char **argv)
   //h->setNSvalues() ; // initialize viscous terms
   h->setQfull() ; // set Qfull in each cell, in order to output IC correctly
 
-  // hllev321v1 = with pre-advection
   f->initOutput(outputDir, maxstep, tau0, 2) ;
   f->outputCorona(tau0) ;
 
@@ -203,7 +216,6 @@ int main(int argc, char **argv)
     h->setDtau(dtau/nSubSteps) ;
     for(int j=0; j<nSubSteps; j++){ h->performStep() ;
     }
-    //cout << "step= " << istep << "  dtau= " << dtau/nSubSteps << "\n" << endl ; // "\r" << flush
     f->outputPDirections(h->getTau());
     f->outputSurface(h->getTau()) ;
 	}
@@ -211,14 +223,9 @@ int main(int argc, char **argv)
   end=0 ;
   time(&end); float diff2 = difftime(end, start);
   cout<<"Execution time = "<<diff2<< " [sec]" << endl;
-    
-	//checkmemory_(&memory) ;
 	
   delete f ;
   delete h ;
   delete eos ;
   delete eosH ;
-  //checkmemory_(&memory) ;
-
-	//checkmemory_(&memory) ;
 }

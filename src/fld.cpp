@@ -1,3 +1,21 @@
+/******************************************************************************
+*                                                                             *
+*            vHLLE : a 3D viscous hydrodynamic code                           *
+*            version 1.1,            October 2014                            *
+*            by Iurii Karpenko                                                *
+*  contact:  yu.karpenko@gmail.com                                            *
+*  For the detailed description please refer to:                              *
+*  http://arxiv.org/abs/1312.4160                                             *
+*                                                                             *
+*  This code can be freely used and redistributed, provided that this         *
+*  copyright appear in all the copies. If you decide to make modifications    *
+*  to the code, please contact the authors, especially if you plan to publish *
+* the results obtained with such modified code. Any publication of results    *
+* obtained using this code must include the reference to                      *
+* arXiv:1312.4160 [nucl-th] or the published version of it, when available.   *
+*                                                                             *
+*******************************************************************************/
+
 #include <iostream>
 #include <fstream>
 #include <iomanip>
@@ -289,35 +307,6 @@ void Fluid::correctImagCellsFull(void)
 	}
 }
 
-/*
-void Fluid::updateM(double tau, double dt)
-{
-	for(int iy=0; iy<getNY(); iy++)
-	for(int iz=0; iz<getNZ(); iz++)
-	for(int ix=0; ix<getNX(); ix++){
-//		if(getCell(ix,iy,iz)->getM(X_)<1. && (getCell(ix-1,iy,iz)->getM(X_)==1. || getCell(ix+1,iy,iz)->getM(X_)==1.))
-		if(getCell(ix,iy,iz)->getM(X_)<1. && (getCell(ix-1,iy,iz)->getLM()==1. || getCell(ix+1,iy,iz)->getLM()==1.))
-		{ getCell(ix,iy,iz)->addM(X_, dt/dx) ; ix++; }
-	}
-
-	for(int iz=0; iz<getNZ(); iz++)
-	for(int ix=0; ix<getNX(); ix++)
-	for(int iy=0; iy<getNY(); iy++){
-//		if(getCell(ix,iy,iz)->getM(Y_)<1. && (getCell(ix,iy-1,iz)->getM(Y_)==1. || getCell(ix,iy+1,iz)->getM(Y_)==1.))
-		if(getCell(ix,iy,iz)->getM(Y_)<1. && (getCell(ix,iy-1,iz)->getLM()==1. || getCell(ix,iy+1,iz)->getLM()==1.))
-		{ getCell(ix,iy,iz)->addM(Y_, dt/dy) ; iy++; }
-	}
-
-
-	for(int ix=0; ix<getNX(); ix++)
-	for(int iy=0; iy<getNY(); iy++)
-	for(int iz=0; iz<getNZ(); iz++){
-//		if(getCell(ix,iy,iz)->getM(Z_)<1. && (getCell(ix,iy,iz-1)->getM(Z_)==1. || getCell(ix,iy,iz+1)->getM(Z_)==1.))
-		if(getCell(ix,iy,iz)->getM(Z_)<1. && (getCell(ix,iy,iz-1)->getLM()==1. || getCell(ix,iy,iz+1)->getLM()==1.))
-		{ getCell(ix,iy,iz)->addM(Z_, dt/dz/tau) ; iz++; }
-	}
-}
-*/
 
 void Fluid::updateM(double tau, double dt)
 {
@@ -370,13 +359,6 @@ void Fluid::outputPDirections(double tau)
 	getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz) ;
 	eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
 	foutx << setw(6) << x << setw(14) << vx << setw(14) << vy << setw(14) << e << setw(14) << nb <<  setw(14) << t <<  setw(14) << mub << endl ;
-	//foutx << setw(6) << " " << setw(14) << (e+p)*vx*vx/(1.-vx*vx-vy*vy-vz*vz)+p << setw(14) << c->pi[1][1] << endl ;
-	//if(ix==36){
-	//c->getQ(Q) ;
-	//foutx << "(36,50,2)Qideal  " ; for(int i=0; i<4; i++) foutx<<setw(14)<<Q[i]; foutx<<endl ;
-	//c->getQfull(Q) ;
-	//foutx << "(36,50,2)Qfull  " ; for(int i=0; i<4; i++) foutx<<setw(14)<<Q[i]; foutx<<endl ;
-	//}
 	foutxvisc << setw(6) << x ;
 	foutxvisc << setw(14) << c->getpi(0,0) << setw(14) << c->getpi(0,1) << setw(14) << c->getpi(0,2); 
 	foutxvisc << setw(14) <<c->getpi(0,3) << setw(14) << c->getpi(1,1) << setw(14) << c->getpi(1,2); 
@@ -386,8 +368,6 @@ void Fluid::outputPDirections(double tau)
 	(c->getpi(0,0)-c->getpi(1,1)-c->getpi(2,2)-c->getpi(3,3))/(c->getpi(1,1)+c->getpi(2,2)+1e-50) <<
 	setw(10) << "transv." <<
 	(c->getpi(0,0)-c->getpi(0,1)*vx-c->getpi(0,2)*vy-c->getpi(0,3)*vz)/(fabs(c->getpi(3,3))+1e-50) << endl ;
-//	foutxvisc << setw(14) << "tmunu_id/corr" << setw(14) << (e+p)/(1.-vx*vx-vy*vy-vz*vz)-p
-//	 << setw(14) << c->pi[3][3] << setw(14) << c->Pi*(1.-1./(1.-vx*vx-vy*vy-vz*vz)) << endl ;
 	}
 	foutx << endl ;
 	foutxvisc << endl ;
@@ -401,15 +381,6 @@ void Fluid::outputPDirections(double tau)
 	getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz) ;
 	eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
 	fouty << setw(6) << y << setw(14) << vy << setw(14) << vx << setw(14) << e << setw(14) << nb <<  setw(14) << t <<  setw(14) << mub << endl ;
-//  foutyvisc << setw(6) << y ;
-//	foutyvisc << setw(14) << c->pi[0][0] << setw(14) << c->pi[0][1] << setw(14) << c->pi[0][2]; 
-//	foutyvisc << setw(14) <<c->pi[0][3] << setw(14) << c->pi[1][1] << setw(14) << c->pi[1][2]; 
-//	foutyvisc << setw(14) <<c->pi[1][3] << setw(14) << c->pi[2][2] << setw(14) << c->pi[2][3]; 
-//	foutyvisc << setw(14) <<c->pi[3][3] << setw(14) << c->Pi << endl;
-//	foutyvisc << setw(20) << "anomalies tr pi/pi=" << setw(14) << 
-//	(c->pi[0][0]-c->pi[1][1]-c->pi[2][2]-c->pi[3][3])/(c->pi[1][1]+c->pi[2][2]+1e-50) <<
-//	setw(10) << "transv." <<
-//	(c->pi[0][0]-c->pi[0][1]*vx-c->pi[0][2]*vy-c->pi[0][3]*vz)/(fabs(c->pi[3][3])+1e-50) << endl ;
 	}
 	fouty << endl ;
   foutyvisc << endl ;
@@ -423,15 +394,6 @@ void Fluid::outputPDirections(double tau)
 	getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz) ;
 	eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
 	foutdiag << setw(14) << sqrt(2.)*x << setw(14) << vx << setw(14) << vy << setw(14) << e << setw(14) << nb <<  setw(14) << t <<  setw(14) << mub << endl ;
-//  foutdiagvisc << setw(14) << sqrt(2.)*x ;
-//	foutdiagvisc << setw(14) << c->pi[0][0] << setw(14) << c->pi[0][1] << setw(14) << c->pi[0][2]; 
-//	foutdiagvisc << setw(14) <<c->pi[0][3] << setw(14) << c->pi[1][1] << setw(14) << c->pi[1][2]; 
-//	foutdiagvisc << setw(14) <<c->pi[1][3] << setw(14) << c->pi[2][2] << setw(14) << c->pi[2][3]; 
-//	foutdiagvisc << setw(14) <<c->pi[3][3] << setw(14) << c->Pi << endl;
-//	foutdiagvisc << setw(20) << "anomalies tr pi/pi=" << setw(14) << 
-//	(c->pi[0][0]-c->pi[1][1]-c->pi[2][2]-c->pi[3][3])/(c->pi[1][1]+c->pi[2][2]+1e-50) <<
-//	setw(10) << "transv." <<
-//	(c->pi[0][0]-c->pi[0][1]*vx-c->pi[0][2]*vy-c->pi[0][3]*vz)/(fabs(c->pi[3][3])+1e-50) << endl ;
 	}
 	foutdiag << endl ;
   foutdiagvisc << endl ;
@@ -605,13 +567,6 @@ void Fluid::outputSurface(double tau)
   txxyy_den += (e+p)/(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz))*(vx*vx+vy*vy)+2.*p ;
   pi0x_num += e/(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz))*fabs(c->getpi(0,1)) ;
   pi0x_den += e/(1.-vx*vx-vy*vy-tanh(vz)*tanh(vz)) ;
-
-  /*if(ix%compress2dOut==0&&iy%compress2dOut==0)*/
-  //fout2d<<setw(10)<<tau<<setw(4)<<iz<<setw(4)<<ix<<setw(4)<<iy<<setw(14)<<e<<setw(14)<<vx<<setw(14)<<vy<<setw(14)<<vz
-  //<<setw(14)<<c->getViscCorrCutFlag()<<setw(14)<<c->getpi(0,0)<<setw(14)<<c->getpi(0,1)<<setw(14)<<c->getpi(0,2)
-  //<<setw(14)<<c->getpi(0,3)<<setw(14)<<c->getpi(1,1)<<setw(14)<<c->getpi(1,2)<<setw(14)<<c->getpi(1,3)<<setw(14)
-  //<<c->getpi(2,2)<<setw(14)<<c->getpi(2,3)<<setw(14)<<c->getpi(3,3)<<setw(14)<<Q[0]<<setw(14)<<Q[1]<<setw(14)<<Q[2]<<setw(14)<<Q[3]
-  //<<endl ;
 //----- Cornelius stuff
   double QCube[2][2][2][2][7] ;
   double piSquare[2][2][2][10], PiSquare[2][2][2] ;
@@ -636,17 +591,9 @@ void Fluid::outputSurface(double tau)
   const int Nsegm = cornelius->get_Nelements() ;
   for(int isegm=0; isegm<Nsegm; isegm++){
     nelements++ ;
-    //ffreeze<<"cell  "<<ix<<"  "<<iy<<"  "<<iz<<endl ;
-    //for(int jx=0; jx<2; jx++)
-    //for(int jy=0; jy<2; jy++)
-    //for(int jz=0; jz<2; jz++)
-    //ffreeze<<"["<<jx<<","<<jy<<","<<jz<<"] --> "<<setw(14)<<ccube[0][jx][jy][jz]<<setw(14)<<ccube[1][jx][jy][jz]<<endl ;
-          ffreeze.precision(15) ;
+   ffreeze.precision(15) ;
 	  ffreeze<<setw(24)<<tau+cornelius->get_centroid_elem(isegm,0)<<setw(24)<<getX(ix)+cornelius->get_centroid_elem(isegm,1)
 	  <<setw(24)<<getY(iy)+cornelius->get_centroid_elem(isegm,2)<<setw(24)<<getZ(iz)+cornelius->get_centroid_elem(isegm,3) ;
-	  //for(int m=0; m<4; m++) ffreeze<<setw(14)<<cornelius->get_centroid_elem(isegm,m) ;
-	  //for(int m=0; m<4; m++) ffreeze<<setw(14)<<cornelius->get_normal_elem(isegm,m) ;
-    //ffreeze<<endl ;
     // ---- interpolation procedure
     double vxC=0., vyC=0., vzC=0., TC=0., mubC=0., muqC=0., musC=0., piC[10], PiC=0., nbC=0., nqC=0. ; // values at the centre, to be interpolated
     double QC [7] = {0., 0., 0., 0., 0., 0., 0.} ;
@@ -671,9 +618,6 @@ void Fluid::outputSurface(double tau)
       cout << "#### Error (surface): high T/mu_b ####\n" ;
     }
     if(eC>ecrit*2.0 || eC<ecrit*0.5) nsusp++ ;
-    //double Teos ;
-    //eos->eos(eC,0.,0.,0.,Teos, mub, muq, mus, p) ; // now temperature from EoS
-    //if(fabs(eC-0.5)>0.01) {cout<<"+++ eC= "<<setw(14)<<eC<<", cell "<<ix<<" "<<iy<<" "<<iz<<endl;}
     for(int jx=0; jx<2; jx++)
     for(int jy=0; jy<2; jy++)
     for(int jz=0; jz<2; jz++){
@@ -691,11 +635,10 @@ void Fluid::outputSurface(double tau)
     double etaC = getZ(iz) + cornelius->get_centroid_elem(isegm,3) ;
     transformToLab(etaC, vxC, vyC, vzC) ; // viC is now in lab.frame!
     double gammaC = 1./sqrt(1.-vxC*vxC-vyC*vyC-vzC*vzC) ;
-    //ffreeze<<setw(14)<<ccube[0][0][0][0]<<setw(14)<<ccube[0][1][0][0]<<endl<<setw(14)<<ccube[1][0][0][0]<<setw(14)<<ccube[1][1][0][0]<<endl ;
+    
     double uC [4] = {gammaC, gammaC*vxC, gammaC*vyC, gammaC*vzC} ;
     const double tauC = tau+cornelius->get_centroid_elem(isegm,0) ;
     double dsigma [4] ;
-    // for(int ii=0; ii<4; ii++) dsigma[ii] = cornelius->get_normal_elem(0,ii) ;
     // ---- transform dsigma to lab.frame :
     const double ch = cosh(etaC) ;
     const double sh = sinh(etaC) ;
@@ -730,30 +673,6 @@ void Fluid::outputSurface(double tau)
     for(int i=0; i<4; i++) dEsurfVisc += picart[index44(0,i)]*dsigma[i] ;
     EtotSurf += (eC+pC)*uC[0]*dVEff - pC*dsigma[0] + dEsurfVisc ;
     nbSurf += nbC*dVEff ;
-    /*if(fabs(eC-0.5)>0.01){ cout<<"Warning: eC = "<<setw(14)<<eC
-    <<setw(14)<<getX(ix)<<setw(14)<<getY(iy)<<setw(14)<<getZ(iz)<<endl ;
-    for(int i=0; i<2; i++)
-    for(int j=0; j<2; j++){
-      cout<<"cube: " ;
-      for(int k=0; k<2; k++)
-      for(int l=0; l<2; l++)
-        cout<<setw(14)<<eCube[i][j][k][l] ;
-      cout<<endl ;
-    }
-    } */ // end eC check
-    //EtotSurf += (0.5+0.0795)*uC[0]*dVEff - 0.0795*dsigma[0] + dEsurfVisc ;
-  // root search for EoS switching
-/*  const double _p = eos->p(0.5,0.,0.,0.) ;
-  const double alpha = 0.159 ;
-  const double sigma2 = dsigma[0]*dsigma[0]-dsigma[1]*dsigma[1]-dsigma[2]*dsigma[2]-dsigma[3]*dsigma[3] ;
-  const double AA = (0.5 + _p)*(0.5 - _p)*dVEff*dVEff + _p*_p*sigma2 ;
-  const double Asigma = (0.5 + _p)*dVEff*dVEff - _p*sigma2 ;
-  //ffreeze<<setw(5)<<"DDD"<<setw(24)<< AA ;
-  //ffreeze<<setw(24)<< Asigma << setw(24) << 0.5*_p*dsigma2 << endl ;
-  const double Det = sqrt((1.0-alpha)*(1.0-alpha)*Asigma*Asigma+4.0*alpha*sigma2*AA) ;
-  ffreeze<<setw(5)<<"DDD"<<setw(24)<< (-(1.0-alpha)*Asigma - Det)/(2.0*alpha*sigma2)
-    <<setw(24)<< (-(1.0-alpha)*Asigma + Det)/(2.0*alpha*sigma2) <<endl ;
-*/
   }
   //if(cornelius->get_Nelements()>1) cout << "oops, Nelements>1\n" ;
 //----- end Cornelius
@@ -767,8 +686,6 @@ void Fluid::outputSurface(double tau)
  cout << setw(10) << tau << setw(13) << E << setw(13) << Efull << setw(13) << nbSurf
    << setw(13) << S << setw(10) << nelements << setw(10) << nsusp 
    << setw(13) << (float)(nCoreCutCells)/(float)(nCoreCells) << endl ;
-// cout << setw(12) << "Px = " << setw(14) << Px << "  vEff = " << vEff << "  Esurf = " <<setw(14)<<EtotSurf << endl ;
-// cout << "Nb1 = " << setw(14) << Nb1 << "  Nb2 = " << setw(14) << Nb2 << endl ;
 //-- Cornelius: all done, let's free memory
   for (int i1=0; i1 < 2; i1++) {
     for (int i2=0; i2 < 2; i2++) {
@@ -886,9 +803,6 @@ void Fluid::outputCorona(double tau)
     if(TC>0.4 || fabs(mubC)>0.85){
       cout << "#### Error (surface): high T/mu_b ####\n" ;
     }
-    //double Teos ;
-    //eos->eos(eC,0.,0.,0.,Teos, mub, muq, mus, p) ; // now temperature from EoS
-    //if(fabs(eC-0.5)>0.01) {cout<<"+++ eC= "<<setw(14)<<eC<<", cell "<<ix<<" "<<iy<<" "<<iz<<endl;}
     for(int jx=0; jx<2; jx++)
     for(int jy=0; jy<2; jy++)
     for(int jz=0; jz<2; jz++){
@@ -906,11 +820,10 @@ void Fluid::outputCorona(double tau)
     double etaC = getZ(iz) + 0.5*dz ;
     transformToLab(etaC, vxC, vyC, vzC) ; // viC is now in lab.frame!
     double gammaC = 1./sqrt(1.-vxC*vxC-vyC*vyC-vzC*vzC) ;
-    //ffreeze<<setw(14)<<ccube[0][0][0][0]<<setw(14)<<ccube[0][1][0][0]<<endl<<setw(14)<<ccube[1][0][0][0]<<setw(14)<<ccube[1][1][0][0]<<endl ;
+
     double uC [4] = {gammaC, gammaC*vxC, gammaC*vyC, gammaC*vzC} ;
     const double tauC = tau ;
     double dsigma [4] ;
-    // for(int ii=0; ii<4; ii++) dsigma[ii] = cornelius->get_normal_elem(0,ii) ;
     // ---- transform dsigma to lab.frame :
     const double ch = cosh(etaC) ;
     const double sh = sinh(etaC) ;
@@ -958,8 +871,6 @@ void Fluid::outputCorona(double tau)
   << setw(13) << "Sfull" << setw(10) << "elements" << setw(10) << "susp." << setw(13) << "\%cut" << endl ;
  cout << setw(10) << tau << setw(13) << E << setw(13) << Efull << setw(13) << nbSurf
   << setw(13) << S << endl ;
-// cout << setw(12) << "Px = " << setw(14) << Px << "  vEff = " << vEff << "  Esurf = " <<setw(14)<<EtotSurf << endl ;
-// cout << "Nb1 = " << setw(14) << Nb1 << "  Nb2 = " << setw(14) << Nb2 << endl ;
 #ifdef SWAP_EOS
   swap(eos, eosH) ;
 #endif
