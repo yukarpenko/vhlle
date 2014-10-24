@@ -15,12 +15,11 @@
 #define C_1D 0
 #define C_2D 1
 
-const double C_PI=3.14159265358979312 ;
+const double C_PI = 3.14159265358979312;
 
+#define BAG_ASYMPT  // necessary if you use HIRANO EoS !!!
 
-#define BAG_ASYMPT // necessary if you use HIRANO EoS !!!
-
-const double gevtofm = 5.067728853 ;
+const double gevtofm = 5.067728853;
 
 #ifndef _DEBUG
 //#define UI
