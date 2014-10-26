@@ -8,12 +8,12 @@ int index44(const int &i, const int &j);
 
 class Cell {
  private:
-  double Q[7];      // here, Q, Qh, Qprev etc. ~tau*T^{0i}, like Hirano'01
+  double Q[7];      // 
   double Qh[7];     // values at (n+1/2) timestep
   double Qprev[7];  // values at the end of previous timestep
-  double Qfull[7];  // full T^{0\mu} with viscous terms, WITHOUT tau factor
-  double pi[10], piH[10], Pi, PiH;  // viscous, WITHOUT tau factor
-  double pi0[10], piH0[10], Pi0, PiH0;  // viscous, WITHOUT tau factor
+  double Qfull[7];  // full T^{0\mu} with viscous terms
+  double pi[10], piH[10], Pi, PiH;  // shear stress tensor and
+  double pi0[10], piH0[10], Pi0, PiH0;  // bulk pressure
   double flux[7];
   Cell *next[3];
   Cell *prev[3];
@@ -133,33 +133,33 @@ class Cell {
       for (int j = 0; j < 4; j++) piH0[index44(i, j)] = values[i][j];
   }
 
-  void getPrimVar(EoS *eos, double tau, double &_e, double &_p, double &_nb,
+  void getPrimVar(EoS *eos, double &_e, double &_p, double &_nb,
                   double &_nq, double &_ns, double &_vx, double &_vy,
                   double &_vz);
 
-  void getPrimVarLeft(EoS *eos, double tau, double &_e, double &_p, double &_nb,
+  void getPrimVarLeft(EoS *eos, double &_e, double &_p, double &_nb,
                       double &_nq, double &_ns, double &_vx, double &_vy,
                       double &_vz, int dir);
-  void getPrimVarRight(EoS *eos, double tau, double &_e, double &_p,
+  void getPrimVarRight(EoS *eos, double &_e, double &_p,
                        double &_nb, double &_nq, double &_ns, double &_vx,
                        double &_vy, double &_vz, int dir);
 
-  void getPrimVarHLeft(EoS *eos, double tau, double &_e, double &_p,
+  void getPrimVarHLeft(EoS *eos, double &_e, double &_p,
                        double &_nb, double &_nq, double &_ns, double &_vx,
                        double &_vy, double &_vz, int dir);
-  void getPrimVarHRight(EoS *eos, double tau, double &_e, double &_p,
+  void getPrimVarHRight(EoS *eos, double &_e, double &_p,
                         double &_nb, double &_nq, double &_ns, double &_vx,
                         double &_vy, double &_vz, int dir);
-  void getPrimVarHCenter(EoS *eos, double tau, double &_e, double &_p,
+  void getPrimVarHCenter(EoS *eos, double &_e, double &_p,
                          double &_nb, double &_nq, double &_ns, double &_vx,
                          double &_vy, double &_vz);
-  void getPrimVarPrev(EoS *eos, double tau, double &_e, double &_p, double &_nb,
+  void getPrimVarPrev(EoS *eos, double &_e, double &_p, double &_nb,
                       double &_nq, double &_ns, double &_vx, double &_vy,
                       double &_vz);
   void getPrimVarFull(EoS *eos, double &_e, double &_p, double &_nb,
                       double &_nq, double &_ns, double &_vx, double &_vy,
                       double &_vz);
-  void setPrimVar(EoS *eos, double tau, double _e, double _nb, double _nq,
+  void setPrimVar(EoS *eos, double _e, double _nb, double _nq,
                   double _ns, double _vx, double _vy, double _vz);
 
   inline void addFlux(double Ft, double Fx, double Fy, double Fz, double Fnb,
@@ -178,8 +178,8 @@ class Cell {
   void updateByFlux();
   void updateQtoQhByFlux();
   void updateQfullByFlux();
-  void correctQideal(EoS *eos, double tau);
+  void correctQideal(EoS *eos);
   inline void setViscCorrCutFlag(double value) { viscCorrCut = value; }
   inline double getViscCorrCutFlag(void) { return viscCorrCut; }
-  void Dump(double tau);
+  void Dump();
 };

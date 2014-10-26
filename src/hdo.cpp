@@ -50,45 +50,44 @@ Hydro::Hydro(Fluid *_f, EoS *_eos, TransportCoeff *_trcoeff, double _t0,
   trcoeff = _trcoeff;
   f = _f;
   dt = _dt;
-  tau = _t0;
+  time = _t0;
 }
 
 Hydro::~Hydro() {}
 
-void Hydro::setDtau(double deltaTau) {
-  dt = deltaTau;
+void Hydro::setDt(double _dt) {
+  dt = _dt;
   if (dt > f->getDx() / 2. ||
-      dt > f->getDy() / 2. /*|| dt>tau*f->getDz()/2. */) {
-    cout << "too big delta_tau " << dt << "  " << f->getDx() << "  "
-         << f->getDy() << "  " << tau * f->getDz() << endl;
+      dt > f->getDy() / 2. || dt > f->getDz()/2.) {
+    cout << "too big dt " << dt << "  " << f->getDx() << "  "
+         << f->getDy() << "  " << f->getDz() << endl;
     exit(1);
   }
 }
 
 void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode) {
   double el, er, pl, pr, nbl, nql, nsl, nbr, nqr, nsr, vxl, vxr, vyl, vyr, vzl,
-      vzr, bl, br, csb, vb, El, Er, dx;
-  double Ftl, Fxl, Fyl, Fzl, Fbl, Fql, Fsl, Ftr, Fxr, Fyr, Fzr, Fbr, Fqr, Fsr;
-  double U1l, U2l, U3l, U4l, Ubl, Uql, Usl, U1r, U2r, U3r, U4r, Ubr, Uqr, Usr;
+      vzr, bl=0.0, br=0.0, csb, vb, El, Er, dx=0.0;
+  double Ftl=0.0, Fxl=0.0, Fyl=0.0, Fzl=0.0, Fbl=0.0, Fql=0.0, Fsl=0.0;
+  double Ftr=0.0, Fxr=0.0, Fyr=0.0, Fzr=0.0, Fbr=0.0, Fqr=0.0, Fsr=0.0;
+  double U1l=0.0, U2l=0.0, U3l=0.0, U4l=0.0, Ubl=0.0, Uql=0.0, Usl=0.0;
+  double U1r=0.0, U2r=0.0, U3r=0.0, U4r=0.0, Ubr=0.0, Uqr=0.0, Usr=0.0;
   double flux[7];
   const double dta = mode == 0 ? dt / 2. : dt;
-  double tauFactor;  // fluxes are also multiplied by tau
   if (mode == PREDICT) {
-    left->getPrimVarRight(eos, tau, el, pl, nbl, nql, nsl, vxl, vyl, vzl,
+    left->getPrimVarRight(eos, el, pl, nbl, nql, nsl, vxl, vyl, vzl,
                           direction);
-    right->getPrimVarLeft(eos, tau, er, pr, nbr, nqr, nsr, vxr, vyr, vzr,
+    right->getPrimVarLeft(eos, er, pr, nbr, nqr, nsr, vxr, vyr, vzr,
                           direction);
     El = (el + pl) / (1 - vxl * vxl - vyl * vyl - vzl * vzl);
     Er = (er + pr) / (1 - vxr * vxr - vyr * vyr - vzr * vzr);
-    tauFactor = tau + 0.25 * dt;
   } else {
-    left->getPrimVarHRight(eos, tau, el, pl, nbl, nql, nsl, vxl, vyl, vzl,
+    left->getPrimVarHRight(eos, el, pl, nbl, nql, nsl, vxl, vyl, vzl,
                            direction);
-    right->getPrimVarHLeft(eos, tau, er, pr, nbr, nqr, nsr, vxr, vyr, vzr,
+    right->getPrimVarHLeft(eos, er, pr, nbr, nqr, nsr, vxr, vyr, vzr,
                            direction);
     El = (el + pl) / (1 - vxl * vxl - vyl * vyl - vzl * vzl);
     Er = (er + pr) / (1 - vxr * vxr - vyr * vyr - vzr * vzr);
-    tauFactor = tau + 0.5 * dt;
   }
 
   if (el < 0.) {
@@ -102,13 +101,13 @@ void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode) {
 
   if (el > 1e10) {
     cout << "e>1e10; debug info below:\n";
-    left->Dump(tau);
+    left->Dump();
     // debugRiemann = true ;
     if (mode == PREDICT)
-      left->getPrimVarRight(eos, tau, el, pl, nbl, nql, nsl, vxl, vyl, vzl,
+      left->getPrimVarRight(eos, el, pl, nbl, nql, nsl, vxl, vyl, vzl,
                             direction);
     else
-      left->getPrimVarHRight(eos, tau, el, pl, nbl, nql, nsl, vxl, vyl, vzl,
+      left->getPrimVarHRight(eos, el, pl, nbl, nql, nsl, vxl, vyl, vzl,
                              direction);
     // debugRiemann = false ;
     exit(0);
@@ -118,9 +117,9 @@ void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode) {
   if (el == 0. && er == 0.) return;
   if (pr < 0.) {
     cout << "Negative pressure" << endl;
-    left->getPrimVarRight(eos, tau, el, pl, nbl, nql, nsl, vxl, vyl, vzl,
+    left->getPrimVarRight(eos, el, pl, nbl, nql, nsl, vxl, vyl, vzl,
                           direction);
-    right->getPrimVarLeft(eos, tau, er, pr, nbr, nqr, nsr, vxr, vyr, vzr,
+    right->getPrimVarLeft(eos, er, pr, nbr, nqr, nsr, vxr, vyr, vzr,
                           direction);
   }
 
@@ -210,57 +209,55 @@ void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode) {
     if (er == 0.) br = 1.;
   }
   if (direction == Z_) {
-    double tau1 = tauFactor;
-    Ftl = U4l * vzl / tau1 + pl * vzl / tau1;
-    Fxl = U1l * vzl / tau1;
-    Fyl = U2l * vzl / tau1;
-    Fzl = U3l * vzl / tau1 + pl / tau1;
-    Fbl = Ubl * vzl / tau1;
-    Fql = Uql * vzl / tau1;
-    Fsl = Usl * vzl / tau1;
+    Ftl = U4l * vzl + pl * vzl;
+    Fxl = U1l * vzl;
+    Fyl = U2l * vzl;
+    Fzl = U3l * vzl + pl;
+    Fbl = Ubl * vzl;
+    Fql = Uql * vzl;
+    Fsl = Usl * vzl;
 
-    Ftr = U4r * vzr / tau1 + pr * vzr / tau1;
-    Fxr = U1r * vzr / tau1;
-    Fyr = U2r * vzr / tau1;
-    Fzr = U3r * vzr / tau1 + pr / tau1;
-    Fbr = Ubr * vzr / tau1;
-    Fqr = Uqr * vzr / tau1;
-    Fsr = Usr * vzr / tau1;
+    Ftr = U4r * vzr + pr * vzr;
+    Fxr = U1r * vzr;
+    Fyr = U2r * vzr;
+    Fzr = U3r * vzr + pr;
+    Fbr = Ubr * vzr;
+    Fqr = Uqr * vzr;
+    Fsr = Usr * vzr;
 
     // for the case of constant c_s only
-    // factor 1/tau accounts for eta-coordinate
 
     // different estimate
     csb = sqrt(eos->cs2() + 0.5 * sqrt(El * Er) / pow(sqrt(El) + sqrt(Er), 2) *
                                 pow(vzl - vzr, 2));
     vb = (sqrt(El) * vzl + sqrt(Er) * vzr) / (sqrt(El) + sqrt(Er));
-    bl = 1. / tau * min(0., min((vb - csb) / (1 - vb * csb),
+    bl = min(0., min((vb - csb) / (1 - vb * csb),
                                 (vzl - eos->cs()) / (1 - vzl * eos->cs())));
-    br = 1. / tau * max(0., max((vb + csb) / (1 + vb * csb),
+    br = max(0., max((vb + csb) / (1 + vb * csb),
                                 (vzr + eos->cs()) / (1 + vzr * eos->cs())));
 
     dx = f->getDz();
 
     // boundary with vacuum
-    if (el == 0.) bl = -1. / tau;
-    if (er == 0.) br = 1. / tau;
+    if (el == 0.) bl = -1.;
+    if (er == 0.) br = 1.;
   }
 
   if (bl == 0. && br == 0.) return;
 
-  flux[T_] = tauFactor * dta / dx *
+  flux[T_] = dta / dx *
              (-bl * br * (U4l - U4r) + br * Ftl - bl * Ftr) / (-bl + br);
-  flux[X_] = tauFactor * dta / dx *
+  flux[X_] = dta / dx *
              (-bl * br * (U1l - U1r) + br * Fxl - bl * Fxr) / (-bl + br);
-  flux[Y_] = tauFactor * dta / dx *
+  flux[Y_] = dta / dx *
              (-bl * br * (U2l - U2r) + br * Fyl - bl * Fyr) / (-bl + br);
-  flux[Z_] = tauFactor * dta / dx *
+  flux[Z_] = dta / dx *
              (-bl * br * (U3l - U3r) + br * Fzl - bl * Fzr) / (-bl + br);
-  flux[NB_] = tauFactor * dta / dx *
+  flux[NB_] = dta / dx *
               (-bl * br * (Ubl - Ubr) + br * Fbl - bl * Fbr) / (-bl + br);
-  flux[NQ_] = tauFactor * dta / dx *
+  flux[NQ_] = dta / dx *
               (-bl * br * (Uql - Uqr) + br * Fql - bl * Fqr) / (-bl + br);
-  flux[NS_] = tauFactor * dta / dx *
+  flux[NS_] = dta / dx *
               (-bl * br * (Usl - Usr) + br * Fsl - bl * Fsr) / (-bl + br);
 
   if (!(flux[NB_] >= 0. || flux[NB_] < 0.)) {
@@ -284,73 +281,7 @@ void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode) {
                  flux[NS_]);
 }
 
-void Hydro::source(double tau1, double x, double y, double z, double Q[7],
-                   double S[7]) {
-  double _Q[7], e, p, nb, nq, ns, vx, vy, vz;
-  for (int i = 0; i < 7; i++) _Q[i] = Q[i] / tau1;  // no tau factor in  _Q
-  transformPV(eos, _Q, e, p, nb, nq, ns, vx, vy, vz);
-  S[T_] = -_Q[T_] * vz * vz - p * (1. + vz * vz);
-  S[X_] = 0.;
-  S[Y_] = 0.;
-  S[Z_] = -_Q[Z_];
-  S[NB_] = 0.;
-  S[NQ_] = 0.;
-  S[NS_] = 0.;
-}
-
-void Hydro::source_step(int ix, int iy, int iz, int mode) {
-  double _dt;
-  if (mode == PREDICT)
-    _dt = dt / 2.;
-  else
-    _dt = dt;
-
-  double tau1;
-  double Q[7];
-  double k[7];
-
-  double x = f->getX(ix), y = f->getY(iy), z = f->getZ(iz);
-  Cell *c = f->getCell(ix, iy, iz);
-
-  if (mode == PREDICT) {
-    c->getQ(Q);
-    tau1 = tau;
-  } else {
-    c->getQh(Q);
-    tau1 = tau + 0.5 * dt;
-  }
-  source(tau1, x, y, z, Q, k);
-  for (int i = 0; i < 7; i++) k[i] *= _dt;
-
-  c->addFlux(k[T_], k[X_], k[Y_], k[Z_], k[NB_], k[NQ_], k[NS_]);
-}
-
-void Hydro::visc_source_step(int ix, int iy, int iz) {
-  double e, p, nb, nq, ns, vx, vy, vz;
-  double uuu[4];
-  double k[7];
-
-  Cell *c = f->getCell(ix, iy, iz);
-
-  c->getPrimVarHCenter(eos, tau - dt / 2., e, p, nb, nq, ns, vx, vy, vz);
-  if (e <= 0.) return;
-  uuu[0] = 1. / sqrt(1. - vx * vx - vy * vy - vz * vz);
-  uuu[1] = uuu[0] * vx;
-  uuu[2] = uuu[0] * vy;
-  uuu[3] = uuu[0] * vz;
-
-  k[T_] = -(c->getpiH(0, 0) + c->getpiH(3, 3) -
-            c->getPiH() * (-uuu[0] * uuu[0] - uuu[3] * uuu[3])) /
-          (tau - 0.5 * dt);
-  k[X_] = -(c->getpiH(0, 1) + c->getPiH() * uuu[0] * uuu[1]) / (tau - 0.5 * dt);
-  k[Y_] = -(c->getpiH(0, 2) + c->getPiH() * uuu[0] * uuu[2]) / (tau - 0.5 * dt);
-  k[Z_] = -2.0 * (c->getpiH(0, 3) + c->getPiH() * uuu[0] * uuu[3]) /
-          (tau - 0.5 * dt);
-  for (int i = 0; i < 4; i++) k[i] *= dt;
-  c->addFlux(k[T_], k[X_], k[Y_], k[Z_], 0., 0., 0.);
-}
-
-// dv/d(tau) = v^{t+dt}_ideal - v^{t}
+// dv/dt = v^{t+dt}_ideal - v^{t}
 // dv/dx_i ~ v^{x+dx}-v{x-dx}
 // makes sense after non-viscous step
 void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
@@ -360,22 +291,31 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
   double e0, e1, p, nb, nq, ns, vx1, vy1, vz1, vx0, vy0, vz0, vxH, vyH, vzH;
   double ut0, ux0, uy0, uz0, ut1, ux1, uy1, uz1;
   //	double dmu [4][4] ; // \partial_\mu u^\nu matrix
-  // coordinates: 0=tau, 1=x, 2=y, 3=eta
+  // coordinates: 0=t, 1=x, 2=y, 3=z
   double Z[4][4][4][4];  // Z[mu][nu][lambda][rho]
   double uuu[4];         // the 4-velocity
   double gmunu[4][4] = {{1, 0, 0, 0},
                         {0, -1, 0, 0},
                         {0, 0, -1, 0},
-                        {0, 0, 0, -1}};  // omit 1/tau^2 in g^{eta,eta}
+                        {0, 0, 0, -1}};
   Cell *c = f->getCell(ix, iy, iz);
   double dx = f->getDx(), dy = f->getDy(), dz = f->getDz();
   // check if the cell is next to vacuum from +-x, +-y side:
   if (c->getNext(X_)->getLM() <= 0.9 || c->getNext(Y_)->getLM() <= 0.9 ||
       c->getPrev(X_)->getLM() <= 0.9 || c->getPrev(Y_)->getLM() <= 0.9 ||
+      c->getPrev(Z_)->getLM() <= 0.9 || c->getNext(Z_)->getLM() <= 0.9 ||
       f->getCell(ix + 1, iy + 1, iz)->getLM() <= 0.9 ||
       f->getCell(ix + 1, iy - 1, iz)->getLM() <= 0.9 ||
       f->getCell(ix - 1, iy + 1, iz)->getLM() <= 0.9 ||
-      f->getCell(ix - 1, iy - 1, iz)->getLM() <= 0.9) {
+      f->getCell(ix - 1, iy - 1, iz)->getLM() <= 0.9 ||
+      f->getCell(ix + 1, iy, iz + 1)->getLM() <= 0.9 ||
+      f->getCell(ix + 1, iy, iz - 1)->getLM() <= 0.9 ||
+      f->getCell(ix - 1, iy, iz + 1)->getLM() <= 0.9 ||
+      f->getCell(ix - 1, iy, iz - 1)->getLM() <= 0.9 ||
+      f->getCell(ix, iy + 1, iz + 1)->getLM() <= 0.9 ||
+      f->getCell(ix, iy + 1, iz - 1)->getLM() <= 0.9 ||
+      f->getCell(ix, iy - 1, iz + 1)->getLM() <= 0.9 ||
+      f->getCell(ix, iy - 1, iz - 1)->getLM() <= 0.9) {
     for (int i = 0; i < 4; i++)
       for (int j = 0; j < 4; j++) {
         pi[i][j] = 0.;
@@ -387,10 +327,10 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
   // calculation of \partial_\mu u^\nu matrix
   // mu=first index, nu=second index
   // centered differences with respect to the values at (it+1/2, ix, iy, iz)
-  // d_tau u^\mu
-  c->getPrimVarPrev(eos, tau - dt, e0, p, nb, nq, ns, vx0, vy0, vz0);
-  c->getPrimVar(eos, tau, e1, p, nb, nq, ns, vx1, vy1, vz1);
-  c->getPrimVarHCenter(eos, tau - 0.5 * dt, e1, p, nb, nq, ns, vxH, vyH, vzH);
+  // d_t u^\mu
+  c->getPrimVarPrev(eos, e0, p, nb, nq, ns, vx0, vy0, vz0);
+  c->getPrimVar(eos, e1, p, nb, nq, ns, vx1, vy1, vz1);
+  c->getPrimVarHCenter(eos, e1, p, nb, nq, ns, vxH, vyH, vzH);
   //############## get transport coefficients
   double T, mub, muq, mus;
   double etaS, zetaS;
@@ -428,9 +368,9 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
   }
   // d_x u^\mu
   f->getCell(ix + 1, iy, iz)
-      ->getPrimVarHCenter(eos, tau, e1, p, nb, nq, ns, vx1, vy1, vz1);
+      ->getPrimVarHCenter(eos, e1, p, nb, nq, ns, vx1, vy1, vz1);
   f->getCell(ix - 1, iy, iz)
-      ->getPrimVarHCenter(eos, tau, e0, p, nb, nq, ns, vx0, vy0, vz0);
+      ->getPrimVarHCenter(eos, e0, p, nb, nq, ns, vx0, vy0, vz0);
   if (e1 > 0. && e0 > 0.) {
     ut0 = 1.0 / sqrt(1.0 - vx0 * vx0 - vy0 * vy0 - vz0 * vz0);
     ux0 = ut0 * vx0;
@@ -459,9 +399,9 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
     cout << "dmu[1][3]:  " << uz1 << "  " << uz0 << "  " << uuu[3] << endl;
   // d_y u^\mu
   f->getCell(ix, iy + 1, iz)
-      ->getPrimVarHCenter(eos, tau, e1, p, nb, nq, ns, vx1, vy1, vz1);
+      ->getPrimVarHCenter(eos, e1, p, nb, nq, ns, vx1, vy1, vz1);
   f->getCell(ix, iy - 1, iz)
-      ->getPrimVarHCenter(eos, tau, e0, p, nb, nq, ns, vx0, vy0, vz0);
+      ->getPrimVarHCenter(eos, e0, p, nb, nq, ns, vx0, vy0, vz0);
   if (e1 > 0. && e0 > 0.) {
     ut0 = 1.0 / sqrt(1.0 - vx0 * vx0 - vy0 * vy0 - vz0 * vz0);
     ux0 = ut0 * vx0;
@@ -488,9 +428,9 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
   }
   // d_z u^\mu
   f->getCell(ix, iy, iz + 1)
-      ->getPrimVarHCenter(eos, tau, e1, p, nb, nq, ns, vx1, vy1, vz1);
+      ->getPrimVarHCenter(eos, e1, p, nb, nq, ns, vx1, vy1, vz1);
   f->getCell(ix, iy, iz - 1)
-      ->getPrimVarHCenter(eos, tau, e0, p, nb, nq, ns, vx0, vy0, vz0);
+      ->getPrimVarHCenter(eos, e0, p, nb, nq, ns, vx0, vy0, vz0);
   if (e1 > 0. && e0 > 0.) {
     ut0 = 1.0 / sqrt(1.0 - vx0 * vx0 - vy0 * vy0 - vz0 * vz0);
     ux0 = ut0 * vx0;
@@ -500,24 +440,21 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
     ux1 = ut1 * vx1;
     uy1 = ut1 * vy1;
     uz1 = ut1 * vz1;
-    dmu[3][0] = 0.25 * (ut1 * ut1 - ut0 * ut0) / uuu[0] / dz / (tau + 0.5 * dt);
-    dmu[3][1] = 0.25 * (ux1 * ux1 - ux0 * ux0) / uuu[1] / dz / (tau + 0.5 * dt);
-    dmu[3][2] = 0.25 * (uy1 * uy1 - uy0 * uy0) / uuu[2] / dz / (tau + 0.5 * dt);
-    dmu[3][3] = 0.25 * (uz1 * uz1 - uz0 * uz0) / uuu[3] / dz / (tau + 0.5 * dt);
+    dmu[3][0] = 0.25 * (ut1 * ut1 - ut0 * ut0) / uuu[0] / dz;
+    dmu[3][1] = 0.25 * (ux1 * ux1 - ux0 * ux0) / uuu[1] / dz;
+    dmu[3][2] = 0.25 * (uy1 * uy1 - uy0 * uy0) / uuu[2] / dz;
+    dmu[3][3] = 0.25 * (uz1 * uz1 - uz0 * uz0) / uuu[3] / dz;
     if (fabs(0.5 * (ut1 + ut0) / uuu[0]) > UDIFF)
-      dmu[3][0] = 0.5 * (ut1 - ut0) / dz / (tau + 0.5 * dt);
+      dmu[3][0] = 0.5 * (ut1 - ut0) / dz;
     if (fabs(uuu[1]) < VMIN || fabs(0.5 * (ux1 + ux0) / uuu[1]) > UDIFF)
-      dmu[3][1] = 0.5 * (ux1 - ux0) / dz / (tau + 0.5 * dt);
+      dmu[3][1] = 0.5 * (ux1 - ux0) / dz;
     if (fabs(uuu[2]) < VMIN || fabs(0.5 * (uy1 + uy0) / uuu[2]) > UDIFF)
-      dmu[3][2] = 0.5 * (uy1 - uy0) / dz / (tau + 0.5 * dt);
+      dmu[3][2] = 0.5 * (uy1 - uy0) / dz;
     if (fabs(uuu[3]) < VMIN || fabs(0.5 * (uz1 + uz0) / uuu[3]) > UDIFF)
-      dmu[3][3] = 0.5 * (uz1 - uz0) / dz / (tau + 0.5 * dt);
+      dmu[3][3] = 0.5 * (uz1 - uz0) / dz;
   } else {  // matter-vacuum
     dmu[3][0] = dmu[3][1] = dmu[3][2] = dmu[3][3] = 0.;
   }
-  // additional terms from Christoffel symbols :)
-  dmu[3][0] += uuu[3] / (tau - 0.5 * dt);
-  dmu[3][3] += uuu[0] / (tau - 0.5 * dt);
   // calculation of Z[mu][nu][lambda][rho]
   for (int i = 0; i < 4; i++)
     for (int j = 0; j < 4; j++)
@@ -566,22 +503,9 @@ void Hydro::setNSvalues() {
     for (int iy = 0; iy < f->getNY(); iy++)
       for (int iz = 0; iz < f->getNZ(); iz++) {
         Cell *c = f->getCell(ix, iy, iz);
-        c->getPrimVar(eos, tau, e, p, nb, nq, ns, vx, vy, vz);
+        c->getPrimVar(eos, e, p, nb, nq, ns, vx, vy, vz);
         if (e <= 0.) continue;
-        // NSquant(ix, iy, iz, piNS, PiNS, dmu, du) ;
-        //############## set NS values assuming initial zero flow + Bjorken z
-        //flow
-        double T, mub, muq, mus;
-        double etaS, zetaS;
-        double s =
-            eos->s(e, nb, nq, ns);  // entropy density in the current cell
-        eos->eos(e, nb, nq, ns, T, mub, muq, mus, p);
-        trcoeff->getEta(e, T, etaS, zetaS);
-        for (int i = 0; i < 4; i++)
-          for (int j = 0; j < 4; j++) piNS[i][j] = 0.0;  // reset piNS
-        piNS[1][1] = piNS[2][2] = 2.0 / 3.0 * etaS * s / tau / 5.068;
-        piNS[3][3] = -2.0 * piNS[1][1];
-        PiNS = 0.0;
+        NSquant(ix, iy, iz, piNS, PiNS, dmu, du) ;
         for (int i = 0; i < 4; i++)
           for (int j = 0; j <= i; j++) c->setpi(i, j, piNS[i][j]);
         c->setPi(PiNS);
@@ -599,8 +523,7 @@ void Hydro::ISformal() {
     for (int iy = 0; iy < f->getNY(); iy++)
       for (int iz = 0; iz < f->getNZ(); iz++) {
         Cell *c = f->getCell(ix, iy, iz);
-        c->getPrimVarHCenter(eos, tau - dt / 2., e, p, nb, nq, ns, vx, vy,
-                             vz);  // instead of getPrimVar()
+        c->getPrimVarHCenter(eos, e, p, nb, nq, ns, vx, vy, vz);  // instead of getPrimVar()
         if (e <= 0.) {             // empty cell?
           for (int i = 0; i < 4; i++)
             for (int j = 0; j <= i; j++) {
@@ -637,18 +560,6 @@ void Hydro::ISformal() {
           c->setPiH0(c->getPi() -
                      (c->getPi() - PiNS) * dt / 2.0 / gamma / tauPi);
 #endif
-          // sources from Christoffel symbols from \dot pi_munu
-          double tau1 = tau - dt * 0.75;
-          c->addpiH0(0, 0, -2. * vz * c->getpi(0, 3) / tau1 * dt /
-                               2.);  // *gamma/gamma
-          c->addpiH0(3, 3, -(2. * vz / tau1 * c->getpi(0, 3)) * dt / 2.);
-          c->addpiH0(
-              3, 0, -(vz / tau1 * c->getpi(0, 0) + vz / tau1 * c->getpi(3, 3)) *
-                        dt / 2.);
-          c->addpiH0(1, 0, -vz / tau1 * c->getpi(1, 3) * dt / 2.);
-          c->addpiH0(2, 0, -vz / tau1 * c->getpi(2, 3) * dt / 2.);
-          c->addpiH0(3, 1, -(vz / tau1 * c->getpi(0, 1)) * dt / 2.);
-          c->addpiH0(3, 2, -(vz / tau1 * c->getpi(0, 2)) * dt / 2.);
           // source from full IS equations (see  draft for the description)
           double u[4];
           u[0] = gamma;
@@ -686,17 +597,6 @@ void Hydro::ISformal() {
 #else
           c->setPi0(c->getPi() - (c->getPiH0() - PiNS) * dt / gamma / tauPi);
 #endif
-          tau1 = tau - dt * 0.5;
-          c->addpi0(0, 0,
-                    -2. * vz / tau1 * c->getpiH0(0, 3) * dt);  // *gamma/gamma
-          c->addpi0(3, 3, -(2. * vz / tau1 * c->getpiH0(0, 3)) * dt);
-          c->addpi0(3, 0, -(vz / tau1 * c->getpiH0(0, 0) +
-                            vz / tau1 * c->getpiH0(3, 3)) *
-                              dt);
-          c->addpi0(1, 0, -vz / tau1 * c->getpiH0(1, 3) * dt);
-          c->addpi0(2, 0, -vz / tau1 * c->getpiH0(2, 3) * dt);
-          c->addpi0(3, 1, -(vz / tau1 * c->getpiH0(0, 1)) * dt);
-          c->addpi0(3, 2, -(vz / tau1 * c->getpiH0(0, 2)) * dt);
           // source from full IS equations (see draft for the description)
           for (int i = 0; i < 4; i++)
             for (int j = 0; j <= i; j++) {
@@ -718,15 +618,15 @@ void Hydro::ISformal() {
     for (int iy = 0; iy < f->getNY(); iy++)
       for (int iz = 0; iz < f->getNZ(); iz++) {
         Cell *c = f->getCell(ix, iy, iz);
-        c->getPrimVarHCenter(eos, tau - 0.5 * dt, e, p, nb, nq, ns, vx, vy,
+        c->getPrimVarHCenter(eos, e, p, nb, nq, ns, vx, vy,
                              vz);  // getPrimVar() before
         if (e <= 0.) continue;
         double xm = -vx * dt / f->getDx();
         double ym = -vy * dt / f->getDy();
-        double zm = -vz * dt / f->getDz() / (tau - 0.5 * dt);
+        double zm = -vz * dt / f->getDz();
         double xmH = -vx * dt / f->getDx() / 2.0;
         double ymH = -vy * dt / f->getDy() / 2.0;
-        double zmH = -vz * dt / f->getDz() / (tau - 0.5 * dt) / 2.0;
+        double zmH = -vz * dt / f->getDz() / 2.0;
         double wx[2] = {(1. - fabs(xm)), fabs(xm)};
         double wy[2] = {(1. - fabs(ym)), fabs(ym)};
         double wz[2] = {(1. - fabs(zm)), fabs(zm)};
@@ -814,9 +714,7 @@ void Hydro::setQfull() {
       for (int iz = 0; iz < f->getNZ(); iz++) {
         Cell *c = f->getCell(ix, iy, iz);
         c->getQ(Q);
-        for (int i = 0; i < 7; i++)
-          Q[i] = Q[i] / tau;  // remove factor "tau" from Q
-        c->getPrimVar(eos, tau, e, p, nb, nq, ns, vx, vy, vz);
+        c->getPrimVar(eos, e, p, nb, nq, ns, vx, vy, vz);
         uuu[0] = 1.0 / sqrt(1.0 - vx * vx - vy * vy - vz * vz);
         uuu[1] = vx * uuu[0];
         uuu[2] = vy * uuu[0];
@@ -832,7 +730,7 @@ void Hydro::setQfull() {
 void Hydro::visc_flux(Cell *left, Cell *right, int direction) {
   double flux[4];
   int ind2 = 0;
-  double dxa;
+  double dxa=0.0;
   // exit if noth cells are not full with matter
   if (left->getM(direction) < 1. && right->getM(direction) < 1.) return;
 
@@ -841,13 +739,13 @@ void Hydro::visc_flux(Cell *left, Cell *right, int direction) {
   else if (direction == Y_)
     dxa = f->getDy();
   else if (direction == Z_)
-    dxa = f->getDz() * (tau + 0.5 * dt);
+    dxa = f->getDz();
   double e, p, nb, nq, ns, vxl, vyl, vzl, vxr, vyr, vzr;
   // we need to know the velocities at both cell centers at (n+1/2) in order to
   // interpolate to
   // get the value at the interface
-  left->getPrimVarHCenter(eos, tau - dt / 2., e, p, nb, nq, ns, vxl, vyl, vzl);
-  right->getPrimVarHCenter(eos, tau - dt / 2., e, p, nb, nq, ns, vxr, vyr, vzr);
+  left->getPrimVarHCenter(eos, e, p, nb, nq, ns, vxl, vyl, vzl);
+  right->getPrimVarHCenter(eos, e, p, nb, nq, ns, vxr, vyr, vzr);
   vxl = 0.5 * (vxl + vxr);
   vyl = 0.5 * (vyl + vyr);
   vzl = 0.5 * (vzl + vzr);
@@ -882,9 +780,7 @@ void Hydro::visc_flux(Cell *left, Cell *right, int direction) {
 void Hydro::performStep(void) {
   // debugRiemann = false ; // turn off debug output
 
-  f->updateM(tau, dt);
-
-  tau_z = dt / 2. / log(1 + dt / 2. / tau);
+  f->updateM(dt);
 
   //-----PREDICTOR-ideal
   for (int iy = 0; iy < f->getNY(); iy++)
@@ -923,14 +819,13 @@ void Hydro::performStep(void) {
     for (int iz = 0; iz < f->getNZ(); iz++)
       for (int ix = 0; ix < f->getNX(); ix++) {
         Cell *c = f->getCell(ix, iy, iz);
-        source_step(ix, iy, iz, PREDICT);
+        //source_step(ix, iy, iz, PREDICT); // not needed in Cartesian
         c->updateQtoQhByFlux();
         c->clearFlux();
       }
 
   //----CORRECTOR-ideal
 
-  tau_z = dt / log(1 + dt / tau);
   // X dir
   for (int iy = 0; iy < f->getNY(); iy++)
     for (int iz = 0; iz < f->getNZ(); iz++)
@@ -960,11 +855,11 @@ void Hydro::performStep(void) {
     for (int iz = 0; iz < f->getNZ(); iz++)
       for (int ix = 0; ix < f->getNX(); ix++) {
         Cell *c = f->getCell(ix, iy, iz);
-        source_step(ix, iy, iz, CORRECT);
+        //source_step(ix, iy, iz, CORRECT);  // not needed in Cartesian
         c->updateByFlux();
         c->clearFlux();
       }
-  tau += dt;
+  time += dt;
   f->correctImagCells();
 
   //===== viscous part ======
@@ -996,9 +891,9 @@ void Hydro::performStep(void) {
     for (int iy = 0; iy < f->getNY(); iy++)
       for (int iz = 0; iz < f->getNZ(); iz++)
         for (int ix = 0; ix < f->getNX(); ix++) {
-          visc_source_step(ix, iy, iz);
+          //visc_source_step(ix, iy, iz);  // not needed in Cartesian
           f->getCell(ix, iy, iz)->updateQfullByFlux();
-          f->getCell(ix, iy, iz)->correctQideal(eos, tau);
+          f->getCell(ix, iy, iz)->correctQideal(eos);
         }
   } else {  // end viscous part
   }

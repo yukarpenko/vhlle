@@ -176,6 +176,7 @@ void IC_KW::getICs(double x, double y, double z, double& _e, double& _vx,
 }
 
 void IC_KW::setIC(Fluid* f, EoS* eos, double tau) {
+  cout<<"IC_KW has to be modified for Cartesian; exit\n"; exit(1);
   for (int ix = 0; ix < f->getNX(); ix++)
     for (int iy = 0; iy < f->getNY(); iy++)
       for (int iz = 0; iz < f->getNZ(); iz++) {
@@ -199,7 +200,7 @@ void IC_KW::setIC(Fluid* f, EoS* eos, double tau) {
         //============= test ==============
         //	vx = vy = 0. ;
         //=================================
-        c->setPrimVar(eos, tau, e, 0., 0., 0., vx, vy, vz);
+        c->setPrimVar(eos, e, 0., 0., 0., vx, vy, vz);
         c->saveQprev();
         //=====viscous set-up: zero pi, Pi
         for (int i = 0; i < 4; i++)

@@ -28,13 +28,13 @@ class EoSaux {
   double** ptab, **Ttab, **mubtab, **mustab, **stab;
 
  public:
-  EoSaux(char* filename, int Ne, int Nn);
+  EoSaux(const char* filename, int Ne, int Nn);
   ~EoSaux();
   void get(double e, double nb, double& p, double& T, double& mub, double& mus);
   double p(double e, double nb);
 };
 
-EoSaux::EoSaux(char* filename, int Ne, int Nn) {
+EoSaux::EoSaux(const char* filename, int Ne, int Nn) {
   ne = Ne;
   nn = Nn;
   ptab = new double* [ne];

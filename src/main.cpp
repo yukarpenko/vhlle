@@ -39,7 +39,7 @@ using namespace std;
 
 // program parameters, to be read from file
 int nx, ny, nz, eosType;
-double xmin, xmax, ymin, ymax, etamin, etamax, tau0, tauMax, dtau;
+double xmin, xmax, ymin, ymax, zmin, zmax, tau0, tauMax, dtau;
 char outputDir[255], eosFile[255], chiBfile[255], chiSfile[255];
 char icInputFile[255];
 double T_ch, mu_b, mu_q, mu_s, gammaS, gammaFactor, exclVolume, etaS, zetaS,
@@ -91,10 +91,10 @@ void readParameters(char *parFile) {
       ymin = atof(parValue);
     else if (strcmp(parName, "ymax") == 0)
       ymax = atof(parValue);
-    else if (strcmp(parName, "etamin") == 0)
-      etamin = atof(parValue);
-    else if (strcmp(parName, "etamax") == 0)
-      etamax = atof(parValue);
+    else if (strcmp(parName, "zmin") == 0)
+      zmin = atof(parValue);
+    else if (strcmp(parName, "zmax") == 0)
+      zmax = atof(parValue);
     else if (strcmp(parName, "tau0") == 0)
       tau0 = atof(parValue);
     else if (strcmp(parName, "tauMax") == 0)
@@ -155,8 +155,8 @@ void printParameters() {
   cout << "xmax = " << xmax << endl;
   cout << "ymin = " << ymin << endl;
   cout << "ymax = " << ymax << endl;
-  cout << "etamin = " << etamin << endl;
-  cout << "etamax = " << etamax << endl;
+  cout << "zmin = " << zmin << endl;
+  cout << "zmax = " << zmax << endl;
   cout << "tau0 = " << tau0 << endl;
   cout << "tauMax = " << tauMax << endl;
   cout << "dtau = " << dtau << endl;
@@ -195,7 +195,6 @@ int main(int argc, char **argv) {
   time_t start = 0, end;
 
   time(&start);
-  int memory = 0;
 
   // read parameters from file
   char *parFile;
@@ -209,29 +208,31 @@ int main(int argc, char **argv) {
   printParameters();
 
   // EoS
-  // char * eosfile = "eos/Laine_nf3.dat" ;
-  // int ncols = 3, nrows = 286 ;
-  // eos = new EoSs(eosfile,ncols) ;
-  if (eosType == 1)
-    eos = new EoSChiral();
-  else if (eosType == 2)
-    eos = new EoSAZH();
-  else {
-    cout << "eosType != 1,2\n";
-    return 0;
-  }
-  EoS *eosH = new EoSHadron("eos/eosHadronLog.dat");
+  char * eosfile = "eos/Laine_nf3.dat";
+  int ncols = 3, nrows = 286;
+  eos = new EoSs(eosfile,ncols);
+  EoS* eosH = eos;
+  //if (eosType == 1)
+    //eos = new EoSChiral();
+  //else if (eosType == 2)
+    //eos = new EoSAZH();
+  //else {
+    //cout << "eosType != 1,2\n";
+    //return 0;
+  //}
+  //EoS *eosH = new EoSHadron("eos/eosHadronLog.dat");
 
   // transport coefficients
   trcoeff = new TransportCoeff(etaS, zetaS, eos);
 
-  f = new Fluid(eos, eosH, trcoeff, nx, ny, nz, xmin, xmax, ymin, ymax, etamin,
-                etamax, dtau, eCrit);
+  f = new Fluid(eos, eosH, trcoeff, nx, ny, nz, xmin, xmax, ymin, ymax, zmin,
+                zmax, dtau, eCrit);
   cout << "fluid allocation done\n";
 
   // initilal conditions
-  IcPartUrqmd *ic = new IcPartUrqmd(f, icInputFile, Rgt, Rgz, tau0);
-  ic->setIC(f, eos);
+  //IcPartUrqmd *ic = new IcPartUrqmd(f, icInputFile, Rgt, Rgz, tau0);
+  IC *ic = new IC(100.0, 0.0, 0.0);
+  ic->setIC(f, eos, tau0);
   delete ic;
   cout << "IC done\n";
 
@@ -256,12 +257,12 @@ int main(int argc, char **argv) {
     int nSubSteps = 1;
     while (dtau / nSubSteps > 0.5 * (tau0 + dtau * istep))
       nSubSteps *= 2;  // 0.02 in "old" coordinates
-    h->setDtau(dtau / nSubSteps);
+    h->setDt(dtau / nSubSteps);
     for (int j = 0; j < nSubSteps; j++) {
       h->performStep();
     }
-    f->outputPDirections(h->getTau());
-    f->outputSurface(h->getTau());
+    f->outputPDirections(h->getTime());
+    f->outputSurface(h->getTime());
   }
 
   end = 0;

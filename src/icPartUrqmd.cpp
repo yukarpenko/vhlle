@@ -202,6 +202,7 @@ void IcPartUrqmd::makeSmoothTable(int npart) {
 }
 
 void IcPartUrqmd::setIC(Fluid* f, EoS* eos) {
+  cout<<"IcPartUrqmd has to be modified for Cartesian; exit\n"; exit(1);
   double E = 0.0, Px = 0.0, Py = 0.0, Pz = 0.0, Nb = 0.0;
   double Q[7], e, p, nb, nq, ns, vx, vy, vz;
   for (int ix = 0; ix < nx; ix++)
@@ -225,7 +226,7 @@ void IcPartUrqmd::setIC(Fluid* f, EoS* eos) {
           vx = vy = vz = 0.0;
         }
         Cell* c = f->getCell(ix, iy, iz);
-        c->setPrimVar(eos, tau0, e, nb, nq, ns, vx, vy, vz);
+        c->setPrimVar(eos, e, nb, nq, ns, vx, vy, vz);
         if (e > 0.) c->setAllM(1.);
         const double gamma = 1.0 / sqrt(1.0 - vx * vx - vy * vy - vz * vz);
         double u[4] = {gamma, gamma * vx, gamma * vy, gamma * vz};

@@ -64,29 +64,29 @@ void Cell::updateQfullByFlux() {
   for (int i = 0; i < 7; i++) Qfull[i] += flux[i];
 }
 
-void Cell::correctQideal(EoS *eos, double tau) {
+void Cell::correctQideal(EoS *eos) {
   double e, p, nb, nq, ns, vx, vy, vz;
   getPrimVarFull(eos, e, p, nb, nq, ns, vx, vy, vz);
   const double gamma2 = 1. / (1 - vx * vx - vy * vy - vz * vz);
-  Q[T_] = tau * (e + p * (vx * vx + vy * vy + vz * vz)) * gamma2;
-  Q[X_] = tau * (e + p) * vx * gamma2;
-  Q[Y_] = tau * (e + p) * vy * gamma2;
-  Q[Z_] = tau * (e + p) * vz * gamma2;
-  Q[NB_] = tau * nb * sqrt(gamma2);
-  Q[NQ_] = tau * nq * sqrt(gamma2);
-  Q[NS_] = tau * ns * sqrt(gamma2);
+  Q[T_] = (e + p * (vx * vx + vy * vy + vz * vz)) * gamma2;
+  Q[X_] = (e + p) * vx * gamma2;
+  Q[Y_] = (e + p) * vy * gamma2;
+  Q[Z_] = (e + p) * vz * gamma2;
+  Q[NB_] = nb * sqrt(gamma2);
+  Q[NQ_] = nq * sqrt(gamma2);
+  Q[NS_] = ns * sqrt(gamma2);
 }
 
-void Cell::getPrimVar(EoS *eos, double tau, double &_e, double &_p, double &_nb,
+void Cell::getPrimVar(EoS *eos, double &_e, double &_p, double &_nb,
                       double &_nq, double &_ns, double &_vx, double &_vy,
                       double &_vz) {
   double _Q[7];
-  for (int i = 0; i < 7; i++) _Q[i] = Q[i] / tau;
+  for (int i = 0; i < 7; i++) _Q[i] = Q[i];
   transformPV(eos, _Q, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
   //-------------------- debug ---------------
   if (_nb != _nb) {
     cout << "---error in getPrimVar:\n";
-    Dump(tau);
+    Dump();
     // debugRiemann=true ;
     // transformPV(eos, _Q, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz) ;
     // exit(1) ;
@@ -94,7 +94,7 @@ void Cell::getPrimVar(EoS *eos, double tau, double &_e, double &_p, double &_nb,
   //------------------------------------------
 }
 
-void Cell::getPrimVarLeft(EoS *eos, double tau, double &_e, double &_p,
+void Cell::getPrimVarLeft(EoS *eos, double &_e, double &_p,
                           double &_nb, double &_nq, double &_ns, double &_vx,
                           double &_vy, double &_vz, int dir) {
   double Qr[7], Ql[7], dQ[7];
@@ -105,19 +105,19 @@ void Cell::getPrimVarLeft(EoS *eos, double tau, double &_e, double &_p,
   for (int i = 0; i < 7; i++)
     dQ[i] = minmod((Qr[i] - Q[i]) / 2., (Q[i] - Ql[i]) / 2.);
 
-  for (int i = 0; i < 7; i++) Ql[i] = (Q[i] - dQ[i]) / tau;
+  for (int i = 0; i < 7; i++) Ql[i] = (Q[i] - dQ[i]);
   transformPV(eos, Ql, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
   //-------------------- debug ---------------
   if (_nb != _nb) {
     cout << "---error in getPrimVarLeft:\n";
-    Dump(tau);
-    next[dir - 1]->Dump(tau);
-    prev[dir - 1]->Dump(tau);
+    Dump();
+    next[dir - 1]->Dump();
+    prev[dir - 1]->Dump();
   }
   //------------------------------------------
 }
 
-void Cell::getPrimVarRight(EoS *eos, double tau, double &_e, double &_p,
+void Cell::getPrimVarRight(EoS *eos, double &_e, double &_p,
                            double &_nb, double &_nq, double &_ns, double &_vx,
                            double &_vy, double &_vz, int dir) {
   double Qr[7], Ql[7], dQ[7];
@@ -128,19 +128,19 @@ void Cell::getPrimVarRight(EoS *eos, double tau, double &_e, double &_p,
   for (int i = 0; i < 7; i++)
     dQ[i] = minmod((Qr[i] - Q[i]) / 2., (Q[i] - Ql[i]) / 2.);
 
-  for (int i = 0; i < 7; i++) Qr[i] = (Q[i] + dQ[i]) / tau;
+  for (int i = 0; i < 7; i++) Qr[i] = (Q[i] + dQ[i]);
   transformPV(eos, Qr, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
   //-------------------- debug ---------------
   if (_nb != _nb) {
     cout << "---error in getPrimVarRight:\n";
-    Dump(tau);
-    next[dir - 1]->Dump(tau);
-    prev[dir - 1]->Dump(tau);
+    Dump();
+    next[dir - 1]->Dump();
+    prev[dir - 1]->Dump();
   }
   //------------------------------------------
 }
 
-void Cell::getPrimVarHLeft(EoS *eos, double tau, double &_e, double &_p,
+void Cell::getPrimVarHLeft(EoS *eos, double &_e, double &_p,
                            double &_nb, double &_nq, double &_ns, double &_vx,
                            double &_vy, double &_vz, int dir) {
   double Qr[7], Ql[7], dQ[7];
@@ -151,19 +151,19 @@ void Cell::getPrimVarHLeft(EoS *eos, double tau, double &_e, double &_p,
   for (int i = 0; i < 7; i++)
     dQ[i] = minmod((Qr[i] - Qh[i]) / 2., (Qh[i] - Ql[i]) / 2.);
 
-  for (int i = 0; i < 7; i++) Ql[i] = (Qh[i] - dQ[i]) / tau;
+  for (int i = 0; i < 7; i++) Ql[i] = (Qh[i] - dQ[i]);
   transformPV(eos, Ql, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
   //-------------------- debug ---------------
   if (_nb != _nb) {
     cout << "---error in getPrimVarHLeft:\n";
-    Dump(tau);
-    next[dir - 1]->Dump(tau);
-    prev[dir - 1]->Dump(tau);
+    Dump();
+    next[dir - 1]->Dump();
+    prev[dir - 1]->Dump();
   }
   //------------------------------------------
 }
 
-void Cell::getPrimVarHRight(EoS *eos, double tau, double &_e, double &_p,
+void Cell::getPrimVarHRight(EoS *eos, double &_e, double &_p,
                             double &_nb, double &_nq, double &_ns, double &_vx,
                             double &_vy, double &_vz, int dir) {
   double Qr[7], Ql[7], dQ[7];
@@ -174,31 +174,31 @@ void Cell::getPrimVarHRight(EoS *eos, double tau, double &_e, double &_p,
   for (int i = 0; i < 7; i++)
     dQ[i] = minmod((Qr[i] - Qh[i]) / 2., (Qh[i] - Ql[i]) / 2.);
 
-  for (int i = 0; i < 7; i++) Qr[i] = (Qh[i] + dQ[i]) / tau;
+  for (int i = 0; i < 7; i++) Qr[i] = (Qh[i] + dQ[i]);
   transformPV(eos, Qr, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
   //-------------------- debug ---------------
   if (_nb != _nb) {
     cout << "---error in getPrimVarHRight:\n";
-    Dump(tau);
-    next[dir - 1]->Dump(tau);
-    prev[dir - 1]->Dump(tau);
+    Dump();
+    next[dir - 1]->Dump();
+    prev[dir - 1]->Dump();
   }
   //------------------------------------------
 }
 
-void Cell::getPrimVarHCenter(EoS *eos, double tau, double &_e, double &_p,
+void Cell::getPrimVarHCenter(EoS *eos, double &_e, double &_p,
                              double &_nb, double &_nq, double &_ns, double &_vx,
                              double &_vy, double &_vz) {
   double _Q[7];
-  for (int i = 0; i < 7; i++) _Q[i] = Qh[i] / tau;
+  for (int i = 0; i < 7; i++) _Q[i] = Qh[i];
   transformPV(eos, _Q, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
 }
 
-void Cell::getPrimVarPrev(EoS *eos, double tau, double &_e, double &_p,
+void Cell::getPrimVarPrev(EoS *eos, double &_e, double &_p,
                           double &_nb, double &_nq, double &_ns, double &_vx,
                           double &_vy, double &_vz) {
   double _Q[7];
-  for (int i = 0; i < 7; i++) _Q[i] = Qprev[i] / tau;
+  for (int i = 0; i < 7; i++) _Q[i] = Qprev[i];
   transformPV(eos, _Q, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
 }
 
@@ -212,22 +212,22 @@ void Cell::getPrimVarFull(EoS *eos, double &_e, double &_p, double &_nb,
   //-------------------- debug ---------------
   if (_nb != _nb) {
     cout << "---error in getPrimVarHRight:\n";
-    // Dump(tau) ;
+    // Dump() ;
   }
   //------------------------------------------
 }
 
-void Cell::setPrimVar(EoS *eos, double tau, double _e, double _nb, double _nq,
+void Cell::setPrimVar(EoS *eos, double _e, double _nb, double _nq,
                       double _ns, double _vx, double _vy, double _vz) {
   const double gamma2 = 1. / (1 - _vx * _vx - _vy * _vy - _vz * _vz);
   const double p = eos->p(_e, _nb, _nq, _ns);
-  Q[T_] = tau * (_e + p * (_vx * _vx + _vy * _vy + _vz * _vz)) * gamma2;
-  Q[X_] = tau * (_e + p) * _vx * gamma2;
-  Q[Y_] = tau * (_e + p) * _vy * gamma2;
-  Q[Z_] = tau * (_e + p) * _vz * gamma2;
-  Q[NB_] = tau * _nb * sqrt(gamma2);
-  Q[NQ_] = tau * _nq * sqrt(gamma2);
-  Q[NS_] = tau * _ns * sqrt(gamma2);
+  Q[T_] = (_e + p * (_vx * _vx + _vy * _vy + _vz * _vz)) * gamma2;
+  Q[X_] = (_e + p) * _vx * gamma2;
+  Q[Y_] = (_e + p) * _vy * gamma2;
+  Q[Z_] = (_e + p) * _vz * gamma2;
+  Q[NB_] = _nb * sqrt(gamma2);
+  Q[NQ_] = _nq * sqrt(gamma2);
+  Q[NS_] = _ns * sqrt(gamma2);
   if (!(Q[NB_] < 0. || Q[NB_] >= 0.)) {
     cout << "init error!\n";
     eos->p(_e, _nb, _nq, _ns);
@@ -238,17 +238,17 @@ void Cell::setPrimVar(EoS *eos, double tau, double _e, double _nb, double _nq,
   }
 }
 
-void Cell::Dump(double tau) {
+void Cell::Dump() {
   cout << "---------cell values dump-------\n";
   cout << setw(5) << ix << setw(5) << iy << setw(5) << iz << endl;
-  cout << setw(14) << Q[0] / tau << setw(14) << Q[1] / tau << setw(14)
-       << Q[2] / tau << setw(14) << Q[3] / tau << endl;
-  cout << setw(14) << Q[4] / tau << setw(14) << Q[5] / tau << setw(14)
-       << Q[6] / tau << endl;
-  cout << setw(14) << Qh[0] / tau << setw(14) << Qh[1] / tau << setw(14)
-       << Qh[2] / tau << setw(14) << Qh[3] / tau << endl;
-  cout << setw(14) << Qh[4] / tau << setw(14) << Qh[5] / tau << setw(14)
-       << Qh[6] / tau << endl;
+  cout << setw(14) << Q[0] << setw(14) << Q[1] << setw(14)
+       << Q[2] << setw(14) << Q[3] << endl;
+  cout << setw(14) << Q[4] << setw(14) << Q[5] << setw(14)
+       << Q[6] << endl;
+  cout << setw(14) << Qh[0] << setw(14) << Qh[1] << setw(14)
+       << Qh[2] << setw(14) << Qh[3] << endl;
+  cout << setw(14) << Qh[4] << setw(14) << Qh[5] << setw(14)
+       << Qh[6] << endl;
 
   cout << "--------------------------------\n";
 }

@@ -26,7 +26,7 @@ class Fluid {
         int _nz, double _minx, double _maxx, double _miny, double _maxy,
         double _minz, double _maxz, double dt, double eCrit);
   ~Fluid();
-  void initOutput(char *dir, int maxstep, double tau0, int cmpr2dOut);
+  void initOutput(char *dir, int maxstep, double t0, int cmpr2dOut);
   int output_xy_spacing;
   int output_eta_points;
   int output_tau_spacing;
@@ -44,9 +44,6 @@ class Fluid {
   inline double getY(int iy) { return miny + iy * dy; }
   inline double getZ(int iz) { return minz + iz * dz; }
 
-  void getCMFvariables(Cell *c, double tau, double &e, double &nb, double &nq,
-                       double &ns, double &vx, double &vy, double &Y);
-
   //	inline Cell* getCell(int ix, int iy, int iz)
   //	{ if(ix>-1 && ix<nx && iy>-1 && iy<ny && iz>-1 && iz<nz)
   //		return &cell[ix+nx*iy+nx*ny*iz] ; else return cell0; }
@@ -62,10 +59,10 @@ class Fluid {
 
   void correctImagCells(void);      // only ideal hydro part
   void correctImagCellsFull(void);  // correct ideal+visc
-  void updateM(double tau, double dt);
+  void updateM(double dt);
 
-  void outputPDirections(double tau);
-  void outputGnuplot(double tau);
-  void outputSurface(double tau);
-  void outputCorona(double tau);
+  void outputPDirections(double t);
+  void outputGnuplot(double t);
+  void outputSurface(double t);
+  void outputCorona(double t);
 };

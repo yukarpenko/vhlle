@@ -127,10 +127,10 @@ void IC::setIC(Fluid *f, EoS *eos, double tau) {
         c = f->getCell(ix, iy, iz);
         double x = f->getX(ix);
         double y = f->getY(iy);
-        double eta = f->getZ(iz);
+        double z = f->getZ(iz);
 
         if (icModel == 3) {
-          icurqmd::getIC(x, y, eta, e, nb, nq, vx, vy, vz);
+          icurqmd::getIC(x, y, z, e, nb, nq, vx, vy, vz);
           //    e = e*1.5 ;
           // vz = -tanh(eta) ; // for v_z=0 (in Cartesian coordinates)
           if (e < 1e-10) {
@@ -138,46 +138,32 @@ void IC::setIC(Fluid *f, EoS *eos, double tau) {
             vx = vy = vz = 0.0;
           }
         } else {
-          double eta1 = fabs(eta) < 1.3 ? 0.0 : fabs(eta) - 1.3;
-          e = eProfile(x, y) * exp(-eta1 * eta1 / 2.1 / 2.1) *
-              (fabs(eta) < 5.3 ? 1.0 : 0.0);  // see Huovinen,Hirano
+          //double eta1 = fabs(eta) < 1.3 ? 0.0 : fabs(eta) - 1.3;
+          //e = eProfile(x, y) * exp(-eta1 * eta1 / 2.1 / 2.1) *
+          //    (fabs(eta) < 5.3 ? 1.0 : 0.0);  // see Huovinen,Hirano
           // e = eProfile(x,y)*(fabs(eta)<2.0 ? 1.0 : 0.0) ; // box-like in
           // z-dir
-          nb = nq = 0.0;
-          if (e < 0.5) e = 0;
-          vx = vy = 0.;
-          vz = 0.;
+          // nb = nq = 0.0;
+          // if (e < 0.5) e = 0;
+          // vx = vy = 0.;
+          // vz = 0.;
         }
         //------- test
-        // e=30.*exp( - x*x -y*y - eta*eta ) ;
-        // if(e<0.01) e=0. ;
-        // vx = vy = vz = 0. ;
+         e=30.*exp( - x*x -y*y - z*z ) ;
+         nb = nq = 0.0;
+         if(e<0.01) e=0. ;
+         vx = vy = vz = 0. ;
         //------------
-
-        // if(e>0.5){
-        // vx =
-        // x/sqrt(x*x+y*y+1e-50)*tanh(alpha*sqrt(x*x+y*y)/pow(rPhi(atan2(y,x)),2))
-        // ;
-        // vy =
-        // y/sqrt(x*x+y*y+1e-50)*tanh(alpha*sqrt(x*x+y*y)/pow(rPhi(atan2(y,x)),2))
-        // ;
-        // if(ix==f->getNX()/2) vx = 0. ;
-        // if(iy==f->getNY()/2) vy = 0. ;
-        //}else{
-        // e = 0. ;
-        // p = 0. ;
-        // vx = vy = 0. ;
-        //}
 
         avv_num += sqrt(vx * vx + vy * vy) * e;
         avv_den += e;
 
-        c->setPrimVar(eos, tau, e, nb, nq, 0., vx, vy, vz);
+        c->setPrimVar(eos, e, nb, nq, 0., vx, vy, vz);
         double _p = eos->p(e, nb, nq, 0.);
         double _s = eos->s(e, nb, nq, 0.);
         const double gamma2 = 1.0 / (1.0 - vx * vx - vy * vy - vz * vz);
         Etotal +=
-            ((e + _p) * gamma2 * (cosh(eta) + vz * sinh(eta)) - _p * cosh(eta));
+            ((e + _p) * gamma2 - _p );
         c->saveQprev();
         Stotal += _s * sqrt(gamma2);
 
