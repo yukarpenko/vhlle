@@ -517,6 +517,7 @@ void Hydro::ISformal() {
   double e, p, nb, nq, ns, vx, vy, vz, T, mub, muq, mus;
   double piNS[4][4], PiNS, dmu[4][4], du, pi[4][4], piH[4][4], Pi, PiH;
   const double gmumu[4] = {1., -1., -1., -1.};
+  int nOrthogFail = 0, nOrthogNSFail = 0, nTracelessFail = 0;
 
   // loop #1 (relaxation+source terms)
   for (int ix = 0; ix < f->getNX(); ix++)
@@ -537,6 +538,17 @@ void Hydro::ISformal() {
           double gamma = 1.0 / sqrt(1.0 - vx * vx - vy * vy - vz * vz);
           NSquant(ix, iy, iz, piNS, PiNS, dmu, du);
           eos->eos(e, nb, nq, ns, T, mub, muq, mus, p);
+        // orthogonality to u^mu and traceless check
+        double uu[4];
+        uu[0] = 1./sqrt(1.0 - vx * vx - vy * vy - vz * vz);
+        uu[1] = uu[0] * vx;
+        uu[2] = uu[0] * vy;
+        uu[3] = uu[0] * vz;
+        for (int i = 0; i < 4; i++){
+          if(fabs(piNS[i][0]*uu[0]-piNS[i][1]*uu[1]-piNS[i][2]*uu[2]-piNS[i][3]*uu[3])/
+          max(fabs(piNS[i][0]),max(fabs(piNS[i][1]),max(fabs(piNS[i][2]),fabs(piNS[i][3]))))>1e-2)
+          nOrthogNSFail++;
+        }
           //############# get relaxation times
           double taupi, tauPi;
           trcoeff->getTau(T, taupi, tauPi);
@@ -693,6 +705,25 @@ void Hydro::ISformal() {
           c->setViscCorrCutFlag(maxT0 / maxpi);
         else
           c->setViscCorrCutFlag(1.);
+        // orthogonality to u^mu and traceless check
+        double uu[4];
+        uu[0] = 1./sqrt(1.0 - vx * vx - vy * vy - vz * vz);
+        uu[1] = uu[0] * vx;
+        uu[2] = uu[0] * vy;
+        uu[3] = uu[0] * vz;
+        //if(iy==f->getNY()/2 && iz==f->getNZ()/2)
+        for (int i = 0; i < 4; i++){
+          if(fabs(piH[i][0]*uu[0]-piH[i][1]*uu[1]-piH[i][2]*uu[2]-piH[i][3]*uu[3])/
+          max(fabs(piH[i][0]),max(fabs(piH[i][1]),max(fabs(piH[i][2]),fabs(piH[i][3]))))>1e-2){
+          nOrthogFail++;
+//          cout<<"**"<<setw(4)<<ix-f->getNX()/2<<setw(2)<<i<<setw(13)<<piH[i][0]<<setw(13)<<piH[i][1]
+//            <<setw(13)<<piH[i][2]<<setw(13)<<piH[i][3]<<setw(13)<<vx<<setw(13)<<vy
+//            <<setw(13)<<vz<<endl;
+          }
+        }
+          if(fabs(pi[0][0]-pi[1][1]-pi[2][2]-pi[3][3])/
+          max(fabs(pi[0][0]),max(fabs(pi[1][1]),max(fabs(pi[2][2]),fabs(pi[3][3]))))>1e-2)
+            nTracelessFail++;        
         // updating to the new values
         for (int i = 0; i < 4; i++)
           for (int j = 0; j <= i; j++) {
@@ -702,6 +733,8 @@ void Hydro::ISformal() {
         c->setPi(Pi);
         c->setPiH(PiH);
       }  // advection loop (all cells)
+  cout << "ISformal: nOrthogFail = " << nOrthogFail << " , " << nOrthogNSFail
+    << " , " << nTracelessFail << endl;
 }
 
 void Hydro::setQfull() {

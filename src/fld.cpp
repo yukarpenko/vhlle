@@ -494,7 +494,7 @@ void Fluid::outputSurface(double time) {
         Efull += (e + p) / (1. - vx * vx - vy * vy - vz * vz) - p;
         if (trcoeff->isViscous())
           Efull += c->getpi(0, 0) ;
-        if (e > ecrit) {
+        if (e >1e-10) {
           nCoreCells++;
           if (c->getViscCorrCutFlag() < 0.9) nCoreCutCells++;
         }
@@ -654,7 +654,7 @@ void Fluid::outputSurface(double time) {
 #ifdef SWAP_EOS
   swap(eos, eosH);
 #endif
-  if (nelements == 0) exit(0);
+//  if (nelements == 0) exit(0);
 }
 
 
