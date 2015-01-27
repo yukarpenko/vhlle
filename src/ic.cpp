@@ -75,50 +75,12 @@ double IC::rPhi(double phi) {
 
 void IC::setIC(Fluid *f, EoS *eos, double tau) {
   double e, nb, nq, e_corr, p, vx = 0., vy = 0., vz = 0.;
-  const double be = 1.;
-  const double bn = 1.;
   Cell *c;
   ofstream fvel("velocity_debug.txt");
-
-  TF2 *ff = 0;
-  double prms2[2], intgr2;
-  cout << "finding normalization constant\n";
-  ff = new TF2("ThicknessF", this, &IC::Thickness, -3.0 * Ra, 3.0 * Ra,
-               -3.0 * Ra, 3.0 * Ra, 2, "IC", "Thickness");
-  prms2[0] = Ra;
-  prms2[1] = dlt;
-  ff->SetParameters(prms2);
-  intgr2 = ff->Integral(-3.0 * Ra, 3.0 * Ra, -3.0 * Ra, 3.0 * Ra, 1.0e-9);
-  if (intgr2 == 0.0) {
-    cerr << "IC::setICGlauber Error! ff->Integral == 0; Return -1\n";
-    delete ff;
-    exit(1);
-  }
-  delete ff;
-  cout << "a = " << A / intgr2 << endl;
-  prms[1] = A / intgr2;
-  prms[2] = Ra;
-  prms[3] = dlt;
-  iff = new TF1("WoodSaxonDF", this, &IC::WoodSaxon, -3.0 * Ra, 3.0 * Ra, 4,
-                "IC", "WoodSaxon");
-  prms[0] = 0.0;
-  const double tpp = iff->Integral(-3.0 * Ra, 3.0 * Ra, prms, 1.0e-9);
-  rho0 = 2.0 * tpp * (1.0 - pow((1.0 - sigma * tpp / A), A));
-  if (icModel == 2) {
-    s95p::loadSongIC(icInputFile, s0ScaleFactor);
-    // s95p::loadSongIC("/home/yura/Downloads/results-CGC-part-0005-id/Initial/KLN00-05_Part.dat2",
-    // 17.75) ;
-  }
-  if (icModel == 3) {
-    icurqmd::loadIC(icInputFile);
-  }
-
-  findRPhi();  // fill in R(phi) table
-  cout << "R(phi) =  ";
-  for (int jj = 0; jj < 5; jj++) cout << rPhi(jj * C_PI / 2.) << "  ";  // test
-  cout << endl;
-  //--------------
-  double avv_num = 0., avv_den = 0.;
+  const double xmin = f->getX(0) ;
+  const double xmax = f->getX(f->getNX());
+  const double lam = xmax - xmin;
+  cout << "PERIODIC: lambda = " <<lam<<endl;
   double Etotal = 0.0, Stotal = 0.0;
 
   for (int ix = 0; ix < f->getNX(); ix++)
@@ -129,34 +91,16 @@ void IC::setIC(Fluid *f, EoS *eos, double tau) {
         double y = f->getY(iy);
         double z = f->getZ(iz);
 
-        if (icModel == 3) {
-          icurqmd::getIC(x, y, z, e, nb, nq, vx, vy, vz);
-          //    e = e*1.5 ;
-          // vz = -tanh(eta) ; // for v_z=0 (in Cartesian coordinates)
-          if (e < 1e-10) {
-            e = nb = nq = 0.0;
-            vx = vy = vz = 0.0;
-          }
-        } else {
-          //double eta1 = fabs(eta) < 1.3 ? 0.0 : fabs(eta) - 1.3;
-          //e = eProfile(x, y) * exp(-eta1 * eta1 / 2.1 / 2.1) *
-          //    (fabs(eta) < 5.3 ? 1.0 : 0.0);  // see Huovinen,Hirano
-          // e = eProfile(x,y)*(fabs(eta)<2.0 ? 1.0 : 0.0) ; // box-like in
-          // z-dir
-          // nb = nq = 0.0;
-          // if (e < 0.5) e = 0;
-          // vx = vy = 0.;
-          // vz = 0.;
-        }
         //------- test
-         e=30.*exp( - x*x -y*y - z*z ) ;
-         nb = nq = 0.0;
-         if(e<0.01) e=0. ;
-         vx = vy = vz = 0. ;
+         //e=30.*exp( - x*x -y*y - z*z ) ;
+         //nb = nq = 0.0;
+         //if(e<0.01) e=0. ;
+         //vx = vy = vz = 0. ;
         //------------
-
-        avv_num += sqrt(vx * vx + vy * vy) * e;
-        avv_den += e;
+         e = 3.0 + 0.003*sin(2.0*C_PI*x/lam);
+         vx = 0.001/( (1.0/3.0)*4.0)*sin(2.0*C_PI*x/lam);
+         vy = vz = 0.0;
+         nb = nq = 0.0;
 
         c->setPrimVar(eos, e, nb, nq, 0., vx, vy, vz);
         double _p = eos->p(e, nb, nq, 0.);
@@ -170,7 +114,6 @@ void IC::setIC(Fluid *f, EoS *eos, double tau) {
         if (e > 0.) c->setAllM(1.);
       }
   fvel.close();
-  cout << "average initial flow = " << avv_num / avv_den << endl;
   cout << "Etot = " << Etotal *f->getDx() * f->getDy() * f->getDz() * tau
        << "  Stot = " << Stotal * f->getDx() * f->getDy() * f->getDz() * tau
        << endl;

@@ -405,26 +405,6 @@ void Fluid::outputGnuplot(double time) {
   }
   fouty << endl;
 
-  // diagonal
-  for (int ix = 0; ix < nx; ix++) {
-    double x = getY(ix);
-    Cell *c = getCell(ix, ix, nz / 2);
-    c->getPrimVar(eos, e, p, nb, nq, ns, vx, vy, vz);
-    eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
-    foutdiag << setw(14) << time << setw(14) << sqrt(2.) * x << setw(14) << vx
-             << setw(14) << vy << setw(14) << e << setw(14) << nb << setw(14)
-             << t << setw(14) << mub << endl;
-    foutdiag << setw(14) << c->getpi(0, 0) << setw(14) << c->getpi(0, 1)
-             << setw(14) << c->getpi(0, 2);
-    foutdiag << setw(14) << c->getpi(0, 3) << setw(14) << c->getpi(1, 1)
-             << setw(14) << c->getpi(1, 2);
-    foutdiag << setw(14) << c->getpi(1, 3) << setw(14) << c->getpi(2, 2)
-             << setw(14) << c->getpi(2, 3);
-    foutdiag << setw(14) << c->getpi(3, 3) << setw(14) << c->getPi() << setw(14)
-             << c->getViscCorrCutFlag() << endl;
-  }
-  foutdiag << endl;
-
   // Z direction
   for (int iz = 0; iz < nz; iz++) {
     double z = getZ(iz);

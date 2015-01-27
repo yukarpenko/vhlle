@@ -195,6 +195,8 @@ int main(int argc, char **argv) {
   time_t start = 0, end;
 
   time(&start);
+  
+  cout << "***** running in BOX MODE *****\n" ;
 
   // read parameters from file
   char *parFile;
@@ -273,5 +275,5 @@ int main(int argc, char **argv) {
   delete f;
   delete h;
   delete eos;
-  delete eosH;
+//  delete eosH;
 }

@@ -44,18 +44,26 @@ class Fluid {
   inline double getY(int iy) { return miny + iy * dy; }
   inline double getZ(int iz) { return minz + iz * dz; }
 
-  //	inline Cell* getCell(int ix, int iy, int iz)
-  //	{ if(ix>-1 && ix<nx && iy>-1 && iy<ny && iz>-1 && iz<nz)
-  //		return &cell[ix+nx*iy+nx*ny*iz] ; else return cell0; }
-  inline Cell *getCell(int ix, int iy, int iz) {
-    ix = ix > 0 ? ix : 0;
-    ix = ix < nx ? ix : nx - 1;
-    iy = iy > 0 ? iy : 0;
-    iy = iy < ny ? iy : ny - 1;
-    iz = iz > 0 ? iz : 0;
-    iz = iz < nz ? iz : nz - 1;
-    return &cell[ix + nx * iy + nx * ny * iz];
-  }
+  // preiodic boundary in 3D
+  inline Cell* getCell(int ix, int iy, int iz) 
+	{ ix = ix>0 ? ix : nx+ix;
+   ix = ix<nx ? ix : ix-nx ;
+   iy = iy>0 ? iy : ny+iy;
+   iy = iy<ny ? iy : iy-ny ;
+   iz = iz>0 ? iz : nz+iz;
+   iz = iz<nz ? iz : iz-nz ;
+   return &cell[ix + nx * iy + nx * ny * iz] ; }
+
+  // nonreflecting boundary
+//  inline Cell *getCell(int ix, int iy, int iz) {
+//    ix = ix > 0 ? ix : 0;
+//    ix = ix < nx ? ix : nx - 1;
+//    iy = iy > 0 ? iy : 0;
+//    iy = iy < ny ? iy : ny - 1;
+//    iz = iz > 0 ? iz : 0;
+//    iz = iz < nz ? iz : nz - 1;
+//    return &cell[ix + nx * iy + nx * ny * iz];
+//  }
 
   void correctImagCells(void);      // only ideal hydro part
   void correctImagCellsFull(void);  // correct ideal+visc
