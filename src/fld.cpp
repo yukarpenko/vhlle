@@ -573,7 +573,7 @@ void Fluid::calcTotals(double tau) {
         for (int i = 0; i < 4; i++)
           for (int j = 0; j < 4; j++)
             deltas += pow(c->getpi(i, j), 2) * gmumu[i] * gmumu[j];
-        if (t > 0.025) s += 1.5 * deltas / ((e + p) * t);
+        if (t > 0.05) s += 1.5 * deltas / ((e + p) * t);
         S += tau * s * (cosh(eta) - tanh(vz) * sinh(eta)) /
              sqrt(1. - vx * vx - vy * vy - tanh(vz) * tanh(vz));
         Efull +=

@@ -1,8 +1,8 @@
 
 ROOTCFLAGS   := $(shell root-config --cflags)
 ROOTLIBS     := $(shell root-config --libs)
-EXTRA_FLAGS   = -D SIMPLE  # EoS p=e/3
-#EXTRA_FLAGS   = -D TABLE  # Laine EoS, tabulated
+#EXTRA_FLAGS   = -D SIMPLE  # EoS p=e/3
+EXTRA_FLAGS   = -D TABLE  # Laine EoS, tabulated
 
 CXX           = g++
 CXXFLAGS      = -Wall -fPIC -O3 -march=native
