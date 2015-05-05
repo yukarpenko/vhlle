@@ -28,6 +28,7 @@
 #include "eos.h"
 #include "cll.h"
 #include "trancoeff.h"
+#include "jets.h"
 
 using namespace std;
 
@@ -44,10 +45,11 @@ extern double sign(double x);
 
 // ofstream foutNS ;
 
-Hydro::Hydro(Fluid *_f, EoS *_eos, TransportCoeff *_trcoeff, double _t0,
-             double _dt) {
+Hydro::Hydro(Fluid *_f, EoS *_eos, TransportCoeff *_trcoeff, Jets *_jets, 
+             double _t0, double _dt) {
   eos = _eos;
   trcoeff = _trcoeff;
+  jets = _jets;
   f = _f;
   dt = _dt;
   tau = _t0;
@@ -324,6 +326,74 @@ void Hydro::source_step(int ix, int iy, int iz, int mode) {
 
   c->addFlux(k[T_], k[X_], k[Y_], k[Z_], k[NB_], k[NQ_], k[NS_]);
 }
+
+
+void Hydro::jets_source()
+{
+ // ... parameters
+ const double Rx = 0.2;
+ const double Ry = 0.2;
+ const double Rz = 0.2;
+ const double C_dEdx = 4.0;
+ const int ncells = (int)ceil(4.0*Rx/f->getDx());
+ // ... calculation, loop over all jets
+ for(int i=0; i<jets->nJets(); i++){
+  Jet* jet = jets->jet(i);
+  int ixc=(int)( (jet->X()   - f->getX(0)) / f->getDx() );
+  int iyc=(int)( (jet->Y()   - f->getY(0)) / f->getDy() );
+  int izc=(int)( (jet->Eta() - f->getZ(0)) / f->getDz() );
+  double xm = (jet->X() - f->getX(ixc)) / f->getDx();
+  double ym = (jet->Y() - f->getY(iyc)) / f->getDy();
+  double zm = (jet->Eta()-f->getZ(izc)) / f->getDz();
+  double wx [2] = {1. - xm, xm};
+  double wy [2] = {1. - ym, ym};
+  double wz [2] = {1. - zm, zm};
+  double sAver = 0.;
+  for(int jx=0; jx<2; jx++)
+  for(int jy=0; jy<2; jy++)
+  for(int jz=0; jz<2; jz++){
+   double e, p, nb, nq, ns, vx, vy, vz;
+   f->getCell(ixc+jx,iyc+jy,izc+jz)->getPrimVar(eos, tau, e, p, nb, nq, ns, vx, vy, vz);
+   sAver += eos->s(e, nb, nq, ns) * wx[jx] * wy[jy] * wz[jz];
+  }
+  // loop #1, normalizaiton
+  double norm = 0.;
+  for(int jx=ixc-ncells; jx<ixc+ncells; jx++)
+  for(int jy=iyc-ncells; jy<iyc+ncells; jy++)
+  for(int jz=izc-ncells; jz<izc+ncells; jz++){
+   norm += exp(-pow(jet->X() - f->getX(jx), 2) / Rx/Rx
+               -pow(jet->Y() - f->getY(jy), 2) / Ry/Ry
+               -pow(jet->Eta()-f->getZ(jz), 2) / Rz/Rz );
+  }
+  norm = 1.0/norm;
+  double loss [4] = {0., 0., 0., 0.}; // total energy-momentum loss of a jet
+  // loop #2, 
+  for(int jx=ixc-ncells; jx<ixc+ncells; jx++)
+  for(int jy=iyc-ncells; jy<iyc+ncells; jy++)
+  for(int jz=izc-ncells; jz<izc+ncells; jz++){
+   double weight = norm*exp(-pow(jet->X() - f->getX(jx), 2) / Rx/Rx
+                            -pow(jet->Y() - f->getY(jy), 2) / Ry/Ry
+                            -pow(jet->Eta()-f->getZ(jz), 2) / Rz/Rz );
+   double src [4];
+   double v_jet = sqrt( pow(jet->Vt_jet()*cosh(f->getZ(jz))/cosh(jet->Rap()
+    -f->getZ(jz)),2) + pow(tanh(jet->Rap()-f->getZ(jz)),2) );
+   double Ejet = jet->Mt()*cosh(jet->Rap());
+   src[T_] = weight * C_dEdx * sAver/ 70.0 * v_jet * dt;
+   src[X_] = src[T_] * jet->Px()/Ejet;
+   src[Y_] = src[T_] * jet->Py()/Ejet;
+   src[Z_] = src[T_] * jet->Mt()*sinh(jet->Rap())/Ejet;
+   f->getCell(jx,jy,jz)->addFlux(src[T_],src[X_], src[Y_], src[Z_],
+                         0., 0., 0.);
+   loss[T_] -= src[T_];
+   loss[X_] -= src[X_];
+   loss[Y_] -= src[Y_];
+   loss[Z_] -= src[Z_];
+  }
+  jet->addEnergyMom(loss[T_],loss[X_],loss[Y_],loss[Z_]);
+ } // end of loop over jets
+ jets->checkJets();
+}
+
 
 void Hydro::visc_source_step(int ix, int iy, int iz) {
   double e, p, nb, nq, ns, vx, vy, vz;
@@ -882,6 +952,7 @@ void Hydro::visc_flux(Cell *left, Cell *right, int direction) {
 void Hydro::performStep(void) {
   // debugRiemann = false ; // turn off debug output
 
+  jets->propagate(tau, dt);
   f->updateM(tau, dt);
 
   tau_z = dt / 2. / log(1 + dt / 2. / tau);
@@ -955,6 +1026,8 @@ void Hydro::performStep(void) {
                   CORRECT);
       }
   //	cout << "corrector Z done\n" ;
+
+  jets_source(); // only at corrector step
 
   for (int iy = 0; iy < f->getNY(); iy++)
     for (int iz = 0; iz < f->getNZ(); iz++)

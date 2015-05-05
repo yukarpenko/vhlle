@@ -1,0 +1,30 @@
+outputDir       hydroout/jets3D    ! output directory
+
+eosType       1           ! reserved for future use
+
+etaS      0.0             !  eta/s value
+zetaS     0.0             !  zeta/s, bulk viscosity
+e_crit    0.515           !  criterion for surface finding
+
+nx        161             ! number of cells in X direction
+ny        161             ! number of cells in Y direction
+nz        51             ! number of cells in eta direction
+xmin     -16.0            ! coordinate of the first cell
+xmax      16.0            ! coordinate of the last cell
+ymin     -16.0
+ymax      16.0
+etamin   -5.0
+etamax    5.0
+
+! icModel: 1=Glauber, 2=Glauber_table+parametrized rapidity for energy conserv. check, 4=Gubser flow
+icModel    2
+glauberVar 1       ! reserved for future use
+icInputFile ic/npart.reanalysis/20-30.tb
+s0ScaleFactor  53.55
+epsilon0   50.0
+impactPar  0.0
+alpha      0.0
+tau0       1.0     ! starting proper time
+tauMax     10.0    ! proper time to stop hydro
+dtau       0.05    ! timestep
+

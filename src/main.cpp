@@ -24,7 +24,7 @@
 #include <sstream>
 #include "fld.h"
 #include "hdo.h"
-#include "ic.h"
+#include "icGlauber.h"
 #include "ickw.h"
 #include "icPartUrqmd.h"
 #include "eos.h"
@@ -34,6 +34,7 @@
 #include "eoAZH.h"
 #include "eoHadron.h"
 #include "trancoeff.h"
+#include "jets.h"
 
 using namespace std;
 
@@ -187,6 +188,7 @@ void printParameters() {
 // double epsilon0, alpha, impactPar, s0ScaleFactor ;
 
 int main(int argc, char **argv) {
+  Jets* jets = new Jets("f21");
   // pointers to all the main objects
   EoS *eos;
   TransportCoeff *trcoeff;
@@ -209,18 +211,18 @@ int main(int argc, char **argv) {
   printParameters();
 
   // EoS
-  // char * eosfile = "eos/Laine_nf3.dat" ;
-  // int ncols = 3, nrows = 286 ;
-  // eos = new EoSs(eosfile,ncols) ;
-  if (eosType == 1)
-    eos = new EoSChiral();
-  else if (eosType == 2)
-    eos = new EoSAZH();
-  else {
-    cout << "eosType != 1,2\n";
-    return 0;
-  }
-  EoS *eosH = new EoSHadron("eos/eosHadronLog.dat");
+   char * eosfile = "eos/Laine_nf3.dat" ;
+   int ncols = 3, nrows = 286 ;
+   eos = new EoSs(eosfile,ncols) ;
+  //if (eosType == 1)
+    //eos = new EoSChiral();
+  //else if (eosType == 2)
+    //eos = new EoSAZH();
+  //else {
+    //cout << "eosType != 1,2\n";
+    //return 0;
+  //}
+  EoS *eosH = eos; //new EoSHadron("eos/eosHadronLog.dat");
 
   // transport coefficients
   trcoeff = new TransportCoeff(etaS, zetaS, eos);
@@ -230,7 +232,8 @@ int main(int argc, char **argv) {
   cout << "fluid allocation done\n";
 
   // initilal conditions
-  IcPartUrqmd *ic = new IcPartUrqmd(f, icInputFile, Rgt, Rgz, tau0);
+  //IcPartUrqmd *ic = new IcPartUrqmd(f, icInputFile, Rgt, Rgz, tau0);
+  ICGlauber *ic = new ICGlauber(epsilon0, impactPar, tau0);
   ic->setIC(f, eos);
   delete ic;
   cout << "IC done\n";
@@ -241,7 +244,7 @@ int main(int argc, char **argv) {
   cout << "Init time = " << diff << " [sec]" << endl;
 
   // hydro init
-  h = new Hydro(f, eos, trcoeff, tau0, dtau);
+  h = new Hydro(f, eos, trcoeff, jets, tau0, dtau);
   int maxstep = ceil((tauMax - tau0) / dtau);
   start = 0;
   time(&start);
@@ -249,7 +252,9 @@ int main(int argc, char **argv) {
   h->setQfull();  // set Qfull in each cell, in order to output IC correctly
 
   f->initOutput(outputDir, maxstep, tau0, 2);
-  f->outputCorona(tau0);
+  //f->outputCorona(tau0);
+  
+  jets->propagate(tau0, -0.5*dtau);
 
   for (int istep = 0; istep < maxstep; istep++) {
     // decrease timestep automatically, but use fixed dtau for output
@@ -260,8 +265,8 @@ int main(int argc, char **argv) {
     for (int j = 0; j < nSubSteps; j++) {
       h->performStep();
     }
-    f->outputPDirections(h->getTau());
-    f->outputSurface(h->getTau());
+    f->outputGnuplot(h->getTau());
+    //f->outputSurface(h->getTau());
   }
 
   end = 0;

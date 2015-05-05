@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <TF1.h>
 #include <TF2.h>
+#include <TGraph.h>
 
 #include "fld.h"
 #include "eos.h"
@@ -13,15 +14,16 @@
 
 using namespace std;
 
-const double A = 197.0;
-const double Ra = 6.37;
-const double dlt = 0.54;
-const double sigma = 5.1;
+// Au nucleus parameters for optical Glauber
+const double A = 197.0;    // mass number
+const double Ra = 6.37;    // radius
+const double dlt = 0.54;   // diffuseness
+const double sigma = 4.0;  // NN cross section in fm^2
 
 const int nphi = 301;
 
 extern char icInputFile[255];
-extern int icModel;
+extern int icModel, glauberVariable;
 extern double s0ScaleFactor;
 
 IC::IC(double e, double impactPar, double a) {
@@ -51,7 +53,7 @@ void IC::findRPhi(void) {
   _rphi = new double[nphi];
   for (int iphi = 0; iphi < nphi; iphi++) {
     double phi = iphi * C_PI * 2. / (nphi - 1);
-    double r, r1 = 0., r2 = 2. * Ra;
+    double r = 0., r1 = 0., r2 = 2. * Ra;
     while (fabs((r2 - r1) / r2) > 0.001 && r2 > 0.001) {
       r = 0.5 * (r1 + r2);
       if (eProfile(r * cos(phi), r * sin(phi)) > 0.5)
@@ -74,9 +76,7 @@ double IC::rPhi(double phi) {
 }
 
 void IC::setIC(Fluid *f, EoS *eos, double tau) {
-  double e, nb, nq, e_corr, p, vx = 0., vy = 0., vz = 0.;
-  const double be = 1.;
-  const double bn = 1.;
+  double e, nb, nq, vx = 0., vy = 0., vz = 0.;
   Cell *c;
   ofstream fvel("velocity_debug.txt");
 

@@ -3,17 +3,20 @@ class Cell;
 class Fluid;
 class EoS;
 class TransportCoeff;
+class Jets;
 
 class Hydro {
  private:
   Fluid *f;
   EoS *eos;
   TransportCoeff *trcoeff;
+  Jets *jets;
   double dt, tau;
   double tau_z;
 
  public:
-  Hydro(Fluid *_f, EoS *_eos, TransportCoeff *_trcoeff, double _t0, double _dt);
+  Hydro(Fluid *_f, EoS *_eos, TransportCoeff *_trcoeff, Jets *_jets,
+   double _t0, double _dt);
   ~Hydro();
   void setDtau(double deltaTau);
 
@@ -23,6 +26,7 @@ class Hydro {
   void source(double tau, double x, double y, double z, double Q[7],
               double S[7]);
   void source_step(int ix, int iy, int iz, int mode);
+  void jets_source();
   void NSquant(int ix, int iy, int iz, double pi[][4], double &Pi,
                double dmu[4][4], double &du);
   void setNSvalues();
