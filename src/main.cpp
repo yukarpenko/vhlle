@@ -267,6 +267,7 @@ int main(int argc, char **argv) {
     }
     f->outputGnuplot(h->getTau());
     //f->outputSurface(h->getTau());
+    cout<<"timestep passed, tau = "<<h->getTau()<<endl;
   }
 
   end = 0;

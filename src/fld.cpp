@@ -420,12 +420,11 @@ void Fluid::outputGnuplot(double tau) {
   for (int iz = 0; iz < nz; iz++) {
     double z = getZ(iz);
     Cell *c = getCell(nx / 2, ny / 2, iz);
-    getCMFvariables(getCell(nx / 2, ny / 2, iz), tau, e, nb, nq, ns, vx, vy,
-                    vz);
+    getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
     eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
-    foutz << setw(14) << tau << setw(14) << z << setw(14) << vz << setw(14)
-          << vx << setw(14) << e << setw(14) << nb << setw(14) << t << setw(14)
-          << mub;
+    foutz << setw(14) << tau << setw(14) << z << setw(14) << vz
+          << setw(14) << vx << setw(14) << e << setw(14) << nb << setw(14)
+          << t << setw(14) << mub << endl;
     foutz << setw(14) << c->getpi(0, 0) << setw(14) << c->getpi(0, 1)
           << setw(14) << c->getpi(0, 2);
     foutz << setw(14) << c->getpi(0, 3) << setw(14) << c->getpi(1, 1)
@@ -436,6 +435,22 @@ void Fluid::outputGnuplot(double tau) {
           << c->getViscCorrCutFlag() << endl;
   }
   foutz << endl;
+
+  // 3D
+  for (int ix = 0; ix < nx; ix++)
+  for (int iy = 0; iy < ny; iy++)
+  for (int iz = 0; iz < nz; iz++) {
+    double x = getX(ix);
+    double y = getY(iy);
+    double z = getZ(iz);
+    Cell *c = getCell(ix, iy, iz);
+    getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
+    eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
+    fout2d << setw(14) << tau << setw(14) << x << setw(14) << y << setw(14) << z
+           << setw(14) << vx << setw(14) << vy << setw(14) << vz << setw(14)
+           << e << endl;
+  }
+  fout2d << endl;
 }
 
 // unput: geom. rapidity + velocities in Bjorken frame, --> output: velocities

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <cstdlib>
 #include <cmath>
@@ -59,6 +60,13 @@ void Jets::propagate(double tau, double dtau)
  for(vector<Jet>::iterator it=jets.begin(); it!=jets.end(); it++){
   it->propagate(tau, dtau);
  }
+ static ofstream fjets("jet_trajectory");
+ int iJet = 0;
+ fjets << setw(10) << tau << setw(14) << jets[iJet].X()
+  << setw(14) << jets[iJet].Y() << setw(14) << jets[iJet].Eta()
+  << setw(14) << jets[iJet].Mt()*cosh(jets[iJet].Rap()) << setw(14) << jets[iJet].Px()
+  << setw(14) << jets[iJet].Py() << setw(14) << jets[iJet].Mt()*sinh(jets[iJet].Rap())
+  << endl;
 }
 
 

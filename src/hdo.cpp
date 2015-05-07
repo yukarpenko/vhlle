@@ -334,7 +334,7 @@ void Hydro::jets_source()
  const double Rx = 0.2;
  const double Ry = 0.2;
  const double Rz = 0.2;
- const double C_dEdx = 4.0;
+ const double C_dEdx = 40.0;
  const int ncells = (int)ceil(4.0*Rx/f->getDx());
  // ... calculation, loop over all jets
  for(int i=0; i<jets->nJets(); i++){
