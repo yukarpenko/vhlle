@@ -21,10 +21,10 @@ icModel    2
 glauberVar 1       ! reserved for future use
 icInputFile ic/npart.reanalysis/20-30.tb
 s0ScaleFactor  53.55
-epsilon0   50.0
+epsilon0   130.0
 impactPar  0.0
 alpha      0.0
-tau0       1.0     ! starting proper time
+tau0       0.5     ! starting proper time
 tauMax     10.0    ! proper time to stop hydro
 dtau       0.05    ! timestep
 

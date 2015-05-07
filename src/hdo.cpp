@@ -21,6 +21,7 @@
 #include <iomanip>
 #include <algorithm>
 #include <unistd.h>
+#include <TLorentzVector.h>
 #include "hdo.h"
 #include "inc.h"
 #include "rmn.h"
@@ -334,11 +335,12 @@ void Hydro::jets_source()
  const double Rx = 0.2;
  const double Ry = 0.2;
  const double Rz = 0.2;
- const double C_dEdx = 40.0;
+ const double C_dEdx = 4.0;
  const int ncells = (int)ceil(4.0*Rx/f->getDx());
  // ... calculation, loop over all jets
  for(int i=0; i<jets->nJets(); i++){
   Jet* jet = jets->jet(i);
+  // which fluid cell from the left is hit
   int ixc=(int)( (jet->X()   - f->getX(0)) / f->getDx() );
   int iyc=(int)( (jet->Y()   - f->getY(0)) / f->getDy() );
   int izc=(int)( (jet->Eta() - f->getZ(0)) / f->getDz() );
@@ -348,14 +350,40 @@ void Hydro::jets_source()
   double wx [2] = {1. - xm, xm};
   double wy [2] = {1. - ym, ym};
   double wz [2] = {1. - zm, zm};
-  double sAver = 0.;
+  double sAver = 0., vAver[3] = {0., 0., 0.};
   for(int jx=0; jx<2; jx++)
   for(int jy=0; jy<2; jy++)
   for(int jz=0; jz<2; jz++){
-   double e, p, nb, nq, ns, vx, vy, vz;
-   f->getCell(ixc+jx,iyc+jy,izc+jz)->getPrimVar(eos, tau, e, p, nb, nq, ns, vx, vy, vz);
+   double e, p, nb, nq, ns, v[3];
+   f->getCell(ixc+jx,iyc+jy,izc+jz)->getPrimVar(eos, tau,
+    e, p, nb, nq, ns, v[0], v[1], v[2]);
    sAver += eos->s(e, nb, nq, ns) * wx[jx] * wy[jy] * wz[jz];
+   for(int id=0; id<3; id++)
+    vAver[id] += v[id] * wx[jx] * wy[jy] * wz[jz];
   }
+  // check if the interpolated velocity is <1 and rescale if so
+  const double v2Aver = vAver[0]*vAver[0]+vAver[1]*vAver[1]+vAver[2]*vAver[2];
+  if(v2Aver>1.0)
+   for(int id=0; id<3; id++) vAver[id] = vAver[id]*0.99/sqrt(v2Aver);
+  double Pt = sqrt(jet->Px()*jet->Px() + jet->Py()*jet->Py());
+  double dt_gl = (tau+dt)*cosh(jet->Eta()+dt/tau*tanh(jet->Rap()-jet->Eta()))
+   - tau*cosh(jet->Eta()) ;  // dt in global Cartesian frame
+  // Lorentz vectors for jet's \delta x^mu and p^mu in global frame
+  TLorentzVector deltaX( jet->Vt_jet()*jet->Px()/Pt*dt_gl, 
+   jet->Vt_jet()*jet->Py()/Pt*dt_gl, tanh(jet->Rap_jet())*dt_gl, dt_gl );
+  TLorentzVector momentum( jet->Px(), jet->Py(), jet->Mt()*sinh(jet->Rap()),
+   jet->Mt()*cosh(jet->Rap()) );
+  // boosting them to eta-frame, then to local rest frame of fluid
+  deltaX.Boost(0., 0., -tanh(jet->Eta()));
+  momentum.Boost(0., 0., -tanh(jet->Eta()));
+  deltaX.Boost(-vAver[0], -vAver[1], -vAver[2]);
+  momentum.Boost(-vAver[0], -vAver[1], -vAver[2]);
+  // calculating the energy loss in the rest frame of fluid
+  double dEstar = C_dEdx * sAver / 70.0 * deltaX.Rho();
+  TLorentzVector loss( dEstar*momentum.Px()/momentum.E(), 
+   dEstar*momentum.Py()/momentum.E(), dEstar*momentum.Pz()/momentum.E(), dEstar);
+  // boosting back to eta-frame
+  loss.Boost(0., 0., tanh(jet->Eta()));
   // loop #1, normalizaiton
   double norm = 0.;
   for(int jx=ixc-ncells; jx<ixc+ncells; jx++)
@@ -366,7 +394,6 @@ void Hydro::jets_source()
                -pow(jet->Eta()-f->getZ(jz), 2) / Rz/Rz );
   }
   norm = 1.0/norm;
-  double loss [4] = {0., 0., 0., 0.}; // total energy-momentum loss of a jet
   // loop #2, 
   for(int jx=ixc-ncells; jx<ixc+ncells; jx++)
   for(int jy=iyc-ncells; jy<iyc+ncells; jy++)
@@ -374,22 +401,12 @@ void Hydro::jets_source()
    double weight = norm*exp(-pow(jet->X() - f->getX(jx), 2) / Rx/Rx
                             -pow(jet->Y() - f->getY(jy), 2) / Ry/Ry
                             -pow(jet->Eta()-f->getZ(jz), 2) / Rz/Rz );
-   double src [4];
-   double v_jet = sqrt( pow(jet->Vt_jet()*cosh(f->getZ(jz))/cosh(jet->Rap()
-    -f->getZ(jz)),2) + pow(tanh(jet->Rap()-f->getZ(jz)),2) );
-   double Ejet = jet->Mt()*cosh(jet->Rap());
-   src[T_] = weight * C_dEdx * sAver/ 70.0 * v_jet * dt;
-   src[X_] = src[T_] * jet->Px()/Ejet;
-   src[Y_] = src[T_] * jet->Py()/Ejet;
-   src[Z_] = src[T_] * jet->Mt()*sinh(jet->Rap())/Ejet;
-   f->getCell(jx,jy,jz)->addFlux(src[T_],src[X_], src[Y_], src[Z_],
-                         0., 0., 0.);
-   loss[T_] -= src[T_];
-   loss[X_] -= src[X_];
-   loss[Y_] -= src[Y_];
-   loss[Z_] -= src[Z_];
+   f->getCell(jx,jy,jz)->addFlux(weight * loss.T(), weight * loss.X(),
+    weight * loss.Y(), weight * loss.Z(), 0., 0., 0.);
   }
-  jet->addEnergyMom(loss[T_],loss[X_],loss[Y_],loss[Z_]);
+  // boost back to global frame
+  loss.Boost(vAver[0], vAver[1], vAver[2]);
+  jet->addEnergyMom(-loss.T(),-loss.X(),-loss.Y(),-loss.Z());
  } // end of loop over jets
  jets->checkJets();
 }
