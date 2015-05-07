@@ -197,7 +197,6 @@ int main(int argc, char **argv) {
   time_t start = 0, end;
 
   time(&start);
-  int memory = 0;
 
   // read parameters from file
   char *parFile;
@@ -212,7 +211,7 @@ int main(int argc, char **argv) {
 
   // EoS
    char * eosfile = "eos/Laine_nf3.dat" ;
-   int ncols = 3, nrows = 286 ;
+   int ncols = 3;
    eos = new EoSs(eosfile,ncols) ;
   //if (eosType == 1)
     //eos = new EoSChiral();

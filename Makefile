@@ -13,10 +13,10 @@ LIBS          = $(ROOTLIBS) $(SYSLIBS)
 vpath %.cpp src
 objdir     = obj
 
-SRC        = cll.cpp eos.cpp eo3.cpp eo1.cpp eoChiral.cpp eoHadron.cpp eoAZH.cpp trancoeff.cpp fld.cpp hdo.cpp s95p.cpp icurqmd.cpp icGlauber.cpp ickw.cpp icPartUrqmd.cpp main.cpp rmn.cpp cornelius.cpp jets.cpp
+SRC        = cll.cpp eos.cpp eo3.cpp eo1.cpp eoChiral.cpp eoHadron.cpp eoAZH.cpp trancoeff.cpp fld.cpp hdo.cpp s95p.cpp icurqmd.cpp icGlauber.cpp icPartUrqmd.cpp main.cpp rmn.cpp cornelius.cpp jets.cpp
 OBJS       = $(patsubst %.cpp,$(objdir)/%.o,$(SRC)) 
               
-TARGET	   = hlle_visc.14.3
+TARGET	   = hlle_visc
 #------------------------------------------------------------------------------
 $(TARGET):       $(OBJS)
 		$(LD)  $(LDFLAGS) $^ -o $@ $(LIBS)
