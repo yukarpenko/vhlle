@@ -46,7 +46,7 @@ extern double sign(double x);
 
 // ofstream foutNS ;
 
-Hydro::Hydro(Fluid *_f, EoS *_eos, TransportCoeff *_trcoeff, Jets *_jets, 
+Hydro::Hydro(Fluid *_f, EoS *_eos, TransportCoeff *_trcoeff, Jets *_jets,
              double _t0, double _dt) {
   eos = _eos;
   trcoeff = _trcoeff;
@@ -70,8 +70,9 @@ void Hydro::setDtau(double deltaTau) {
 
 void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode) {
   double el, er, pl, pr, nbl, nql, nsl, nbr, nqr, nsr, vxl, vxr, vyl, vyr, vzl,
-      vzr, bl=0., br=0., csb, vb, El, Er, dx=0.;
-  double Ftl=0., Fxl=0., Fyl=0., Fzl=0., Fbl=0., Fql=0., Fsl=0., Ftr=0., Fxr=0., Fyr=0., Fzr=0., Fbr=0., Fqr=0., Fsr=0.;
+      vzr, bl = 0., br = 0., csb, vb, El, Er, dx = 0.;
+  double Ftl = 0., Fxl = 0., Fyl = 0., Fzl = 0., Fbl = 0., Fql = 0., Fsl = 0.,
+         Ftr = 0., Fxr = 0., Fyr = 0., Fzr = 0., Fbr = 0., Fqr = 0., Fsr = 0.;
   double U1l, U2l, U3l, U4l, Ubl, Uql, Usl, U1r, U2r, U3r, U4r, Ubr, Uqr, Usr;
   double flux[7];
   const double dta = mode == 0 ? dt / 2. : dt;
@@ -166,8 +167,9 @@ void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode) {
     Fsr = Usr * vxr;
 
     // for the case of constant c_s only
-    csb = sqrt(eos->cs2() + 0.5 * sqrt(El * Er) / pow(sqrt(El) + sqrt(Er), 2) *
-                                pow(vxl - vxr, 2));
+    csb = sqrt(eos->cs2() +
+               0.5 * sqrt(El * Er) / pow(sqrt(El) + sqrt(Er), 2) *
+                   pow(vxl - vxr, 2));
     vb = (sqrt(El) * vxl + sqrt(Er) * vxr) / (sqrt(El) + sqrt(Er));
     bl = min(0., min((vb - csb) / (1 - vb * csb),
                      (vxl - eos->cs()) / (1 - vxl * eos->cs())));
@@ -198,8 +200,9 @@ void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode) {
     Fsr = Usr * vyr;
 
     // for the case of constant c_s only
-    csb = sqrt(eos->cs2() + 0.5 * sqrt(El * Er) / pow(sqrt(El) + sqrt(Er), 2) *
-                                pow(vyl - vyr, 2));
+    csb = sqrt(eos->cs2() +
+               0.5 * sqrt(El * Er) / pow(sqrt(El) + sqrt(Er), 2) *
+                   pow(vyl - vyr, 2));
     vb = (sqrt(El) * vyl + sqrt(Er) * vyr) / (sqrt(El) + sqrt(Er));
     bl = min(0., min((vb - csb) / (1 - vb * csb),
                      (vyl - eos->cs()) / (1 - vyl * eos->cs())));
@@ -234,8 +237,9 @@ void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode) {
     // factor 1/tau accounts for eta-coordinate
 
     // different estimate
-    csb = sqrt(eos->cs2() + 0.5 * sqrt(El * Er) / pow(sqrt(El) + sqrt(Er), 2) *
-                                pow(vzl - vzr, 2));
+    csb = sqrt(eos->cs2() +
+               0.5 * sqrt(El * Er) / pow(sqrt(El) + sqrt(Er), 2) *
+                   pow(vzl - vzr, 2));
     vb = (sqrt(El) * vzl + sqrt(Er) * vzr) / (sqrt(El) + sqrt(Er));
     bl = 1. / tau * min(0., min((vb - csb) / (1 - vb * csb),
                                 (vzl - eos->cs()) / (1 - vzl * eos->cs())));
@@ -328,89 +332,93 @@ void Hydro::source_step(int ix, int iy, int iz, int mode) {
   c->addFlux(k[T_], k[X_], k[Y_], k[Z_], k[NB_], k[NQ_], k[NS_]);
 }
 
-
-void Hydro::jets_source()
-{
- // ... parameters
- const double Rx = 0.2;
- const double Ry = 0.2;
- const double Rz = 0.2;
- const double C_dEdx = 4.0;
- const int ncells = (int)ceil(4.0*Rx/f->getDx());
- // ... calculation, loop over all jets
- for(int i=0; i<jets->nJets(); i++){
-  Jet* jet = jets->jet(i);
-  // which fluid cell from the left is hit
-  int ixc=(int)( (jet->X()   - f->getX(0)) / f->getDx() );
-  int iyc=(int)( (jet->Y()   - f->getY(0)) / f->getDy() );
-  int izc=(int)( (jet->Eta() - f->getZ(0)) / f->getDz() );
-  double xm = (jet->X() - f->getX(ixc)) / f->getDx();
-  double ym = (jet->Y() - f->getY(iyc)) / f->getDy();
-  double zm = (jet->Eta()-f->getZ(izc)) / f->getDz();
-  double wx [2] = {1. - xm, xm};
-  double wy [2] = {1. - ym, ym};
-  double wz [2] = {1. - zm, zm};
-  double sAver = 0., vAver[3] = {0., 0., 0.};
-  for(int jx=0; jx<2; jx++)
-  for(int jy=0; jy<2; jy++)
-  for(int jz=0; jz<2; jz++){
-   double e, p, nb, nq, ns, v[3];
-   f->getCell(ixc+jx,iyc+jy,izc+jz)->getPrimVar(eos, tau,
-    e, p, nb, nq, ns, v[0], v[1], v[2]);
-   sAver += eos->s(e, nb, nq, ns) * wx[jx] * wy[jy] * wz[jz];
-   for(int id=0; id<3; id++)
-    vAver[id] += v[id] * wx[jx] * wy[jy] * wz[jz];
-  }
-  // check if the interpolated velocity is <1 and rescale if so
-  const double v2Aver = vAver[0]*vAver[0]+vAver[1]*vAver[1]+vAver[2]*vAver[2];
-  if(v2Aver>1.0)
-   for(int id=0; id<3; id++) vAver[id] = vAver[id]*0.99/sqrt(v2Aver);
-  double Pt = sqrt(jet->Px()*jet->Px() + jet->Py()*jet->Py());
-  double dt_gl = (tau+dt)*cosh(jet->Eta()+dt/tau*tanh(jet->Rap()-jet->Eta()))
-   - tau*cosh(jet->Eta()) ;  // dt in global Cartesian frame
-  // Lorentz vectors for jet's \delta x^mu and p^mu in global frame
-  TLorentzVector deltaX( jet->Vt_jet()*jet->Px()/Pt*dt_gl, 
-   jet->Vt_jet()*jet->Py()/Pt*dt_gl, tanh(jet->Rap_jet())*dt_gl, dt_gl );
-  TLorentzVector momentum( jet->Px(), jet->Py(), jet->Mt()*sinh(jet->Rap()),
-   jet->Mt()*cosh(jet->Rap()) );
-  // boosting them to eta-frame, then to local rest frame of fluid
-  deltaX.Boost(0., 0., -tanh(jet->Eta()));
-  momentum.Boost(0., 0., -tanh(jet->Eta()));
-  deltaX.Boost(-vAver[0], -vAver[1], -vAver[2]);
-  momentum.Boost(-vAver[0], -vAver[1], -vAver[2]);
-  // calculating the energy loss in the rest frame of fluid
-  double dEstar = C_dEdx * sAver / 70.0 * deltaX.Rho();
-  TLorentzVector loss( dEstar*momentum.Px()/momentum.E(), 
-   dEstar*momentum.Py()/momentum.E(), dEstar*momentum.Pz()/momentum.E(), dEstar);
-  // boosting back to eta-frame
-  loss.Boost(0., 0., tanh(jet->Eta()));
-  // loop #1, normalizaiton
-  double norm = 0.;
-  for(int jx=ixc-ncells; jx<ixc+ncells; jx++)
-  for(int jy=iyc-ncells; jy<iyc+ncells; jy++)
-  for(int jz=izc-ncells; jz<izc+ncells; jz++){
-   norm += exp(-pow(jet->X() - f->getX(jx), 2) / Rx/Rx
-               -pow(jet->Y() - f->getY(jy), 2) / Ry/Ry
-               -pow(jet->Eta()-f->getZ(jz), 2) / Rz/Rz );
-  }
-  norm = 1.0/norm;
-  // loop #2, 
-  for(int jx=ixc-ncells; jx<ixc+ncells; jx++)
-  for(int jy=iyc-ncells; jy<iyc+ncells; jy++)
-  for(int jz=izc-ncells; jz<izc+ncells; jz++){
-   double weight = norm*exp(-pow(jet->X() - f->getX(jx), 2) / Rx/Rx
-                            -pow(jet->Y() - f->getY(jy), 2) / Ry/Ry
-                            -pow(jet->Eta()-f->getZ(jz), 2) / Rz/Rz );
-   f->getCell(jx,jy,jz)->addFlux(weight * loss.T(), weight * loss.X(),
-    weight * loss.Y(), weight * loss.Z(), 0., 0., 0.);
-  }
-  // boost back to global frame
-  loss.Boost(vAver[0], vAver[1], vAver[2]);
-  jet->addEnergyMom(-loss.T(),-loss.X(),-loss.Y(),-loss.Z());
- } // end of loop over jets
- jets->checkJets();
+void Hydro::jets_source() {
+  // ... parameters
+  const double Rx = 0.2;
+  const double Ry = 0.2;
+  const double Rz = 0.2;
+  const double C_dEdx = 4.0;
+  const int ncells = (int)ceil(4.0 * Rx / f->getDx());
+  // ... calculation, loop over all jets
+  for (int i = 0; i < jets->nJets(); i++) {
+    Jet *jet = jets->jet(i);
+    // which fluid cell from the left is hit
+    int ixc = (int)((jet->X() - f->getX(0)) / f->getDx());
+    int iyc = (int)((jet->Y() - f->getY(0)) / f->getDy());
+    int izc = (int)((jet->Eta() - f->getZ(0)) / f->getDz());
+    double xm = (jet->X() - f->getX(ixc)) / f->getDx();
+    double ym = (jet->Y() - f->getY(iyc)) / f->getDy();
+    double zm = (jet->Eta() - f->getZ(izc)) / f->getDz();
+    double wx[2] = {1. - xm, xm};
+    double wy[2] = {1. - ym, ym};
+    double wz[2] = {1. - zm, zm};
+    double sAver = 0., vAver[3] = {0., 0., 0.};
+    for (int jx = 0; jx < 2; jx++)
+      for (int jy = 0; jy < 2; jy++)
+        for (int jz = 0; jz < 2; jz++) {
+          double e, p, nb, nq, ns, v[3];
+          f->getCell(ixc + jx, iyc + jy, izc + jz)
+              ->getPrimVar(eos, tau, e, p, nb, nq, ns, v[0], v[1], v[2]);
+          sAver += eos->s(e, nb, nq, ns) * wx[jx] * wy[jy] * wz[jz];
+          for (int id = 0; id < 3; id++)
+            vAver[id] += v[id] * wx[jx] * wy[jy] * wz[jz];
+        }
+    // check if the interpolated velocity is <1 and rescale if so
+    const double v2Aver =
+        vAver[0] * vAver[0] + vAver[1] * vAver[1] + vAver[2] * vAver[2];
+    if (v2Aver > 1.0)
+      for (int id = 0; id < 3; id++)
+        vAver[id] = vAver[id] * 0.99 / sqrt(v2Aver);
+    double Pt = sqrt(jet->Px() * jet->Px() + jet->Py() * jet->Py());
+    double dt_gl = (tau + dt) * cosh(jet->Eta() +
+                                     dt / tau * tanh(jet->Rap() - jet->Eta())) -
+                   tau * cosh(jet->Eta());  // dt in global Cartesian frame
+    // Lorentz vectors for jet's \delta x^mu and p^mu in global frame
+    TLorentzVector deltaX(jet->Vt_jet() * jet->Px() / Pt * dt_gl,
+                          jet->Vt_jet() * jet->Py() / Pt * dt_gl,
+                          tanh(jet->Rap_jet()) * dt_gl, dt_gl);
+    TLorentzVector momentum(jet->Px(), jet->Py(), jet->Mt() * sinh(jet->Rap()),
+                            jet->Mt() * cosh(jet->Rap()));
+    // boosting them to eta-frame, then to local rest frame of fluid
+    deltaX.Boost(0., 0., -tanh(jet->Eta()));
+    momentum.Boost(0., 0., -tanh(jet->Eta()));
+    deltaX.Boost(-vAver[0], -vAver[1], -vAver[2]);
+    momentum.Boost(-vAver[0], -vAver[1], -vAver[2]);
+    // calculating the energy loss in the rest frame of fluid
+    double dEstar = C_dEdx * sAver / 70.0 * deltaX.Rho();
+    TLorentzVector loss(dEstar * momentum.Px() / momentum.E(),
+                        dEstar * momentum.Py() / momentum.E(),
+                        dEstar * momentum.Pz() / momentum.E(), dEstar);
+    // boosting back to eta-frame
+    loss.Boost(0., 0., tanh(jet->Eta()));
+    // loop #1, normalizaiton
+    double norm = 0.;
+    for (int jx = ixc - ncells; jx < ixc + ncells; jx++)
+      for (int jy = iyc - ncells; jy < iyc + ncells; jy++)
+        for (int jz = izc - ncells; jz < izc + ncells; jz++) {
+          norm += exp(-pow(jet->X() - f->getX(jx), 2) / Rx / Rx -
+                      pow(jet->Y() - f->getY(jy), 2) / Ry / Ry -
+                      pow(jet->Eta() - f->getZ(jz), 2) / Rz / Rz);
+        }
+    norm = 1.0 / norm;
+    // loop #2,
+    for (int jx = ixc - ncells; jx < ixc + ncells; jx++)
+      for (int jy = iyc - ncells; jy < iyc + ncells; jy++)
+        for (int jz = izc - ncells; jz < izc + ncells; jz++) {
+          double weight =
+              norm * exp(-pow(jet->X() - f->getX(jx), 2) / Rx / Rx -
+                         pow(jet->Y() - f->getY(jy), 2) / Ry / Ry -
+                         pow(jet->Eta() - f->getZ(jz), 2) / Rz / Rz);
+          f->getCell(jx, jy, jz)->addFlux(weight * loss.T(), weight * loss.X(),
+                                          weight * loss.Y(), weight * loss.Z(),
+                                          0., 0., 0.);
+        }
+    // boost back to global frame
+    loss.Boost(vAver[0], vAver[1], vAver[2]);
+    jet->addEnergyMom(-loss.T(), -loss.X(), -loss.Y(), -loss.Z());
+  }  // end of loop over jets
+  jets->checkJets();
 }
-
 
 void Hydro::visc_source_step(int ix, int iy, int iz) {
   double e, p, nb, nq, ns, vx, vy, vz;
@@ -635,7 +643,7 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
        5.068;  // fm^{-4} --> GeV/fm^3
   du = dmu[0][0] + dmu[1][1] + dmu[2][2] + dmu[3][3];
   //--------- debug part: NaN/inf check, trace check, diag check, transversality
-  //check
+  // check
   for (int i = 0; i < 4; i++)
     for (int j = 0; j < 4; j++) {
       if (pi[i][j] != 0. && fabs(1.0 - pi[j][i] / pi[i][j]) > 1e-10)
@@ -649,7 +657,7 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
 
 void Hydro::setNSvalues() {
   double e, p, nb, nq, ns, vx, vy, vz, piNS[4][4], PiNS;
-  //double dmu[4][4], du;
+  // double dmu[4][4], du;
   for (int ix = 0; ix < f->getNX(); ix++)
     for (int iy = 0; iy < f->getNY(); iy++)
       for (int iz = 0; iz < f->getNZ(); iz++) {
@@ -658,7 +666,7 @@ void Hydro::setNSvalues() {
         if (e <= 0.) continue;
         // NSquant(ix, iy, iz, piNS, PiNS, dmu, du) ;
         //############## set NS values assuming initial zero flow + Bjorken z
-        //flow
+        // flow
         double T, mub, muq, mus;
         double etaS, zetaS;
         double s =
@@ -714,8 +722,9 @@ void Hydro::ISformal() {
                                        exp(-dt / 2.0 / gamma / taupi) +
                                    piNS[i][j]);
 #else
-              c->setpiH0(i, j, c->getpi(i, j) - (c->getpi(i, j) - piNS[i][j]) *
-                                                    dt / 2.0 / gamma / taupi);
+              c->setpiH0(i, j, c->getpi(i, j) -
+                                   (c->getpi(i, j) - piNS[i][j]) * dt / 2.0 /
+                                       gamma / taupi);
 #endif
             }
 #ifdef FORMAL_SOLUTION
@@ -765,8 +774,9 @@ void Hydro::ISformal() {
                                       exp(-dt / gamma / taupi) +
                                   piNS[i][j]);
 #else
-              c->setpi0(i, j, c->getpi(i, j) - (c->getpiH0(i, j) - piNS[i][j]) *
-                                                   dt / gamma / taupi);
+              c->setpi0(i, j, c->getpi(i, j) -
+                                  (c->getpiH0(i, j) - piNS[i][j]) * dt / gamma /
+                                      taupi);
 #endif
             }
 #ifdef FORMAL_SOLUTION
@@ -920,7 +930,7 @@ void Hydro::setQfull() {
 void Hydro::visc_flux(Cell *left, Cell *right, int direction) {
   double flux[4];
   int ind2 = 0;
-  double dxa=0.;
+  double dxa = 0.;
   // exit if noth cells are not full with matter
   if (left->getM(direction) < 1. && right->getM(direction) < 1.) return;
 
@@ -1045,7 +1055,7 @@ void Hydro::performStep(void) {
       }
   //	cout << "corrector Z done\n" ;
 
-  jets_source(); // only at corrector step
+  jets_source();  // only at corrector step
 
   for (int iy = 0; iy < f->getNY(); iy++)
     for (int iz = 0; iz < f->getNZ(); iz++)
