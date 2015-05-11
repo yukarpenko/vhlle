@@ -24,9 +24,6 @@ const double sigma = 4.0;  // NN cross section in fm^2
 
 const int nphi = 301;
 
-extern int glauberVariable;
-extern double s0ScaleFactor;
-
 ICGlauber::ICGlauber(double e, double impactPar, double _tau0) {
   epsilon = e;
   b = impactPar;

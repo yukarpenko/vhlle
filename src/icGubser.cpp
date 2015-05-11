@@ -7,22 +7,19 @@
 
 #include "fld.h"
 #include "eos.h"
-#include "ic.h"
+#include "icGubser.h"
 #include "inc.h"
 #include "s95p.h"
 
 using namespace std;
 
-
-IC::IC(char* icInputFile, double s0ScaleFactor)
-{
- s95p::loadSongIC(icInputFile, s0ScaleFactor);
+ICGubser::ICGubser() {
 }
 
-IC::~IC(void) {}
+ICGubser::~ICGubser(void) {}
 
 
-void IC::setIC(Fluid *f, EoS *eos, double tau) {
+void ICGubser::setIC(Fluid *f, EoS *eos, double tau) {
   double e, nb, nq, vx = 0., vy = 0., vz = 0.;
   Cell *c;
 
@@ -37,12 +34,18 @@ void IC::setIC(Fluid *f, EoS *eos, double tau) {
         double y = f->getY(iy);
         double eta = f->getZ(iz);
 
-        double eta1 = fabs(eta) < 1.3 ? 0.0 : fabs(eta) - 1.3;
-        double etaFactor =
-              exp(-eta1 * eta1 / 2.1 / 2.1) * (fabs(eta) < 5.3 ? 1.0 : 0.0);
-        e = s95p::getSongEps(x, y) * etaFactor;
-        if (e < 0.5) e = 0.0;
-        vx = vy = 0.0;
+        const double _t = 1.0;
+        const double q = 1.0;
+        const double r = sqrt(x * x + y * y);
+        const double _k =
+            2. * q * q * _t * r / (1. + q * q * _t * _t + q * q * r * r);
+        e = 4. * q * q / (1. + 2. * q * q * (_t * _t + r * r) +
+                          pow(q * q * (_t * _t - r * r), 2)) /
+            _t;
+        if (e < 0.) e = 0.;
+        e = pow(e, 4. / 3.);
+        vx = x / (r + 1e-50) * _k;
+        vy = y / (r + 1e-50) * _k;
         nb = nq = 0.0;
         vz = 0.0;
 

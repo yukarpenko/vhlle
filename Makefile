@@ -15,7 +15,8 @@ LIBS          = $(ROOTLIBS) $(SYSLIBS)
 vpath %.cpp src
 objdir     = obj
 
-SRC        = cll.cpp eos.cpp trancoeff.cpp fld.cpp hdo.cpp s95p.cpp ic.cpp main.cpp rmn.cpp
+SRC        = cll.cpp eos.cpp trancoeff.cpp fld.cpp hdo.cpp s95p.cpp ic.cpp \
+             icGlauber.cpp icGubser.cpp main.cpp rmn.cpp
 OBJS       = $(patsubst %.cpp,$(objdir)/%.o,$(SRC)) 
               
 TARGET	   = hlle_visc
