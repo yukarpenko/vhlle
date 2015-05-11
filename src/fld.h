@@ -68,4 +68,5 @@ class Fluid {
   void outputGnuplot(double tau);
   void outputSurface(double tau);
   void outputCorona(double tau);
+  void calcTotals(double tau);
 };

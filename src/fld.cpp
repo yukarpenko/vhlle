@@ -925,3 +925,53 @@ void Fluid::outputCorona(double tau) {
 #endif
   cout << "corona elements : " << nelements << endl;
 }
+
+
+void Fluid::calcTotals(double tau) {
+  double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz, Q[7];
+  double E = 0., Efull = 0., Px = 0., Nb1 = 0., Nb2 = 0., S = 0.;
+  double eta = 0;
+
+  fout2d << endl;
+  for (int ix = 2; ix < nx - 2; ix++)
+    for (int iy = 2; iy < ny - 2; iy++)
+      for (int iz = 2; iz < nz - 2; iz++) {
+        Cell *c = getCell(ix, iy, iz);
+        getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
+        c->getQ(Q);
+        eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
+        double s = eos->s(e, nb, nq, ns);
+        eta = getZ(iz);
+        E += tau * (e + p) / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz)) *
+                 (cosh(eta) - tanh(vz) * sinh(eta)) -
+             tau * p * cosh(eta);
+        Nb1 += Q[NB_];
+        Nb2 += tau * nb * (cosh(eta) - tanh(vz) * sinh(eta)) /
+               sqrt(1. - vx * vx - vy * vy - tanh(vz) * tanh(vz));
+        // -- noneq. corrections to entropy flux
+        const double gmumu[4] = {1., -1., -1., -1.};
+        double deltas = 0.;
+        for (int i = 0; i < 4; i++)
+          for (int j = 0; j < 4; j++)
+            deltas += pow(c->getpi(i, j), 2) * gmumu[i] * gmumu[j];
+        if (t > 0.05) s += 1.5 * deltas / ((e + p) * t);
+        S += tau * s * (cosh(eta) - tanh(vz) * sinh(eta)) /
+             sqrt(1. - vx * vx - vy * vy - tanh(vz) * tanh(vz));
+        Efull +=
+            tau * (e + p) / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz)) *
+                (cosh(eta) - tanh(vz) * sinh(eta)) -
+            tau * p * cosh(eta);
+        if (trcoeff->isViscous())
+          Efull += tau * c->getpi(0, 0) * cosh(eta) +
+                   tau * c->getpi(0, 3) * sinh(eta);
+      }
+  E = E * dx * dy * dz;
+  Efull = Efull * dx * dy * dz;
+  Nb1 *= dx * dy * dz;
+  Nb2 *= dx * dy * dz;
+  S *= dx * dy * dz;
+  cout << setw(16) << "calcTotals: E = " << setw(14) << E
+       << "  Efull = " << setw(14) << Efull << endl;
+  cout << setw(16) << "Px = " << setw(14) << Px << "      S = " << setw(14) << S
+       << endl;
+}

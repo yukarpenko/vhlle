@@ -390,7 +390,7 @@ void Hydro::jets_source() {
                         dEstar * momentum.Py() / momentum.E(),
                         dEstar * momentum.Pz() / momentum.E(), dEstar);
     // boosting back to eta-frame
-    loss.Boost(0., 0., tanh(jet->Eta()));
+    loss.Boost(vAver[0], vAver[1], vAver[2]);
     // loop #1, normalizaiton
     double norm = 0.;
     for (int jx = ixc - ncells; jx < ixc + ncells; jx++)
@@ -409,12 +409,16 @@ void Hydro::jets_source() {
               norm * exp(-pow(jet->X() - f->getX(jx), 2) / Rx / Rx -
                          pow(jet->Y() - f->getY(jy), 2) / Ry / Ry -
                          pow(jet->Eta() - f->getZ(jz), 2) / Rz / Rz);
-          f->getCell(jx, jy, jz)->addFlux(weight * loss.T(), weight * loss.X(),
-                                          weight * loss.Y(), weight * loss.Z(),
+          double chDeta = cosh(f->getZ(jz) - jet->Eta());
+          double shDeta = sinh(f->getZ(jz) - jet->Eta());
+          double lossT = loss.T() * chDeta - loss.Z() * shDeta;
+          double lossZ = loss.Z() * chDeta - loss.T() * shDeta;
+          f->getCell(jx, jy, jz)->addFlux(weight * lossT, weight * loss.X(),
+                                          weight * loss.Y(), weight * lossZ,
                                           0., 0., 0.);
         }
     // boost back to global frame
-    loss.Boost(vAver[0], vAver[1], vAver[2]);
+    loss.Boost(0., 0., tanh(jet->Eta()));
     jet->addEnergyMom(-loss.T(), -loss.X(), -loss.Y(), -loss.Z());
   }  // end of loop over jets
   jets->checkJets();
