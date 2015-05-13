@@ -226,7 +226,7 @@ int main(int argc, char **argv) {
     }
     cout << "step= " << istep << "  dtau= " << dtau / nSubSteps << "\n"
          << endl;  // "\r" << flush
-    f->outputPDirections(h->getTau());
+    f->outputGnuplot(h->getTau());
     f->calcTotals(h->getTau());
   }
 

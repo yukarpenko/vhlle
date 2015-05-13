@@ -148,7 +148,7 @@ void Fluid::initOutput(char *dir, int maxstep, double tau0, int cmpr2dOut) {
   fout2d << tau0 << "  " << tau0 + 0.05 * maxstep << "  " << getX(2) << "  "
          << getX(getNX() - 3) << "  " << getY(2) << "  " << getY(getNY() - 3)
          << endl;
-  outputPDirections(tau0);
+  outputGnuplot(tau0);
   fout_aniz << "#  tau  <<v_T>>  e_p  e'_p  (to compare with SongHeinz)\n";
 }
 
@@ -342,92 +342,6 @@ void Fluid::updateM(double tau, double dt) {
       }
 }
 
-void Fluid::outputPDirections(double tau) {
-  outputGnuplot(tau);
-  return;
-
-  double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz;
-
-  // X direction
-  foutx << tau << endl;
-  foutxvisc << tau << endl;
-  for (int ix = 0; ix < nx; ix++) {
-    double x = getX(ix);
-    Cell *c = getCell(ix, ny / 2, nz / 2);
-    getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
-    eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
-    foutx << setw(6) << x << setw(14) << vx << setw(14) << vy << setw(14) << e
-          << setw(14) << nb << setw(14) << t << setw(14) << mub << endl;
-
-    foutxvisc << setw(6) << x;
-    foutxvisc << setw(14) << c->getpi(0, 0) << setw(14) << c->getpi(0, 1)
-              << setw(14) << c->getpi(0, 2);
-    foutxvisc << setw(14) << c->getpi(0, 3) << setw(14) << c->getpi(1, 1)
-              << setw(14) << c->getpi(1, 2);
-    foutxvisc << setw(14) << c->getpi(1, 3) << setw(14) << c->getpi(2, 2)
-              << setw(14) << c->getpi(2, 3);
-    foutxvisc << setw(14) << c->getpi(3, 3) << setw(14) << c->getPi() << endl;
-    foutxvisc
-        << setw(20) << "anomalies tr pi/pi=" << setw(14)
-        << (c->getpi(0, 0) - c->getpi(1, 1) - c->getpi(2, 2) - c->getpi(3, 3)) /
-               (c->getpi(1, 1) + c->getpi(2, 2) + 1e-50) << setw(10)
-        << "transv." << (c->getpi(0, 0) - c->getpi(0, 1) * vx -
-                         c->getpi(0, 2) * vy - c->getpi(0, 3) * vz) /
-                            (fabs(c->getpi(3, 3)) + 1e-50) << endl;
-  }
-  foutx << endl;
-  foutxvisc << endl;
-
-  // Y direction
-  fouty << tau << endl;
-  foutyvisc << tau << endl;
-  for (int iy = 0; iy < ny; iy++) {
-    double y = getY(iy);
-    Cell *c = getCell(nx / 2, iy, nz / 2);
-    getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
-    eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
-    fouty << setw(6) << y << setw(14) << vy << setw(14) << vx << setw(14) << e
-          << setw(14) << nb << setw(14) << t << setw(14) << mub << endl;
-  }
-  fouty << endl;
-  foutyvisc << endl;
-
-  // diagonal
-  foutdiag << tau << endl;
-  foutdiagvisc << tau << endl;
-  for (int ix = 0; ix < nx; ix++) {
-    double x = getY(ix);
-    Cell *c = getCell(ix, ix, nz / 2);
-    getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
-    eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
-    foutdiag << setw(14) << sqrt(2.) * x << setw(14) << vx << setw(14) << vy
-             << setw(14) << e << setw(14) << nb << setw(14) << t << setw(14)
-             << mub << endl;
-  }
-  foutdiag << endl;
-  foutdiagvisc << endl;
-
-  // Z direction
-  foutz << tau << endl;
-  for (int iz = 0; iz < nz; iz++) {
-    double z = getZ(iz);
-    getCMFvariables(getCell(nx / 2, ny / 2, iz), tau, e, nb, nq, ns, vx, vy,
-                    vz);
-    eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
-    foutz << setw(6) << z << setw(14) << vz << setw(14) << e << setw(14) << nb
-          << setw(14) << t << setw(14) << mub << endl;
-  }
-  foutz << endl;
-
-  // 2d output - for escape4 calculation
-  for (int ix = 2; ix < nx - 2; ix++)
-    for (int iy = 2; iy < ny - 2; iy++) {
-      getCMFvariables(getCell(ix, iy, nz / 2), tau, e, nb, nq, ns, vx, vy, vz);
-      eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
-      fout2d << " " << vx << " " << vy << " " << e << " " << t << " " << 0.0
-             << endl;
-    }
-}
 
 void Fluid::outputGnuplot(double tau) {
   double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz;

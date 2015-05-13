@@ -64,7 +64,6 @@ class Fluid {
   void correctImagCellsFull(void);  // correct ideal+visc
   void updateM(double tau, double dt);
 
-  void outputPDirections(double tau);
   void outputGnuplot(double tau);
   void calcTotals(double tau);
 };
