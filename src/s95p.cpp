@@ -20,10 +20,10 @@ double s95p_s(double e) {
   else if (e < 1.9402832534193788)
     val = 0.0580578 + 11.833 * pow(e, 1.16187);
   else if (e < 3.7292474570977285)
-    val = 18.202 * e - 62.021814 -
-          4.85479 * exp(-2.72407e-11 * pow(e, 4.54886)) +
-          65.1272 * pow(e, -0.128012) * exp(-0.00369624 * pow(e, 1.18735)) -
-          4.75253 * pow(e, -1.18423);
+    val =
+        18.202 * e - 62.021814 - 4.85479 * exp(-2.72407e-11 * pow(e, 4.54886)) +
+        65.1272 * pow(e, -0.128012) * exp(-0.00369624 * pow(e, 1.18735)) -
+        4.75253 * pow(e, -1.18423);
   else
     val = 18.202 * e - 63.0218 - 4.85479 * exp(-2.72407e-11 * pow(e, 4.54886)) +
           65.1272 * pow(e, -0.128012) * exp(-0.00369624 * pow(e, 1.18735));
@@ -68,6 +68,7 @@ void loadSongIC(char* filename, double factor) {
 }
 
 double getSongEps(double x, double y) {
+  // linear interpolation in 2D is used
   const double dx = (xmax - xmin) / (NX - 1);
   const double dy = (ymax - ymin) / (NY - 1);
   const int ix = (int)((x - xmin) / dx);
@@ -77,12 +78,12 @@ double getSongEps(double x, double y) {
   const double sy = y - ymin - iy * dy;
   double wx[2] = {(1. - sx / dx), sx / dx};
   double wy[2] = {(1. - sy / dy), sy / dy};
-  double res = 0;
+  double result = 0;
   for (int jx = 0; jx < 2; jx++)
     for (int jy = 0; jy < 2; jy++) {
-      res += wx[jx] * wy[jy] * e[ix + jx][iy + jy];
+      result += wx[jx] * wy[jy] * e[ix + jx][iy + jy];
     }
-  return res;
+  return result;
 }
 
 }  // end s95p

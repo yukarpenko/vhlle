@@ -1,26 +1,55 @@
+/******************************************************************************
+*                                                                             *
+*            vHLLE : a 3D viscous hydrodynamic code                           *
+*            version 1.0,            November 2013                            *
+*            by Iurii Karpenko                                                *
+*  contact:  yu.karpenko@gmail.com                                            *
+*  For the detailed description please refer to:                              *
+*  http://arxiv.org/abs/1312.4160                                             *
+*                                                                             *
+*  This code can be freely used and redistributed, provided that this         *
+*  copyright appear in all the copies. If you decide to make modifications    *
+*  to the code, please contact the authors, especially if you plan to publish *
+* the results obtained with such modified code. Any publication of results    *
+* obtained using this code must include the reference to                      *
+* arXiv:1312.4160 [nucl-th] or the published version of it, when available.   *
+*                                                                             *
+*******************************************************************************/
+
 #pragma once
 #include <iosfwd>
 #include <algorithm>
 #include "inc.h"
 class EoS;
 
+// returns an index of pi^{mu nu} mu,nu component in a plain 1D array
 int index44(const int &i, const int &j);
 
+// this class stores the information about an individual hydro cell
 class Cell {
  private:
-  double Q[7];      // here, Q, Qh, Qprev etc. ~tau*T^{0i}, like Hirano'01
-  double Qh[7];     // values at (n+1/2) timestep
+  // Q usually denotes the conserved quantities, T^{0i}
+  // here, Q, Qh, Qprev etc. ~tau*T^{0i}, like Hirano'01
+  double Q[7];      // final values at a given timestep
+  double Qh[7];     // half-step updated values
   double Qprev[7];  // values at the end of previous timestep
   double Qfull[7];  // full T^{0\mu} with viscous terms, WITHOUT tau factor
-  double pi[10], piH[10], Pi, PiH;  // viscous, WITHOUT tau factor
-  double pi0[10], piH0[10], Pi0, PiH0;  // viscous, WITHOUT tau factor
-  double flux[7];
-  Cell *next[3];
-  Cell *prev[3];
-  double m[3];
-  double dm[3];
-  int ix, iy, iz;
-  double viscCorrCut;  // flag if the viscous corrections are cut for this cell
+  double pi[10], piH[10];  // pi^{mu nu}, WITHOUT tau factor, final (pi) and
+                           // half-step updated (piH)
+  double Pi,
+      PiH;  // Pi, WITHOUT tau factor, final (Pi) and half-step updated (PiH)
+  double pi0[10], piH0[10];  // // pi^{mu nu}, WITHOUT tau factor, auxiliary
+  double Pi0, PiH0;  // viscous, WITHOUT tau factor, auxiliary
+  double flux[7];  // cumulative fluxes
+  Cell *next[3];   // pointer to the next cell in a given direction
+  Cell *prev[3];   // pointer to the previous cell in a given direction
+  double m[3];     // extend of matter propagation inside cell [0...1]
+  double dm[3];    // auxiliary
+  int ix, iy, iz;  // cell coordinate on the grid
+  // viscCorrCut: flag if the viscous corrections are cut for this cell:
+  // 1.0 = uncut, < 1 :  cut by this factor
+  double viscCorrCut;
+
  public:
   Cell();
   ~Cell() {};
@@ -49,10 +78,10 @@ class Cell {
     for (int i = 0; i < 7; i++) Qfull[i] = _Qf[i];
     if (Qfull[T_] < 0.) {
       for (int i = 0; i < 7; i++) Qfull[i] = 0.;
-                /*cout<<"Cell: Qfull[0]<0 "; for(int j=0;j<4;j++)cout<<"  "<<Qfull[j] ;
-		cout<<endl ;*/ }
+    }
   }
 
+  // getter and setter methods for the class members
   inline double getpi(const int &i, const int &j) { return pi[index44(i, j)]; }
   inline double getpiH(const int &i, const int &j) {
     return piH[index44(i, j)];
@@ -120,7 +149,7 @@ class Cell {
       for (int i = 0; i < 3; i++) m[i] = 1.;
   }
   inline double getM(int dir) { return m[dir - 1]; }
-  inline double getLM(void) { return std::max(m[0], std::max(m[1], m[2])); }
+  inline double getMaxM(void) { return std::max(m[0], std::max(m[1], m[2])); }
   inline void setDM(int dir, double value) { dm[dir - 1] = value; }
   inline double getDM(int dir) { return dm[dir - 1]; }
 
@@ -133,35 +162,47 @@ class Cell {
       for (int j = 0; j < 4; j++) piH0[index44(i, j)] = values[i][j];
   }
 
+  // get the energy density, pressure, charge densities and flow velocity
+  // components (e,p,n,v) from conserved quantities Q in the centre of the cell
   void getPrimVar(EoS *eos, double tau, double &_e, double &_p, double &_nb,
                   double &_nq, double &_ns, double &_vx, double &_vy,
                   double &_vz);
-
+  // (e,p,n,v) at cell's left boundary in a given direction dir
   void getPrimVarLeft(EoS *eos, double tau, double &_e, double &_p, double &_nb,
                       double &_nq, double &_ns, double &_vx, double &_vy,
                       double &_vz, int dir);
+  // (e,p,n,v) at cell's right boundary in a given direction dir
   void getPrimVarRight(EoS *eos, double tau, double &_e, double &_p,
                        double &_nb, double &_nq, double &_ns, double &_vx,
                        double &_vy, double &_vz, int dir);
 
+  // (e,p,n,v) from half-step updated Qh at cell's left boundary in a given
+  // direction
   void getPrimVarHLeft(EoS *eos, double tau, double &_e, double &_p,
                        double &_nb, double &_nq, double &_ns, double &_vx,
                        double &_vy, double &_vz, int dir);
+  // (e,p,n,v) from half-step updated Qh at cell's right boundary in a given
+  // direction
   void getPrimVarHRight(EoS *eos, double tau, double &_e, double &_p,
                         double &_nb, double &_nq, double &_ns, double &_vx,
                         double &_vy, double &_vz, int dir);
+  // (e,p,n,v) from half-step updated Qh at cell's centre
   void getPrimVarHCenter(EoS *eos, double tau, double &_e, double &_p,
                          double &_nb, double &_nq, double &_ns, double &_vx,
                          double &_vy, double &_vz);
+  // (e,p,n,v) at the previous timestep and cell's centre
   void getPrimVarPrev(EoS *eos, double tau, double &_e, double &_p, double &_nb,
                       double &_nq, double &_ns, double &_vx, double &_vy,
                       double &_vz);
+  // (e,p,n,v) from the Qfull, which includes viscous corrections
   void getPrimVarFull(EoS *eos, double &_e, double &_p, double &_nb,
                       double &_nq, double &_ns, double &_vx, double &_vy,
                       double &_vz);
+  // calculate and set Q from (e,n,v)
   void setPrimVar(EoS *eos, double tau, double _e, double _nb, double _nq,
                   double _ns, double _vx, double _vy, double _vz);
 
+  // update the cumulative fluxes through the cell
   inline void addFlux(double Ft, double Fx, double Fy, double Fz, double Fnb,
                       double Fnq, double Fns) {
     flux[T_] += Ft;
@@ -175,11 +216,12 @@ class Cell {
   inline void clearFlux(void) {
     for (int i = 0; i < 7; i++) flux[i] = 0.;
   }
-  void updateByFlux();
-  void updateQtoQhByFlux();
-  void updateQfullByFlux();
-  void correctQideal(EoS *eos, double tau);
+  void updateByFlux();       // Q = Q + flux
+  void updateQtoQhByFlux();  // Qh = Q + flux
+  void updateQfullByFlux();  // Qfull = Qfull + flux
+  void correctQideal(EoS *eos,
+                     double tau);  // correct Q based on Qfull and pi^{mu nu}
   inline void setViscCorrCutFlag(double value) { viscCorrCut = value; }
   inline double getViscCorrCutFlag(void) { return viscCorrCut; }
-  void Dump(double tau);
+  void Dump(double tau);  // dump the contents of the cell into dump.dat
 };
