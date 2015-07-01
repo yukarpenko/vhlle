@@ -7,7 +7,7 @@
 
 using namespace std;
 
-// extern bool debugRiemann ;
+// slope limiter; chooses minimal abs of the neighbouring slopes
 
 double minmod(double a, double b) {
   if (a * b <= 0.) return 0.;
@@ -87,9 +87,6 @@ void Cell::getPrimVar(EoS *eos, double &_e, double &_p, double &_nb,
   if (_nb != _nb) {
     cout << "---error in getPrimVar:\n";
     Dump();
-    // debugRiemann=true ;
-    // transformPV(eos, _Q, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz) ;
-    // exit(1) ;
   }
   //------------------------------------------
 }
@@ -228,7 +225,7 @@ void Cell::setPrimVar(EoS *eos, double _e, double _nb, double _nq,
   Q[NB_] = _nb * sqrt(gamma2);
   Q[NQ_] = _nq * sqrt(gamma2);
   Q[NS_] = _ns * sqrt(gamma2);
-  if (!(Q[NB_] < 0. || Q[NB_] >= 0.)) {
+  if (Q[NB_] != Q[NB_]) {
     cout << "init error!\n";
     eos->p(_e, _nb, _nq, _ns);
     cout << "e = " << _e << " p = " << p << " vx = " << _vx << " vy = " << _vy

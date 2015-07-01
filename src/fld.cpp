@@ -100,7 +100,8 @@ void Fluid::initOutput(char *dir, int maxstep, double t0, int cmpr2dOut) {
   cout << "maxstep=" << maxstep << endl;
   char command[255];
   sprintf(command, "mkdir -p %s", dir);
-  system(command);
+  int return_mkdir = system(command);
+  cout << "mkdir returns: " << return_mkdir << endl;
   string outx = dir;
   outx.append("/outx.dat");
   string outxvisc = dir;
@@ -146,7 +147,8 @@ void Fluid::initOutput(char *dir, int maxstep, double t0, int cmpr2dOut) {
   fout2d << t0 << "  " << t0 + 0.05 * maxstep << "  " << getX(2) << "  "
          << getX(getNX() - 3) << "  " << getY(2) << "  " << getY(getNY() - 3)
          << endl;
-  outputPDirections(t0);
+  outputGnuplot(t0);
+  fout_aniz << "#  tau  <<v_T>>  e_p  e'_p  (to compare with SongHeinz)\n";
 }
 
 void Fluid::correctImagCells(void) {
@@ -306,7 +308,7 @@ void Fluid::updateM(double dt) {
         c->setDM(X_, 0.);
         c->setDM(Y_, 0.);
         c->setDM(Z_, 0.);
-        if (getCell(ix, iy, iz)->getLM() < 1.) {
+        if (getCell(ix, iy, iz)->getMaxM() < 1.) {
           if (getCell(ix + 1, iy, iz)->getM(X_) >= 1. ||
               getCell(ix - 1, iy, iz)->getM(X_) >= 1.)
             c->setDM(X_, dt / dx);
@@ -318,28 +320,28 @@ void Fluid::updateM(double dt) {
             c->setDM(Z_, dt / dz);
 
           if (c->getDM(X_) == 0. && c->getDM(Y_) == 0.) {
-            if (getCell(ix + 1, iy + 1, iz)->getLM() >= 1. ||
-                getCell(ix + 1, iy - 1, iz)->getLM() >= 1. ||
-                getCell(ix - 1, iy + 1, iz)->getLM() >= 1. ||
-                getCell(ix - 1, iy - 1, iz)->getLM() >= 1.) {
+            if (getCell(ix + 1, iy + 1, iz)->getMaxM() >= 1. ||
+                getCell(ix + 1, iy - 1, iz)->getMaxM() >= 1. ||
+                getCell(ix - 1, iy + 1, iz)->getMaxM() >= 1. ||
+                getCell(ix - 1, iy - 1, iz)->getMaxM() >= 1.) {
               c->setDM(X_, 0.707 * dt / dx);
               c->setDM(Y_, 0.707 * dt / dy);
             }
           }
           if (c->getDM(X_) == 0. && c->getDM(Z_) == 0.) {
-            if (getCell(ix + 1, iy, iz + 1)->getLM() >= 1. ||
-                getCell(ix + 1, iy, iz - 1)->getLM() >= 1. ||
-                getCell(ix - 1, iy, iz + 1)->getLM() >= 1. ||
-                getCell(ix - 1, iy, iz - 1)->getLM() >= 1.) {
+            if (getCell(ix + 1, iy, iz + 1)->getMaxM() >= 1. ||
+                getCell(ix + 1, iy, iz - 1)->getMaxM() >= 1. ||
+                getCell(ix - 1, iy, iz + 1)->getMaxM() >= 1. ||
+                getCell(ix - 1, iy, iz - 1)->getMaxM() >= 1.) {
               c->setDM(X_, 0.707 * dt / dx);
               c->setDM(Z_, 0.707 * dt / dz);
             }
           }
           if (c->getDM(Z_) == 0. && c->getDM(Y_) == 0.) {
-            if (getCell(ix, iy + 1, iz + 1)->getLM() >= 1. ||
-                getCell(ix, iy - 1, iz + 1)->getLM() >= 1. ||
-                getCell(ix, iy + 1, iz - 1)->getLM() >= 1. ||
-                getCell(ix, iy - 1, iz - 1)->getLM() >= 1.) {
+            if (getCell(ix, iy + 1, iz + 1)->getMaxM() >= 1. ||
+                getCell(ix, iy - 1, iz + 1)->getMaxM() >= 1. ||
+                getCell(ix, iy + 1, iz - 1)->getMaxM() >= 1. ||
+                getCell(ix, iy - 1, iz - 1)->getMaxM() >= 1.) {
               c->setDM(Z_, 0.707 * dt / dz);
               c->setDM(Y_, 0.707 * dt / dy);
             }
@@ -357,10 +359,6 @@ void Fluid::updateM(double dt) {
       }
 }
 
-void Fluid::outputPDirections(double time) {
-  outputGnuplot(time);
-  return;
-}
 
 void Fluid::outputGnuplot(double time) {
   double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz;

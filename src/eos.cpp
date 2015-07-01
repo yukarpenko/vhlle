@@ -19,9 +19,8 @@ const double deg = 16.0 + 3.0 * 12.0 * (7.0 / 8.0);
 double EoS::s(double e, double nb, double nq, double ns) {
   double T, mub, muq, mus, p;
   eos(e, nb, nq, ns, T, mub, muq, mus, p);
-  if (T > 0.0) return (e + p - mub * nb - muq * nq - mus * ns) / T;
-  // else return pow(e,0.75) ;
-  // if(T>0.0) return (e+p)/T ;
+  if (T > 0.0)
+    return (e + p - mub * nb - muq * nq - mus * ns) / T;
   else
     return 0.;
 }
@@ -49,8 +48,6 @@ EoSs::EoSs(string fname, int ncols) {
     } else {
       finput >> e[edat] >> pGrid[edat] >> tpGrid[edat] >> muGrid[edat];
     }
-    //	pGrid[ie][in] *= 1./gevtofm ;
-    //	tpGrid[ie][in] *= 1./gevtofm ;
     if (pGrid[edat] < 0.) pGrid[edat] = 0.;
     edat++;
   }
@@ -89,7 +86,7 @@ double EoSs::t(double e) {
 #elif defined SIMPLE
   const double cnst =
       (16 + 0.5 * 21.0 * 2.5) * pow(C_PI, 2) / 30.0 / pow(0.197326968, 3);
-  return e > 0. ? 1.3 * pow(e / cnst, 0.25) : 0.;
+  return e > 0. ? 1.0 * pow(e / cnst, 0.25) : 0.;
 #endif
 }
 

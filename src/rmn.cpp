@@ -8,6 +8,8 @@
 
 using namespace std;
 
+// flag optionally needed to track
+// problems in the transformation procedures
 const bool debugRiemann = false;
 
 void handler(int sig) {
@@ -22,89 +24,21 @@ void handler(int sig) {
   backtrace_symbols_fd(array, size, 2);
   exit(1);
 }
-/*
-void transformPVold(EoS *eos, double Q[7], double &e, double &p, double &nb,
-double &nq, double &ns, double &vx, double &vy, double &vz)
-{
- const double dpe = 1./3. ;
- const double corrf = 0.9999 ;
- double M = sqrt(Q[X_]*Q[X_]+Q[Y_]*Q[Y_]+Q[Z_]*Q[Z_]) ;
- double v = 0.5, v0 = 0.5 ;
- if(M==0.){
-  e=Q[T_]; vx=0.; vy=0.; vz=0.; nb=Q[NB_]; nq=Q[NQ_]; ns=Q[NS_];
-  p=eos->p(e,nb,nq,ns) ;
-  return ;
- }
- if(Q[T_]<0.) { e=0.; p = 0.; vx = vy = vz = 0.; nb=nq=ns=0.; return ; }
- if(M>Q[T_]){
-  Q[X_] *= corrf*Q[T_]/M ;
-  Q[Y_] *= corrf*Q[T_]/M ;
-  Q[Z_] *= corrf*Q[T_]/M ;
-  M = Q[T_]*corrf ;
- }
- int i = 0 ;  //debug
- do{
-  v0 = v ;
-  e = Q[T_]-M*v0 ;
-  if(e<0.) e = 0. ;
-  nb = Q[NB_]*sqrt(1-v*v) ;
-  nq = Q[NQ_]*sqrt(1-v*v) ;
-  ns = Q[NS_]*sqrt(1-v*v) ;
-  p = eos->p(e, nb, nq, ns) ;
-  v = v0 - ( M - (Q[T_] + p)*v0 ) / ( -(Q[T_]+p) + M*v0*dpe ) ;
-  if(v>1.) v=0.99999 ;
-  if(v<0.) v = 0. ;
-  i++ ;
-//  if(i>1000 && i<1005) cout << "inf.loop in EoS: e= " << setw(14) << e << "
-nb= " << setw(12) << nb
-//   << " nq= " << setw(12) << nq << " ns= " << setw(12) << ns << endl ;
-  if(i>1010) break ;
- }
- while(fabs(v-v0)>0.000001) ;
- // alternative procedure
- if(i>1000){
-  double vmin=0., vmax=1. ;
-  do{
-   v = 0.5*(vmin+vmax) ;
-   e = Q[T_] - M*v ;
-   nb = Q[NB_]*sqrt(1-v*v) ;
-   nq = Q[NQ_]*sqrt(1-v*v) ;
-   ns = Q[NS_]*sqrt(1-v*v) ;
-   p = eos->p(e, nb, nq, ns) ;
-   if ( M/(Q[T_]+p)-v > 0.) vmin = v ;
-   else vmax = v ;
-   }while((vmax-vmin)>0.00001) ;
-//  cout << "solved in EoS: e= " << setw(12) << e << " nb= " << setw(12) << nb
-//   << " nq= " << setw(12) << nq << " ns= " << setw(12) << ns << endl ;
- }
- vx = v*Q[X_]/M ;
- vy = v*Q[Y_]/M ;
- vz = v*Q[Z_]/M ;
- e = Q[T_] - M*v ;
- p = eos->p(e,nb,nq,ns) ;
- nb = Q[NB_]*sqrt(1-vx*vx-vy*vy-vz*vz) ;
- nq = Q[NQ_]*sqrt(1-vx*vx-vy*vy-vz*vz) ;
- ns = Q[NS_]*sqrt(1-vx*vx-vy*vy-vz*vz) ;
- if(e<0. || sqrt(vx*vx+vy*vy+vz*vz)>1.){
-  cout << Q[T_] << "  " << Q[X_] << "  " << Q[Y_] << "  " << Q[Z_] << "  " <<
-Q[NB_] << endl ;
-  cout<<"transformRF::Error" ;
- }
- if(!(nb<0. || nb>=0.)){
-  cout<<"transformRF::Error nb=#ind" ;
-  return ;
- }
-}
-*/
 
 void transformPV(EoS *eos, double Q[7], double &e, double &p, double &nb,
                  double &nq, double &ns, double &vx, double &vy, double &vz) {
-  const int MAXIT = 100;
-  const double dpe = 1. / 3.;
-  const double corrf = 0.9999;
+  // conserved -> primitive transtormation requires
+  // a numerical solution to 1D nonlinear algebraic equation:
+  // v = M / ( Q_t + p(Q_t-M*v, n) )       (A.2)
+  // M being the modulo of the vector {Q_x, Q_y, Q_z}.
+  // Bisection/Newton methods are used to solve the equation.
+  const int MAXIT = 100;        // maximum number of iterations
+  const double dpe = 1. / 3.;   // dp/de estimate for Newton method
+  const double corrf = 0.9999;  // corrected value of M
+  // when it brakes the speed of light limit, M>Q_t
   double v, vl = 0., vh = 1., dvold, dv, f, df;
   if (debugRiemann) {
-    cout << "Riemann debug---------------\n";
+    cout << "transformPV debug---------------\n";
     cout << setw(14) << Q[0] << setw(14) << Q[1] << setw(14) << Q[2] << setw(14)
          << Q[3] << endl;
     cout << setw(14) << Q[4] << setw(14) << Q[5] << setw(14) << Q[6] << endl;
@@ -152,16 +86,12 @@ void transformPV(EoS *eos, double Q[7], double &e, double &p, double &nb,
       dvold = dv;
       dv = 0.5 * (vh - vl);
       v = vl + dv;
-      if (debugRiemann)
-        cout << "BISECT v = " << setw(12) << v << setw(14) << e << setw(14) << p
-             << endl;
+      //			cout << "BISECTION v = " << setw(12) << v << endl ;
     } else {  // Newton
       dvold = dv;
       dv = f / df;
       v -= dv;
-      if (debugRiemann)
-        cout << "NEWTON v = " << setw(14) << v << setw(14) << e << setw(14) << p
-             << endl;
+      //			cout << "NEWTON v = " << setw(12) << v << endl ;
     }
     if (fabs(dv) < 0.00001) break;
 
@@ -183,7 +113,8 @@ void transformPV(EoS *eos, double Q[7], double &e, double &p, double &nb,
            << "  " << ns << "  " << p << "  " << v << endl;
     if (debugRiemann)
       cout << "step " << i << "  " << e << "  " << nb << "  " << nq << "  "
-           << ns << "  " << p << "  " << v << endl;
+           << ns << "  " << p << "  " << vx << "  " << vy << "  " << vz << endl;
+    //		if(i==40) { cout << "error : does not converge\n" ; exit(1) ; } ;
   }  // for loop
      //----------after
      // v = 0.5*(vh+vl) ;
@@ -214,7 +145,7 @@ void transformPVBulk(EoS *eos, double Pi, double Q[7], double &e, double &p,
   const double corrf = 0.9999;
   double v, vl = 0., vh = 1., dvold, dv, f, df;
   if (debugRiemann) {
-    cout << "Riemann debug---------------\n";
+    cout << "transformPVBulk debug---------------\n";
     cout << setw(14) << Q[0] << setw(14) << Q[1] << setw(14) << Q[2] << setw(14)
          << Q[3] << endl;
     cout << setw(14) << Q[4] << setw(14) << Q[5] << setw(14) << Q[6] << endl;
@@ -289,7 +220,7 @@ void transformPVBulk(EoS *eos, double Pi, double Q[7], double &e, double &p,
            << ns << "  " << p << "  " << v << endl;
     if (debugRiemann)
       cout << "step " << i << "  " << e << "  " << nb << "  " << nq << "  "
-           << ns << "  " << p << "  " << v << endl;
+           << ns << "  " << p << "  " << vx << "  " << vy << "  " << vz << endl;
     //  if(i==40) { cout << "error : does not converge\n" ; exit(1) ; } ;
   }  // for loop
      //----------after

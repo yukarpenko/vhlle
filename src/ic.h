@@ -1,22 +1,12 @@
 
 class EoS;
 class Fluid;
-class TF1;
 
+// this class takes care of the initial conditions for hydrodynamic evolution
 class IC {
-  TF1 *iff;
-  double rho0, prms[4];
-  double *_rphi;
-  void findRPhi(void);
-  double rPhi(double phi);
-
-  double WoodSaxon(double *x, double *p);
-  double Thickness(double *x, double *p);
-  double epsilon, alpha, b;
-
  public:
-  IC(double e, double impactPar, double a);
+  IC(char* icInputFile, double s0ScaleFactor);
   ~IC(void);
-  double eProfile(double x, double y);
+  // setIC: initializes entire hydro grid at a given initial proper time tau
   void setIC(Fluid *f, EoS *eos, double tau);
 };

@@ -18,15 +18,6 @@
 
 using namespace std;
 
-double sign(double x) {
-  if (x > 0)
-    return 1.;
-  else if (x < 0.)
-    return -1.;
-  else
-    return 0.;
-}
-
 EoS3f::EoS3f(char *filename, double _B, double _volex0, double _delta0,
              double _aaa, double _bbb) {
   ifstream fin(filename);
