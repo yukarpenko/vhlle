@@ -32,6 +32,7 @@ class EoSaux {
   ~EoSaux();
   void get(double e, double nb, double& p, double& T, double& mub, double& mus);
   double p(double e, double nb);
+  double s(double e, double nb);
 };
 
 EoSaux::EoSaux(const char* filename, int Ne, int Nn) {
@@ -154,6 +155,31 @@ double EoSaux::p(double e, double nb) {
   // cout <<  e <<" "<< nb <<" "<< nq <<" "<< ns <<" "<< _T<<endl;
 }
 
+double EoSaux::s(double e, double nb) {
+  if (e < 0.) return 0.0;
+  const double de = (emax - emin) / (ne - 1);
+  const double dn = (nmax - nmin) / (nn - 1);
+  int ie = (int)((e - emin) / de);
+  int in = (int)((nb - nmin) / dn);
+  if (ie < 0) ie = 0;
+  if (in < 0) in = 0;
+  if (ie > ne - 2) ie = ne - 2;
+  if (in > nn - 2) in = nn - 2;
+  const double em = e - emin - ie * de;
+  const double nm = nb - nmin - in * dn;
+
+  double we[2] = {1. - em / de, em / de};
+  double wn[2] = {1. - nm / dn, nm / dn};
+
+  double s = 0.0;
+  for (int je = 0; je < 2; je++)
+    for (int jn = 0; jn < 2; jn++)
+      s += we[je] * wn[jn] * stab[ie + je][in + jn];
+
+  if (s < 0.0) cout<<"!!! EoSaux::Negative entropy!\n";
+  return s;
+}
+
 EoSChiral::EoSChiral() {
   eosbig = new EoSaux("eos/chiraleos.dat", 2001, 401);
   eossmall = new EoSaux("eos/chiralsmall.dat", 201, 201);
@@ -178,4 +204,11 @@ double EoSChiral::p(double e, double nb, double nq, double ns) {
     return eossmall->p(e, nb);
   else
     return eosbig->p(e, nb);
+}
+
+double EoSChiral::s(double e, double nb, double nq, double ns) {
+  if (e < 1.46 && nb < 0.3)
+    return eossmall->s(e, nb);
+  else
+    return eosbig->s(e, nb);
 }

@@ -179,19 +179,11 @@ int main(int argc, char **argv) {
   printParameters();
 
   // EoS
-  char * eosfile = "eos/Laine_nf3.dat";
-  int ncols = 3, nrows = 286;
-  eos = new EoSs(eosfile,ncols);
+  //char * eosfile = "eos/Laine_nf3.dat";
+  //int ncols = 3, nrows = 286;
+  //eos = new EoSs(eosfile,ncols);
+  eos = new EoSChiral();
   EoS* eosH = eos;
-  //if (eosType == 1)
-    //eos = new EoSChiral();
-  //else if (eosType == 2)
-    //eos = new EoSAZH();
-  //else {
-    //cout << "eosType != 1,2\n";
-    //return 0;
-  //}
-  //EoS *eosH = new EoSHadron("eos/eosHadronLog.dat");
 
   // transport coefficients
   trcoeff = new TransportCoeff(etaS, zetaS, eos);

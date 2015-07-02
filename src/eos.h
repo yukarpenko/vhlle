@@ -28,7 +28,7 @@ class EoS {
   // gets only pressure : p=p(e,n_b,n_q,n_s)
   virtual double p(double e, double nb, double ns, double nq) = 0;
   // gets entropy density
-  double s(double e, double nb, double nq, double ns);
+  virtual double s(double e, double nb, double nq, double ns);
   // speed of sound squared: this variant is only used in
   // HLLE solver, where the optimal value is 1/3
   inline double cs2(void) { return 1. / 3.; }
