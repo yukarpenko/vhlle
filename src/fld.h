@@ -5,18 +5,20 @@ class EoS;
 class TransportCoeff;
 class Cornelius;
 
+// this class contains the information and methods related to the hydro grid
 class Fluid {
- private:
-  EoS *eos, *eosH;
-  TransportCoeff *trcoeff;
-  Cornelius *cornelius;
-  Cell *cell;
-  Cell *cell0;
-  int nx, ny, nz;
+  private:
+  EoS *eos, *eosH;          // equation(s) of state
+  TransportCoeff *trcoeff;  // transport coefficients for visc fluid
+  Cornelius *cornelius;  // instance of Cornelius to calculate the hypersurface
+  Cell *cell;            // 3D hydro grid, packed in 1D array
+  Cell *cell0;           // reference to cell containing all zero quantities
+  int nx, ny, nz;        // dimensions of the grid
+                         // physical dimensions of the grid
   double minx, maxx, miny, maxy, minz, maxz;
-  double dx, dy, dz, dt;
+  double dx, dy, dz, dt; // physical sizes of the hydro cell and timestep
   double ecrit;
-  double vEff, EtotSurf;
+  double vEff, EtotSurf;  // cumulative effective volume and
   std::ofstream foutkw, foutkw_dim, foutxvisc, foutyvisc, foutdiagvisc, foutx,
       fouty, foutdiag, foutz, fout_aniz, fout2d, ffreeze;
   int compress2dOut;
@@ -69,7 +71,6 @@ class Fluid {
   void correctImagCellsFull(void);  // correct ideal+visc
   void updateM(double dt);
 
-  void outputPDirections(double t);
   void outputGnuplot(double t);
   void outputSurface(double t);
   void outputCorona(double t);
