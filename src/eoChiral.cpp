@@ -168,14 +168,21 @@ void EoSChiral::eos(double e, double nb, double nq, double ns, double& T,
                     double& mub, double& muq, double& mus, double& p) {
   if (e < 1.46 && nb < 0.3)
     eossmall->get(e, nb, p, T, mub, mus);
-  else
+  else if (e < 146. && nb < 6.)
     eosbig->get(e, nb, p, T, mub, mus);
+  else {
+    p = 0.2964 * e;
+    T = 0.15120476935 * pow(e, 0.25);
+    mub = mus = 0.0;
+  }
   muq = 0.0;  // generally it's not zero, but...but
 }
 
 double EoSChiral::p(double e, double nb, double nq, double ns) {
   if (e < 1.46 && nb < 0.3)
     return eossmall->p(e, nb);
-  else
+  else if (e < 146. && nb < 6.)
     return eosbig->p(e, nb);
+  else
+    return 0.2964 * e;
 }
