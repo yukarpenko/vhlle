@@ -152,7 +152,7 @@ void Fluid::initOutput(char *dir, int maxstep, double t0, int cmpr2dOut) {
 }
 
 void Fluid::correctImagCells(void) {
-  double Q[7];
+  double Q[7], Qh[7];
   // Z
   for (int ix = 0; ix < nx; ix++)
     for (int iy = 0; iy < ny; iy++) {
@@ -160,10 +160,16 @@ void Fluid::correctImagCells(void) {
       getCell(ix, iy, 2)->getQ(Q);
       getCell(ix, iy, 1)->setQ(Q);
       getCell(ix, iy, 0)->setQ(Q);
+      getCell(ix, iy, 2)->getQh(Qh);
+      getCell(ix, iy, 1)->setQh(Qh);
+      getCell(ix, iy, 0)->setQh(Qh);
       // right boundary
       getCell(ix, iy, nz - 3)->getQ(Q);
       getCell(ix, iy, nz - 2)->setQ(Q);
       getCell(ix, iy, nz - 1)->setQ(Q);
+      getCell(ix, iy, nz - 3)->getQh(Qh);
+      getCell(ix, iy, nz - 2)->setQh(Qh);
+      getCell(ix, iy, nz - 1)->setQh(Qh);
     }
   // Y
   for (int ix = 0; ix < nx; ix++)
@@ -172,10 +178,16 @@ void Fluid::correctImagCells(void) {
       getCell(ix, 2, iz)->getQ(Q);
       getCell(ix, 1, iz)->setQ(Q);
       getCell(ix, 0, iz)->setQ(Q);
+      getCell(ix, 2, iz)->getQh(Qh);
+      getCell(ix, 1, iz)->setQh(Qh);
+      getCell(ix, 0, iz)->setQh(Qh);
       // right boundary
       getCell(ix, ny - 3, iz)->getQ(Q);
       getCell(ix, ny - 2, iz)->setQ(Q);
       getCell(ix, ny - 1, iz)->setQ(Q);
+      getCell(ix, ny - 3, iz)->getQh(Qh);
+      getCell(ix, ny - 2, iz)->setQh(Qh);
+      getCell(ix, ny - 1, iz)->setQh(Qh);
     }
   // X
   for (int iy = 0; iy < ny; iy++)
@@ -184,10 +196,16 @@ void Fluid::correctImagCells(void) {
       getCell(2, iy, iz)->getQ(Q);
       getCell(1, iy, iz)->setQ(Q);
       getCell(0, iy, iz)->setQ(Q);
+      getCell(2, iy, iz)->getQh(Qh);
+      getCell(1, iy, iz)->setQh(Qh);
+      getCell(0, iy, iz)->setQh(Qh);
       // right boundary
       getCell(nx - 3, iy, iz)->getQ(Q);
       getCell(nx - 2, iy, iz)->setQ(Q);
       getCell(nx - 1, iy, iz)->setQ(Q);
+      getCell(nx - 3, iy, iz)->getQh(Qh);
+      getCell(nx - 2, iy, iz)->setQh(Qh);
+      getCell(nx - 1, iy, iz)->setQh(Qh);
     }
 }
 

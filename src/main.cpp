@@ -221,14 +221,7 @@ int main(int argc, char **argv) {
   f->outputCorona(tau0);
 
   for (int istep = 0; istep < maxstep; istep++) {
-    // decrease timestep automatically, but use fixed dtau for output
-    int nSubSteps = 1;
-    while (dtau / nSubSteps > 0.5 * (tau0 + dtau * istep))
-      nSubSteps *= 2;  // 0.02 in "old" coordinates
-    h->setDt(dtau / nSubSteps);
-    for (int j = 0; j < nSubSteps; j++) {
-      h->performStep();
-    }
+    h->performStep();
     f->outputGnuplot(h->getTime());
     f->outputSurface(h->getTime());
   }
