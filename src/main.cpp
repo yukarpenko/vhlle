@@ -240,9 +240,10 @@ int main(int argc, char **argv) {
   for (int istep = 0; istep < maxstep; istep++) {
     // decrease timestep automatically, but use fixed dtau for output
     int nSubSteps = 1;
-    while (dtau / nSubSteps > 0.5 * (tau0 + dtau * istep))
+    while (dtau / nSubSteps > 1.0 * (tau0 + dtau * istep) * (etamax - etamin) / (nz - 1))
       nSubSteps *= 2;  // 0.02 in "old" coordinates
     h->setDtau(dtau / nSubSteps);
+    //cout<<"dtau = "<<dtau / nSubSteps<<endl;
     for (int j = 0; j < nSubSteps; j++) {
       h->performStep();
     }
