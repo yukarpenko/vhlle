@@ -17,20 +17,32 @@ using namespace std;
 // --------------------------------------------
 
 // Au nucleus parameters for optical Glauber
-const double A = 197.0;    // mass number
-const double Ra = 6.37;    // radius
-const double dlt = 0.54;   // diffuseness
-const double sigma = 4.0;  // NN cross section in fm^2
+//const double A = 197.0;    // mass number
+//const double Ra = 6.37;    // radius
+//const double dlt = 0.54;   // diffuseness
+//const double sigma = 4.0;  // NN cross section in fm^2
+
+// LHC PbPb nucleus parameters for optical Glauber
+/*const double A = 208.0;    // mass number
+const double Ra = 6.6;    // radius
+const double dlt = 0.545;   // diffuseness
+const double sigma = 7.0;  // NN cross section in fm^2*/
 
 const int nphi = 301;
 
-ICGlauber::ICGlauber(double e, double impactPar, double _tau0) {
+ICGlauber::ICGlauber(double e, double impactPar, double _tau0, double A_, double R_, double dlt_, double sigma_) {
   epsilon = e;
   b = impactPar;
   tau0 = _tau0;
+  A = A_;
+  Ra = R_;
+  dlt = dlt_;
+  sigma = sigma_;
 }
 
-ICGlauber::~ICGlauber(void) {}
+ICGlauber::~ICGlauber(void) {
+	if (iff) delete iff;
+}
 
 double ICGlauber::eProfile(double x, double y) {
  prms[0] = sqrt((x + b / 2.0) * (x + b / 2.0) + y * y);
@@ -70,12 +82,7 @@ double ICGlauber::rPhi(double phi) {
          _rphi[iphi1] * (phi / (2. * cpi) * (nphi - 1) - iphi);
 }
 
-
-void ICGlauber::setIC(Fluid *f, EoS *eos) {
-  double e, nb, nq, vx = 0., vy = 0., vz = 0.;
-  Cell *c;
-  ofstream fvel("velocity_debug.txt");
-
+void ICGlauber::init() {
   TF2 *ff = 0;
   double prms2[2], intgr2;
   cout << "finding normalization constant\n";
@@ -100,6 +107,40 @@ void ICGlauber::setIC(Fluid *f, EoS *eos) {
   prms[0] = 0.0;
   const double tpp = iff->Integral(-3.0 * Ra, 3.0 * Ra, prms, 1.0e-9);
   rho0 = 2.0 * tpp * (1.0 - pow((1.0 - sigma * tpp / A), A));
+  //delete iff;
+}
+
+void ICGlauber::setIC(Fluid *f, EoS *eos) {
+  double e, nb, nq, vx = 0., vy = 0., vz = 0.;
+  Cell *c;
+  ofstream fvel("velocity_debug.txt");
+
+  /*TF2 *ff = 0;
+  double prms2[2], intgr2;
+  cout << "finding normalization constant\n";
+  ff = new TF2("ThicknessF", this, &ICGlauber::Thickness, -3.0 * Ra, 3.0 * Ra,
+               -3.0 * Ra, 3.0 * Ra, 2, "IC", "Thickness");
+  prms2[0] = Ra;
+  prms2[1] = dlt;
+  ff->SetParameters(prms2);
+  intgr2 = ff->Integral(-3.0 * Ra, 3.0 * Ra, -3.0 * Ra, 3.0 * Ra, 1.0e-9);
+  if (intgr2 == 0.0) {
+    cerr << "IC::setICGlauber Error! ff->Integral == 0; Return -1\n";
+    delete ff;
+    exit(1);
+  }
+  delete ff;
+  cout << "a = " << A / intgr2 << endl;
+  prms[1] = A / intgr2;
+  prms[2] = Ra;
+  prms[3] = dlt;
+  iff = new TF1("WoodSaxonDF", this, &ICGlauber::WoodSaxon, -3.0 * Ra, 3.0 * Ra, 4,
+                "IC", "WoodSaxon");
+  prms[0] = 0.0;
+  const double tpp = iff->Integral(-3.0 * Ra, 3.0 * Ra, prms, 1.0e-9);
+  rho0 = 2.0 * tpp * (1.0 - pow((1.0 - sigma * tpp / A), A));*/
+
+  init();
 
   findRPhi();  // fill in R(phi) table
   cout << "R(phi) =  ";
@@ -120,9 +161,10 @@ void ICGlauber::setIC(Fluid *f, EoS *eos) {
         double eta1 = fabs(eta) < 1.3 ? 0.0 : fabs(eta) - 1.3;
         etaFactor = exp(-eta1 * eta1 / 2.1 / 2.1) * (fabs(eta) < 5.3 ? 1.0 : 0.0);
         e = eProfile(x, y) * etaFactor;
-        if (e < 0.5) e = 0.0;
+        //if (e < 0.5) e = 0.0;
         vx = vy = 0.0;
-        nb = nq = 0.0;
+		nb = nq = 0.0;
+        //nb = nq = eProfile(x, y) / 0.5;
         vz = 0.0;
 
       avv_num += sqrt(vx * vx + vy * vy) * e;

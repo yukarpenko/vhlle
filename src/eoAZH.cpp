@@ -121,7 +121,7 @@ EoSAZH::~EoSAZH() {
 }
 
 void EoSAZH::eos(double e, double nb, double nq, double ns, double &T,
-                 double &mub, double &muq, double &mus, double &p) {
+                 double &mub, double &muq, double &mus, double &p, double tau) {
   if (e > p1->emax()) {
     p = p2->get(e, fabs(nb));
     T = T2->get(e, fabs(nb));

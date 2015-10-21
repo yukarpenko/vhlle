@@ -5,6 +5,26 @@ class EoS;
 class TransportCoeff;
 class Cornelius;
 
+#ifdef _MSC_VER
+
+bool isinf(const double &op);
+
+bool isnan(const double &op);
+
+#endif
+
+#include <vector>
+
+// This structure contains output of physical quantities at a given tau timestep
+// Quantities: e, s, p, T, nb, nq, ns, taup, vx, vy
+struct TauOutput {
+	std::vector< std::vector<double> > XOut;	// At Y=Eta=0
+	std::vector< std::vector<double> > YOut;	// At X=Eta=0
+	std::vector< std::vector<double> > XYOut;	// At Eta=0
+	std::vector< std::vector<double> > EtaOut;	// At X=Y=0
+	double E, Efull, S, dSdEta;
+};
+
 // this class contains the information and methods related to the hydro grid
 // 'z' direction actually denotes eta direction, as well as
 // dz == d(eta), getZ returns eta coordinate etc.
@@ -20,15 +40,22 @@ class Fluid {
   double minx, maxx, miny, maxy, minz, maxz;
   double dx, dy, dz, dt; // physical sizes of the hydro cell and timestep
   double ecrit;
-  double vEff, EtotSurf;  // cumulative effective volume and
+  double vEff, EtotSurf;  // cumulative effective volume and energy flux
+  double SSurf;		// cumulative entropy flux
+  double SSurfdeta;	// cumulative dS/dEta
+  bool SurfCriterion; // 0 - eCrit, 1 - TCrit
   std::ofstream foutkw, foutkw_dim, foutxvisc, foutyvisc, foutdiagvisc, foutx,
       fouty, foutdiag, foutz, fout_aniz, fout2d, ffreeze;
   int compress2dOut;
 
+  std::fstream foutXTau;
+  std::fstream foutYTau;
+  std::fstream foutTau;
+
  public:
   Fluid(EoS *_eos, EoS *_eosH, TransportCoeff *_trcoeff, int _nx, int _ny,
         int _nz, double _minx, double _maxx, double _miny, double _maxy,
-        double _minz, double _maxz, double dt, double eCrit);
+        double _minz, double _maxz, double dt, double eCrit, bool SurfCrit = 0);
   ~Fluid();
   void initOutput(char *dir, int maxstep, double tau0, int cmpr2dOut);
   int output_xy_spacing;
@@ -68,4 +95,13 @@ class Fluid {
   void outputGnuplot(double tau);
   void outputSurface(double tau);
   void outputCorona(double tau);
+
+  void calcTotals(double tau);
+
+  void outputXTau(double tau);
+  void outputYTau(double tau);
+  void outputTau(double tau);
+
+  //TauOutput output(double tau);
+  void output(double tau, TauOutput & outp);
 };

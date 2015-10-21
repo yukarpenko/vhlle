@@ -28,6 +28,7 @@
 #include "ickw.h"
 #include "icPartUrqmd.h"
 #include "icGlauber.h"
+#include "icGlauberMC.h"
 #include "icGubser.h"
 #include "eos.h"
 #include "eo3.h"
@@ -35,7 +36,15 @@
 #include "eoChiral.h"
 #include "eoAZH.h"
 #include "eoHadron.h"
+#include "eoSimpleSpline.h"
+#include "eosuQGP.h"
 #include "trancoeff.h"
+
+#ifdef _DEBUG
+#pragma comment(lib,"libHLLEviscD.lib")
+#else
+#pragma comment(lib,"libHLLEvisc.lib")
+#endif
 
 using namespace std;
 
@@ -45,6 +54,7 @@ double xmin, xmax, ymin, ymax, etamin, etamax, tau0, tauMax, dtau;
 char outputDir[255];
 char icInputFile[255];
 double etaS, zetaS, eCrit;
+double TCrit = -1.;
 int icModel,
     glauberVariable =
         1;  // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
@@ -98,6 +108,8 @@ void readParameters(char *parFile) {
       dtau = atof(parValue);
     else if (strcmp(parName, "e_crit") == 0)
       eCrit = atof(parValue);
+	else if (strcmp(parName, "T_crit") == 0)
+      TCrit = atof(parValue);
     else if (strcmp(parName, "etaS") == 0)
       etaS = atof(parValue);
     else if (strcmp(parName, "zetaS") == 0)
@@ -138,7 +150,8 @@ void printParameters() {
   cout << "tau0 = " << tau0 << endl;
   cout << "tauMax = " << tauMax << endl;
   cout << "dtau = " << dtau << endl;
-  cout << "e_crit = " << eCrit << endl;
+  if (TCrit<0.) cout << "e_crit = " << eCrit << endl;
+  else cout << "t_crit = " << TCrit << endl;
   cout << "eta/s = " << etaS << endl;
   cout << "zeta/s = " << zetaS << endl;
   cout << "epsilon0 = " << epsilon0 << endl;
@@ -170,8 +183,9 @@ int main(int argc, char **argv) {
   // read parameters from file
   char *parFile;
   if (argc == 1) {
-    cout << "NO PARAMETERS, exiting\n";
-    exit(1);
+	parFile = "song2DCPC.b0.ideal.test";
+    //cout << "NO PARAMETERS, exiting\n";
+    //exit(1);
   } else {
     parFile = argv[1];
   }
@@ -182,28 +196,50 @@ int main(int argc, char **argv) {
   // char * eosfile = "eos/Laine_nf3.dat" ;
   // int ncols = 3, nrows = 286 ;
   // eos = new EoSs(eosfile,ncols) ;
-  if (eosType == 1)
+  /*if (eosType == 1)
     eos = new EoSChiral();
   else if (eosType == 2)
     eos = new EoSAZH();
   else {
     cout << "eosType != 1,2\n";
     return 0;
-  }
-  EoS *eosH = new EoSHadron("eos/eosHadronLog.dat");
+  }*/
+  //char eosfile[] = "eos/Laine_nf3.dat";
+  char eosfile[] = "eos/Lattice_BW_YM.dat";
+  int ncols = 3;
+  //eos = new EoSs(eosfile, ncols);
+  //eos = new EoSimpleSpline(eosfile);
+  eos = new EoSuQGP(5.0, tau0);
+  EoS *eosH = new EoSs(eosfile, ncols);
+  //EoS *eosH = new EoSHadron("eos/eosHadronLog.dat");
+  //EoS *eosH = new EoSHadron("eos/eosHadronLog.dat");
 
   // transport coefficients
   trcoeff = new TransportCoeff(etaS, zetaS, eos);
 
-  f = new Fluid(eos, eosH, trcoeff, nx, ny, nz, xmin, xmax, ymin, ymax, etamin,
+  if (TCrit<0.) f = new Fluid(eos, eosH, trcoeff, nx, ny, nz, xmin, xmax, ymin, ymax, etamin,
                 etamax, dtau, eCrit);
+  else f = new Fluid(eos, eosH, trcoeff, nx, ny, nz, xmin, xmax, ymin, ymax, etamin,
+                etamax, dtau, TCrit, true);
   cout << "fluid allocation done\n";
 
   // initilal conditions
   if(icModel==1){ // optical Glauber
-   ICGlauber *ic = new ICGlauber(epsilon0, impactPar, tau0);
-   ic->setIC(f, eos);
-   delete ic;
+   ICGlauber *ic = new ICGlauber(epsilon0, impactPar, tau0, 208, 6.6, 0.545, 7.0);
+   //ic->setIC(f, eos);
+   if (glauberVariable==2) // Glauber Monte Carlo
+   {
+	   ic->init();
+	   double rho0 = ic->getrho0();
+	   delete ic;
+	   ICGlauberMC *ic2 = new ICGlauberMC(epsilon0 / rho0, impactPar, tau0, 208, 6.6, 0.545, 7.0);
+	   ic2->setIC(f, eos);
+	   delete ic2;
+   }
+   else {
+	   ic->setIC(f, eos);
+	   delete ic;
+   }
   }else if(icModel==2){ // Glauber_table + parametrized rapidity dependence
    IC *ic = new IC(icInputFile, s0ScaleFactor);
    ic->setIC(f, eos, tau0);
@@ -231,11 +267,23 @@ int main(int argc, char **argv) {
   int maxstep = ceil((tauMax - tau0) / dtau);
   start = 0;
   time(&start);
-  // h->setNSvalues() ; // initialize viscous terms
+  //h->setNSvalues() ; // initialize viscous terms
   h->setQfull();  // set Qfull in each cell, in order to output IC correctly
 
   f->initOutput(outputDir, maxstep, tau0, 2);
-  f->outputCorona(tau0);
+  f->calcTotals(h->getTau());
+  //f->outputCorona(tau0);
+#ifndef SWAP_EOS
+  //f->outputCorona(tau0);
+#endif
+
+  f->outputXTau(h->getTau());
+  f->outputYTau(h->getTau());
+  f->outputTau(h->getTau());
+
+  clock_t tbeg  = clock();
+  clock_t tpure = clock();
+  double totpure = 0.;
 
   for (int istep = 0; istep < maxstep; istep++) {
     // decrease timestep automatically, but use fixed dtau for output
@@ -247,14 +295,27 @@ int main(int argc, char **argv) {
     for (int j = 0; j < nSubSteps; j++) {
       h->performStep();
     }
+	totpure += (clock() - tpure);
+	cout << "step= " << istep << "  dtau= " << dtau / nSubSteps << "\n"
+         << endl; 
     f->outputGnuplot(h->getTau());
-    f->outputSurface(h->getTau());
+	f->calcTotals(h->getTau());
+	f->outputXTau(h->getTau());
+	f->outputYTau(h->getTau());
+	f->outputTau(h->getTau());
+#ifndef SWAP_EOS
+    //f->outputSurface(h->getTau());
+#endif
+	tpure = clock();
   }
 
   end = 0;
   time(&end);
   float diff2 = difftime(end, start);
-  cout << "Execution time = " << diff2 << " [sec]" << endl;
+  cout << "Execution time  = " << diff2 << " [sec]" << endl;
+  cout << "       Run time = " << (clock() - tbeg) / (double)(CLOCKS_PER_SEC) << " [sec]" << endl;
+  cout << "Simulation time = " << totpure / (double)(CLOCKS_PER_SEC) << " [sec]" << endl;
+  cout << "  Time per step = " << totpure / (double)(CLOCKS_PER_SEC) / maxstep << " [sec]" << endl;
 
   delete f;
   delete h;

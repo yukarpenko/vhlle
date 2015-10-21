@@ -49,4 +49,6 @@ class Hydro {
   void performStep(void);
   // gets the current proper time
   inline double getTau() { return tau; }
+  // advances numerical solution for proper times of all fluid cells
+  void TauProperPropagate();
 };

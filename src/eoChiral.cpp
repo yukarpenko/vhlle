@@ -165,7 +165,7 @@ EoSChiral::~EoSChiral() {
 }
 
 void EoSChiral::eos(double e, double nb, double nq, double ns, double& T,
-                    double& mub, double& muq, double& mus, double& p) {
+                    double& mub, double& muq, double& mus, double& p, double tau) {
   if (e < 1.46 && nb < 0.3)
     eossmall->get(e, nb, p, T, mub, mus);
   else if (e < 146. && nb < 6.)
