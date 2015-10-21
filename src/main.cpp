@@ -40,12 +40,6 @@
 #include "eosuQGP.h"
 #include "trancoeff.h"
 
-#ifdef _DEBUG
-#pragma comment(lib,"libHLLEviscD.lib")
-#else
-#pragma comment(lib,"libHLLEvisc.lib")
-#endif
-
 using namespace std;
 
 // program parameters, to be read from file
