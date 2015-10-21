@@ -137,7 +137,7 @@ void EoS3f::getun(double n, int &ixn, double &un) {
 }
 
 void EoS3f::eos(double e, double nb, double nq, double ns, double &_T,
-                double &_mub, double &_muq, double &_mus, double &_p) {
+                double &_mub, double &_muq, double &_mus, double &_p, double tau) {
   if (e < 0.) {
     _T = _mub = _muq = _mus = _p = 0.;
   }

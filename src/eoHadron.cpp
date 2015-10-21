@@ -76,7 +76,7 @@ EoSHadron::~EoSHadron() {
 }
 
 void EoSHadron::eos(double e, double nb, double nq, double ns, double &T,
-                    double &mub, double &muq, double &mus, double &p) {
+                    double &mub, double &muq, double &mus, double &p, double tau) {
   if (e <= 0.) {
     T = mub = muq = mus = p = 0.;
     return;

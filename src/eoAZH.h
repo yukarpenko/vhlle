@@ -9,6 +9,6 @@ class EoSAZH : public EoS {
   ~EoSAZH(void);
 
   virtual void eos(double e, double nb, double nq, double ns, double &_T,
-                   double &_mub, double &_muq, double &_mus, double &_p);
+                   double &_mub, double &_muq, double &_mus, double &_p, double tau = 1.);
   virtual double p(double e, double nb, double nq, double ns);
 };

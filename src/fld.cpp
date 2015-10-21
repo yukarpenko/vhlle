@@ -32,9 +32,21 @@
 #define OUTPI
 
 // change to hadron EoS (e.g. Laine) to calculate v,T,mu at the surface
-#define SWAP_EOS
+//#define SWAP_EOS
 
 using namespace std;
+
+#ifdef _MSC_VER
+
+bool isinf(const double &op) {
+	return (op>1e215);
+}
+
+bool isnan(const double &op) {
+	return (op!=op);
+}
+
+#endif
 
 // returns the velocities in cartesian coordinates, fireball rest frame.
 // Y=longitudinal rapidity of fluid
@@ -52,7 +64,7 @@ void Fluid::getCMFvariables(Cell *c, double tau, double &e, double &nb,
 
 Fluid::Fluid(EoS *_eos, EoS *_eosH, TransportCoeff *_trcoeff, int _nx, int _ny,
              int _nz, double _minx, double _maxx, double _miny, double _maxy,
-             double _minz, double _maxz, double _dt, double eCrit) {
+             double _minz, double _maxz, double _dt, double eCrit, bool SurfCrit) {
   eos = _eos;
   eosH = _eosH;
   trcoeff = _trcoeff;
@@ -70,7 +82,9 @@ Fluid::Fluid(EoS *_eos, EoS *_eosH, TransportCoeff *_trcoeff, int _nx, int _ny,
   dz = (maxz - minz) / (nz - 1);
   dt = _dt;
 
+  cout << "Allocating cells..." << "\n";
   cell = new Cell[nx * ny * nz];
+  cout << "Allocating cells done!" << "\n";
 
   cell0 = new Cell;
   cell0->setPrimVar(eos, 1.0, 0., 0., 0., 0., 0., 0.,
@@ -100,6 +114,9 @@ Fluid::Fluid(EoS *_eos, EoS *_eosH, TransportCoeff *_trcoeff, int _nx, int _ny,
   ecrit = eCrit;
   vEff = 0.;
   EtotSurf = 0.0;
+  SSurf = 0.0;
+  SSurfdeta = 0.0;
+  SurfCriterion = SurfCrit;
 }
 
 Fluid::~Fluid() {
@@ -160,6 +177,16 @@ void Fluid::initOutput(char *dir, int maxstep, double tau0, int cmpr2dOut) {
   fout2d << tau0 << "  " << tau0 + 0.05 * maxstep << "  " << getX(2) << "  "
          << getX(getNX() - 3) << "  " << getY(2) << "  " << getY(getNY() - 3)
          << endl;
+
+  foutXTau.open("outXTau_QGP_ideal_Nf3.dat", fstream::out);
+  foutXTau << "tau(fm/c)" << "\t" << "x(fm)" << "\t" << "T(GeV)" << "\t" << "e(GeV/fm3)" << "\t" << "vx" << "\t" << "vy" << "\t" << "TauP" << "\n";
+  foutYTau.open("outYTau_QGP_ideal_Nf3.dat", fstream::out);
+  foutYTau << "tau(fm/c)" << "\t" << "y(fm)" << "\t" << "T(GeV)" << "\t" << "e(GeV/fm3)" << "\t" << "vx" << "\t" << "vy" << "\t" << "TauP" << "\n";
+  foutTau.open("outTau_QGP_ideal_Nf3.dat", fstream::out);
+  foutTau << "tau(fm/c)" << "\t" << "T(GeV)" << "\t" << "e(GeV/fm3)" << "\t" << "dS/deta" << "\t" << "dE/deta" << "\t" << "dEfull/deta" << "\t" 
+	  << "dNb1/deta" << "\t" << "dNb2/deta" << "\t" << "TauP" << "\t" 
+	  << "ep" << "\t" << "ep'" << "\n";
+
   outputGnuplot(tau0);
   fout_aniz << "#  tau  <<v_T>>  e_p  e'_p  (to compare with SongHeinz)\n";
 }
@@ -363,7 +390,7 @@ void Fluid::outputGnuplot(double tau) {
     double x = getX(ix);
     Cell *c = getCell(ix, ny / 2, nz / 2);
     getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
-    eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
+	eos->eos(e, nb, nq, ns, t, mub, muq, mus, p, c->getTauP());
     foutx << setw(14) << tau << setw(14) << x << setw(14) << vx << setw(14)
           << vy << setw(14) << e << setw(14) << nb << setw(14) << t << setw(14)
           << mub;
@@ -383,7 +410,7 @@ void Fluid::outputGnuplot(double tau) {
     double y = getY(iy);
     Cell *c = getCell(nx / 2, iy, nz / 2);
     getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
-    eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
+    eos->eos(e, nb, nq, ns, t, mub, muq, mus, p, c->getTauP());
     fouty << setw(14) << tau << setw(14) << y << setw(14) << vy << setw(14)
           << vx << setw(14) << e << setw(14) << nb << setw(14) << t << setw(14)
           << mub;
@@ -403,7 +430,7 @@ void Fluid::outputGnuplot(double tau) {
     double x = getY(ix);
     Cell *c = getCell(ix, ix, nz / 2);
     getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
-    eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
+    eos->eos(e, nb, nq, ns, t, mub, muq, mus, p, c->getTauP());
     foutdiag << setw(14) << tau << setw(14) << sqrt(2.) * x << setw(14) << vx
              << setw(14) << vy << setw(14) << e << setw(14) << nb << setw(14)
              << t << setw(14) << mub << endl;
@@ -424,7 +451,7 @@ void Fluid::outputGnuplot(double tau) {
     Cell *c = getCell(nx / 2, ny / 2, iz);
     getCMFvariables(getCell(nx / 2, ny / 2, iz), tau, e, nb, nq, ns, vx, vy,
                     vz);
-    eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
+    eos->eos(e, nb, nq, ns, t, mub, muq, mus, p, c->getTauP());
     foutz << setw(14) << tau << setw(14) << z << setw(14) << vz << setw(14)
           << vx << setw(14) << e << setw(14) << nb << setw(14) << t << setw(14)
           << mub;
@@ -481,8 +508,9 @@ void Fluid::outputSurface(double tau) {
         Cell *c = getCell(ix, iy, iz);
         getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
         c->getQ(Q);
-        eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
-        double s = eos->s(e, nb, nq, ns);
+        eos->eos(e, nb, nq, ns, t, mub, muq, mus, p, c->getTauP());
+        //double s = eos->s(e, nb, nq, ns);
+		double s = eos->s(e, nb, nq, ns, c->getTauP());
         eta = getZ(iz);
         const double cosh_int =
             (sinh(eta + 0.5 * dz) - sinh(eta - 0.5 * dz)) / dz;
@@ -508,7 +536,7 @@ void Fluid::outputSurface(double tau) {
         if (trcoeff->isViscous())
           Efull += tau * c->getpi(0, 0) * cosh(eta) +
                    tau * c->getpi(0, 3) * sinh(eta);
-        if (e > ecrit) {
+        if ((!SurfCriterion && e > ecrit) || (SurfCriterion && t > ecrit)) {
           nCoreCells++;
           if (c->getViscCorrCutFlag() < 0.9) nCoreCutCells++;
         }
@@ -541,6 +569,7 @@ void Fluid::outputSurface(double tau) {
         //----- Cornelius stuff
         double QCube[2][2][2][2][7];
         double piSquare[2][2][2][10], PiSquare[2][2][2];
+		double TauPSquare[2][2][2];
         for (int jx = 0; jx < 2; jx++)
           for (int jy = 0; jy < 2; jy++)
             for (int jz = 0; jz < 2; jz++) {
@@ -548,16 +577,27 @@ void Fluid::outputSurface(double tau) {
               Cell *cc = getCell(ix + jx, iy + jy, iz + jz);
               cc->getPrimVar(eos, tau, e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
               cc->getQ(QCube[1][jx][jy][jz]);
-              ccube[1][jx][jy][jz] = e;
+              if (!SurfCriterion) ccube[1][jx][jy][jz] = e;
+			  else {
+				  double t_, mub_, muq_, mus_;
+				  eos->eos(e, _nb, _nq, _ns, t_, mub_, muq_, mus_, _p, cc->getTauP());
+				  ccube[1][jx][jy][jz] = t_;
+			  }
               cc->getPrimVarPrev(eos, tau - dt, e, _p, _nb, _nq, _ns, _vx, _vy,
                                  _vz);
               cc->getQprev(QCube[0][jx][jy][jz]);
-              ccube[0][jx][jy][jz] = e;
+              if (!SurfCriterion) ccube[0][jx][jy][jz] = e;
+			  else {
+				  double t_, mub_, muq_, mus_;
+				  eos->eos(e, _nb, _nq, _ns, t_, mub_, muq_, mus_, _p, cc->getTauP());
+				  ccube[0][jx][jy][jz] = t_;
+			  }
               // ---- get viscous tensor
               for (int ii = 0; ii < 4; ii++)
                 for (int jj = 0; jj <= ii; jj++)
                   piSquare[jx][jy][jz][index44(ii, jj)] = cc->getpi(ii, jj);
               PiSquare[jx][jy][jz] = cc->getPi();
+			  TauPSquare[jx][jy][jz] = cc->getTauP();
             }
         cornelius->find_surface_4d(ccube);
         const int Nsegm = cornelius->get_Nelements();
@@ -575,6 +615,11 @@ void Fluid::outputSurface(double tau) {
           double vxC = 0., vyC = 0., vzC = 0., TC = 0., mubC = 0., muqC = 0.,
                  musC = 0., piC[10], PiC = 0., nbC = 0.,
                  nqC = 0.;  // values at the centre, to be interpolated
+		  double TauPC = 0.;
+
+		  // entropy flux
+		  double sC = 0.;
+
           double QC[7] = {0., 0., 0., 0., 0., 0., 0.};
           double eC = 0., pC = 0.;
           for (int ii = 0; ii < 10; ii++) piC[ii] = 0.0;
@@ -596,13 +641,22 @@ void Fluid::outputSurface(double tau) {
                   }
           for (int i = 0; i < 7; i++)
             QC[i] = QC[i] / (tau + cornelius->get_centroid_elem(isegm, 0));
-          double _ns = 0.0;
-          transformPV(eos, QC, eC, pC, nbC, nqC, _ns, vxC, vyC, vzC);
-          eos->eos(eC, nbC, nqC, _ns, TC, mubC, muqC, musC, pC);
+          
+		  for (int jx = 0; jx < 2; jx++)
+            for (int jy = 0; jy < 2; jy++)
+              for (int jz = 0; jz < 2; jz++) {
+                TauPC += TauPSquare[jx][jy][jz] * wCenX[jx] * wCenY[jy] * wCenZ[jz];
+              }
+		  
+		  double _ns = 0.0;
+		  transformPV(eos, QC, eC, pC, nbC, nqC, _ns, vxC, vyC, vzC);
+          eos->eos(eC, nbC, nqC, _ns, TC, mubC, muqC, musC, pC, TauPC);	// TODO tauPC
+		  sC = eos->s(eC, nbC, nqC, _ns, TauPC);
           if (TC > 0.4 || fabs(mubC) > 0.85) {
             cout << "#### Error (surface): high T/mu_b ####\n";
           }
-          if (eC > ecrit * 2.0 || eC < ecrit * 0.5) nsusp++;
+          if (!SurfCriterion && (eC > ecrit * 2.0 || eC < ecrit * 0.5)) nsusp++;
+		  if (SurfCriterion && (TC > ecrit * 2.0 || TC < ecrit * 0.5)) nsusp++;
           for (int jx = 0; jx < 2; jx++)
             for (int jy = 0; jy < 2; jy++)
               for (int jz = 0; jz < 2; jz++) {
@@ -674,6 +728,8 @@ void Fluid::outputSurface(double tau) {
             dEsurfVisc += picart[index44(0, i)] * dsigma[i];
           EtotSurf += (eC + pC) * uC[0] * dVEff - pC * dsigma[0] + dEsurfVisc;
           nbSurf += nbC * dVEff;
+		  SSurf  += sC  * dVEff;
+		  SSurfdeta += sC * dVEff / dz;
         }
         // if(cornelius->get_Nelements()>1) cout << "oops, Nelements>1\n" ;
         //----- end Cornelius
@@ -688,6 +744,10 @@ void Fluid::outputSurface(double tau) {
   cout << setw(10) << tau << setw(13) << E << setw(13) << Efull << setw(13)
        << nbSurf << setw(13) << S << setw(10) << nelements << setw(10) << nsusp
        << setw(13) << (float)(nCoreCutCells) / (float)(nCoreCells) << endl;
+
+  cout << "Cumulative S = "       << SSurf     << "\n";
+  cout << "Cumulative dS/dEta = " << SSurfdeta << "\n";
+
   //-- Cornelius: all done, let's free memory
   for (int i1 = 0; i1 < 2; i1++) {
     for (int i2 = 0; i2 < 2; i2++) {
@@ -725,8 +785,9 @@ void Fluid::outputCorona(double tau) {
         Cell *c = getCell(ix, iy, iz);
         getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
         c->getQ(Q);
-        eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
-        double s = eos->s(e, nb, nq, ns);
+        eos->eos(e, nb, nq, ns, t, mub, muq, mus, p, c->getTauP());
+        //double s = eos->s(e, nb, nq, ns);
+		double s = eos->s(e, nb, nq, ns, c->getTauP());
         eta = getZ(iz);
         const double cosh_int =
             (sinh(eta + 0.5 * dz) - sinh(eta - 0.5 * dz)) / dz;
@@ -783,6 +844,7 @@ void Fluid::outputCorona(double tau) {
         bool isCorona = true, isTail = true;
         double QCube[2][2][2][7];
         double piSquare[2][2][2][10], PiSquare[2][2][2];
+		double TauPSquare[2][2][2];
         for (int jx = 0; jx < 2; jx++)
           for (int jy = 0; jy < 2; jy++)
             for (int jz = 0; jz < 2; jz++) {
@@ -790,13 +852,17 @@ void Fluid::outputCorona(double tau) {
               Cell *cc = getCell(ix + jx, iy + jy, iz + jz);
               cc->getPrimVar(eos, tau, e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
               cc->getQ(QCube[jx][jy][jz]);
-              if (e > ecrit) isCorona = false;
+			  double t_, mub_, muq_, mus_;
+			  if (SurfCriterion) eos->eos(e, _nb, _nq, _ns, t_, mub_, muq_, mus_, _p, cc->getTauP());
+              if (!SurfCriterion && e > ecrit) isCorona = false;
+			  if (SurfCriterion && t_ > ecrit) isCorona = false;
               if (e > 0.01) isTail = false;
               // ---- get viscous tensor
               for (int ii = 0; ii < 4; ii++)
                 for (int jj = 0; jj <= ii; jj++)
                   piSquare[jx][jy][jz][index44(ii, jj)] = cc->getpi(ii, jj);
               PiSquare[jx][jy][jz] = cc->getPi();
+			  TauPSquare[jx][jy][jz] = cc->getTauP();
             }
         if (isCorona && !isTail) {
           nelements++;
@@ -808,6 +874,10 @@ void Fluid::outputCorona(double tau) {
           double vxC = 0., vyC = 0., vzC = 0., TC = 0., mubC = 0., muqC = 0.,
                  musC = 0., piC[10], PiC = 0., nbC = 0.,
                  nqC = 0.;  // values at the centre, to be interpolated
+
+		  double TauPC = 0.;
+		  double sC = 0.;
+
           double QC[7] = {0., 0., 0., 0., 0., 0., 0.};
           double eC = 0., pC = 0.;
           for (int ii = 0; ii < 10; ii++) piC[ii] = 0.0;
@@ -818,9 +888,17 @@ void Fluid::outputCorona(double tau) {
                   QC[i] += QCube[jx][jy][jz][i] * 0.125;
                 }
           for (int i = 0; i < 7; i++) QC[i] = QC[i] / tau;
+
+		  for (int jx = 0; jx < 2; jx++)
+            for (int jy = 0; jy < 2; jy++)
+              for (int jz = 0; jz < 2; jz++) {
+                TauPC += TauPSquare[jx][jy][jz] * 0.125;
+              }
+
           double _ns = 0.0;
           transformPV(eos, QC, eC, pC, nbC, nqC, _ns, vxC, vyC, vzC);
-          eos->eos(eC, nbC, nqC, _ns, TC, mubC, muqC, musC, pC);
+		  eos->eos(eC, nbC, nqC, _ns, TC, mubC, muqC, musC, pC, TauPC);	// TODO tauC
+		  sC = eos->s(eC, nbC, nqC, _ns, TauPC);
           if (TC > 0.4 || fabs(mubC) > 0.85) {
             cout << "#### Error (surface): high T/mu_b ####\n";
           }
@@ -892,6 +970,8 @@ void Fluid::outputCorona(double tau) {
             dEsurfVisc += picart[index44(0, i)] * dsigma[i];
           EtotSurf += (eC + pC) * uC[0] * dVEff - pC * dsigma[0] + dEsurfVisc;
           nbSurf += nbC * dVEff;
+		  SSurf  += sC  * dVEff;
+		  SSurfdeta += sC * dVEff / dz;
         }
         //----- end Cornelius
       }
@@ -911,4 +991,352 @@ void Fluid::outputCorona(double tau) {
   swap(eos, eosH);
 #endif
   cout << "corona elements : " << nelements << endl;
+}
+
+
+void Fluid::calcTotals(double tau) {
+  double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz, Q[7];
+  double E = 0., Efull = 0., Px = 0., Nb1 = 0., Nb2 = 0., S = 0.;
+  double eta = 0;
+
+  fout2d << endl;
+  for (int ix = 2; ix < nx - 2; ix++)
+    for (int iy = 2; iy < ny - 2; iy++)
+      for (int iz = 2; iz < nz - 2; iz++) {
+        Cell *c = getCell(ix, iy, iz);
+        getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
+        c->getQ(Q);
+        eos->eos(e, nb, nq, ns, t, mub, muq, mus, p, c->getTauP());
+        //double s = eos->s(e, nb, nq, ns);
+		double s = eos->s(e, nb, nq, ns, c->getTauP());
+        eta = getZ(iz);
+        E += tau * (e + p) / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz)) *
+                 (cosh(eta) - tanh(vz) * sinh(eta)) -
+             tau * p * cosh(eta);
+        Nb1 += Q[NB_];
+        Nb2 += tau * nb * (cosh(eta) - tanh(vz) * sinh(eta)) /
+               sqrt(1. - vx * vx - vy * vy - tanh(vz) * tanh(vz));
+        // -- noneq. corrections to entropy flux
+        const double gmumu[4] = {1., -1., -1., -1.};
+        double deltas = 0.;
+        for (int i = 0; i < 4; i++)
+          for (int j = 0; j < 4; j++)
+            deltas += pow(c->getpi(i, j), 2) * gmumu[i] * gmumu[j];
+        if (t > 0.05) s += 1.5 * deltas / ((e + p) * t);
+        S += tau * s * (cosh(eta) - tanh(vz) * sinh(eta)) /
+             sqrt(1. - vx * vx - vy * vy - tanh(vz) * tanh(vz));
+        Efull +=
+            tau * (e + p) / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz)) *
+                (cosh(eta) - tanh(vz) * sinh(eta)) -
+            tau * p * cosh(eta);
+        if (trcoeff->isViscous())
+          Efull += tau * c->getpi(0, 0) * cosh(eta) +
+                   tau * c->getpi(0, 3) * sinh(eta);
+      }
+  E = E * dx * dy * dz;
+  Efull = Efull * dx * dy * dz;
+  Nb1 *= dx * dy * dz;
+  Nb2 *= dx * dy * dz;
+  S *= dx * dy * dz;
+  cout << setw(16) << "calcTotals: E = " << setw(14) << E
+       << "  Efull = " << setw(14) << Efull << endl;
+  cout << setw(16) << "Px = " << setw(14) << Px << "      S = " << setw(14) << S
+       << endl;
+  cout << setw(16) << "Nb1 = " << setw(14) << Nb1 << "      Nb2 = " << setw(14) << Nb2
+       << endl;
+}
+
+void Fluid::outputXTau(double tau) {
+	//std::fstream foutED("outdiagtau.dat", fstream::out);
+	double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz;
+	for (int ix = 0; ix < nx; ix++) {
+    double x = getX(ix);
+    Cell *c = getCell(ix, ny / 2, nz / 2);
+    getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
+    eos->eos(e, nb, nq, ns, t, mub, muq, mus, p, c->getTauP());
+    /*foutED << setw(14) << tau << setw(14) << sqrt(2.) * x << setw(14) << vx
+             << setw(14) << vy << setw(14) << e << setw(14) << nb << setw(14)
+             << t << setw(14) << mub << endl;*/
+	foutXTau << setw(14) << tau << setw(14) << x << setw(14) << t
+		<< setw(14) << e << setw(14) << vx << setw(14) << vy << setw(14) << c->getTauP() << endl;
+    /*foutED << setw(14) << c->getpi(0, 0) << setw(14) << c->getpi(0, 1)
+             << setw(14) << c->getpi(0, 2);
+    foutED << setw(14) << c->getpi(0, 3) << setw(14) << c->getpi(1, 1)
+             << setw(14) << c->getpi(1, 2);
+    foutED << setw(14) << c->getpi(1, 3) << setw(14) << c->getpi(2, 2)
+             << setw(14) << c->getpi(2, 3);
+    foutED << setw(14) << c->getpi(3, 3) << setw(14) << c->getPi() << setw(14)
+             << c->getViscCorrCutFlag() << endl;*/
+  }
+  foutXTau << endl;
+}
+
+void Fluid::outputYTau(double tau) {
+	//std::fstream foutED("outdiagtau.dat", fstream::out);
+	double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz;
+	for (int iy = 0; iy < ny; iy++) {
+    double y = getY(iy);
+    Cell *c = getCell(nx / 2, iy, nz / 2);
+    getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
+    eos->eos(e, nb, nq, ns, t, mub, muq, mus, p, c->getTauP());
+    /*foutED << setw(14) << tau << setw(14) << sqrt(2.) * x << setw(14) << vx
+             << setw(14) << vy << setw(14) << e << setw(14) << nb << setw(14)
+             << t << setw(14) << mub << endl;*/
+	foutYTau << setw(14) << tau << setw(14) << y << setw(14) << t
+             << setw(14) << e << setw(14) << vx << setw(14) << vy << setw(14) << c->getTauP() << endl;
+    /*foutED << setw(14) << c->getpi(0, 0) << setw(14) << c->getpi(0, 1)
+             << setw(14) << c->getpi(0, 2);
+    foutED << setw(14) << c->getpi(0, 3) << setw(14) << c->getpi(1, 1)
+             << setw(14) << c->getpi(1, 2);
+    foutED << setw(14) << c->getpi(1, 3) << setw(14) << c->getpi(2, 2)
+             << setw(14) << c->getpi(2, 3);
+    foutED << setw(14) << c->getpi(3, 3) << setw(14) << c->getPi() << setw(14)
+             << c->getViscCorrCutFlag() << endl;*/
+  }
+
+
+  foutYTau << endl;
+}
+
+void Fluid::outputTau(double tau) {
+  double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz, Q[7];
+  double E = 0., Efull = 0., Px = 0., Nb1 = 0., Nb2 = 0., S = 0.;
+  double Txx = 0., Tyy = 0.;
+  double T0xx = 0., T0yy = 0.;
+  double eta = 0;
+  double tauP = 0.;
+
+  {
+	Cell *c = getCell(nx / 2, ny / 2, nz / 2);
+    getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
+    eos->eos(e, nb, nq, ns, t, mub, muq, mus, p, c->getTauP());
+    /*foutED << setw(14) << tau << setw(14) << sqrt(2.) * x << setw(14) << vx
+             << setw(14) << vy << setw(14) << e << setw(14) << nb << setw(14)
+             << t << setw(14) << mub << endl;*/
+	foutTau << setw(14) << tau << setw(14) << t
+             << setw(14) << e;
+	tauP = c->getTauP();
+  }
+
+  for (int ix = 2; ix < nx - 2; ix++)
+    for (int iy = 2; iy < ny - 2; iy++)
+      //for (int iz = 2; iz < nz - 2; iz++) 
+	  {
+        Cell *c = getCell(ix, iy, nz / 2);
+        getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
+        c->getQ(Q);
+        eos->eos(e, nb, nq, ns, t, mub, muq, mus, p, c->getTauP());
+        //double s = eos->s(e, nb, nq, ns);
+		double s = eos->s(e, nb, nq, ns, c->getTauP());
+        eta = getZ(nz / 2);
+
+		T0xx += (e + p) * vx * vx / (1.0 - vx * vx - vy * vy - pow(tanh(vz), 2)) + p;
+		T0yy += (e + p) * vy * vy / (1.0 - vx * vx - vy * vy - pow(tanh(vz), 2)) + p;
+		Txx  += (e + p + c->getPi()) * vx * vx / (1.0 - vx * vx - vy * vy - pow(tanh(vz), 2)) + p + c->getPi() + c->getpi(1, 1);
+		Tyy  += (e + p + c->getPi()) * vy * vy / (1.0 - vx * vx - vy * vy - pow(tanh(vz), 2)) + p + c->getPi() + c->getpi(2, 2);
+
+        E += tau * (e + p) / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz)) *
+                 (cosh(eta) - tanh(vz) * sinh(eta)) -
+             tau * p * cosh(eta);
+        Nb1 += Q[NB_];
+        Nb2 += tau * nb * (cosh(eta) - tanh(vz) * sinh(eta)) /
+               sqrt(1. - vx * vx - vy * vy - tanh(vz) * tanh(vz));
+        // -- noneq. corrections to entropy flux
+        const double gmumu[4] = {1., -1., -1., -1.};
+        double deltas = 0.;
+        for (int i = 0; i < 4; i++)
+          for (int j = 0; j < 4; j++)
+            deltas += pow(c->getpi(i, j), 2) * gmumu[i] * gmumu[j];
+        if (t > 0.05) s += 1.5 * deltas / ((e + p) * t);
+        S += tau * s * (cosh(eta) - tanh(vz) * sinh(eta)) /
+             sqrt(1. - vx * vx - vy * vy - tanh(vz) * tanh(vz));
+        Efull +=
+            tau * (e + p) / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz)) *
+                (cosh(eta) - tanh(vz) * sinh(eta)) -
+            tau * p * cosh(eta);
+        if (trcoeff->isViscous())
+          Efull += tau * c->getpi(0, 0) * cosh(eta) +
+                   tau * c->getpi(0, 3) * sinh(eta);
+      }
+  E = E * dx * dy;
+  Efull = Efull * dx * dy;
+  Nb1 *= dx * dy;
+  Nb2 *= dx * dy;
+  S *= dx * dy;
+  foutTau << setw(14) << S << setw(14) << E << setw(14) << Efull << setw(14) << Nb1 << setw(14) << Nb2 << setw(14) << tauP;
+  foutTau << setw(14) << (T0xx-T0yy) / (T0xx + T0yy) << setw(14) << (Txx - Tyy) / (Txx + Tyy) << endl;
+  /*cout << setw(16) << "calcTotals: E = " << setw(14) << E
+       << "  Efull = " << setw(14) << Efull << endl;
+  cout << setw(16) << "Px = " << setw(14) << Px << "      S = " << setw(14) << S
+       << endl;*/
+}
+
+//TauOutput Fluid::output(double tau) {
+void Fluid::output(double tau, TauOutput & outp) {
+	const int NQu = 18;
+	//TauOutput ret;
+	outp.XOut.resize(0);
+	outp.YOut.resize(0);
+	outp.XYOut.resize(0);
+	outp.EtaOut.resize(0);
+
+	double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz, s;
+	for (int ix = 0; ix < nx; ix++) {
+		double x = getX(ix);
+		Cell *c = getCell(ix, ny / 2, nz / 2);
+		getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
+		eos->eos(e, nb, nq, ns, t, mub, muq, mus, p, c->getTauP());
+		s = eos->s(e, nb, nq, ns, c->getTauP());
+		double T0xx = (e + p) * vx * vx / (1.0 - vx * vx - vy * vy - pow(tanh(vz), 2)) + p;
+		double T0yy = (e + p) * vy * vy / (1.0 - vx * vx - vy * vy - pow(tanh(vz), 2)) + p;
+		double Txx = (e + p + c->getPi()) * vx * vx / (1.0 - vx * vx - vy * vy - pow(tanh(vz), 2)) + p + c->getPi() + c->getpi(1, 1);
+		double Tyy = (e + p + c->getPi()) * vy * vy / (1.0 - vx * vx - vy * vy - pow(tanh(vz), 2)) + p + c->getPi() + c->getpi(2, 2);
+		std::vector<double> tmp(NQu);
+		int cind = 0;
+		tmp[cind++]  = tau;
+		tmp[cind++]  = x;
+		tmp[cind++]  = getY(ny / 2);
+		tmp[cind++]  = getZ(nz / 2);
+		double ttau = tau, teta = getZ(nz / 2);
+		double tt = tau * cosh(teta);
+		double tz = tau * sinh(teta);
+		tmp[cind++]  = tt;
+		tmp[cind++]  = tz;
+		tmp[cind++]  = e;
+		tmp[cind++]  = s;
+		tmp[cind++]  = p;
+		tmp[cind++]  = t;
+		tmp[cind++]  = nb;
+		tmp[cind++]  = nq;
+		tmp[cind++]  = ns;
+		tmp[cind++]  = c->getTauP();
+		tmp[cind++]  = vx;
+		tmp[cind++]  = vy;
+		double ep = (T0xx - T0yy) / (T0xx + T0yy), epp = (Txx - Tyy) / (Txx + Tyy);
+		if (ep!=ep) ep = 0.;
+		if (epp!=epp) epp = 0.;
+		tmp[cind++]  = ep;
+		tmp[cind++]  = epp;
+		//cout << (T0xx - T0yy) << " " << (T0xx + T0yy) << "\n";
+		outp.XOut.push_back(tmp);
+	}
+
+	for (int iy = 0; iy < ny; iy++) {
+		double y = getY(iy);
+		Cell *c = getCell(nx / 2, iy, nz / 2);
+		getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
+		eos->eos(e, nb, nq, ns, t, mub, muq, mus, p, c->getTauP());
+		s = eos->s(e, nb, nq, ns, c->getTauP());
+		double T0xx = (e + p) * vx * vx / (1.0 - vx * vx - vy * vy - pow(tanh(vz), 2)) + p;
+		double T0yy = (e + p) * vy * vy / (1.0 - vx * vx - vy * vy - pow(tanh(vz), 2)) + p;
+		double Txx = (e + p + c->getPi()) * vx * vx / (1.0 - vx * vx - vy * vy - pow(tanh(vz), 2)) + p + c->getPi() + c->getpi(1, 1);
+		double Tyy = (e + p + c->getPi()) * vy * vy / (1.0 - vx * vx - vy * vy - pow(tanh(vz), 2)) + p + c->getPi() + c->getpi(2, 2);
+		std::vector<double> tmp(NQu);
+		int cind = 0;
+		tmp[cind++]  = tau;
+		tmp[cind++]  = getX(nx / 2);
+		tmp[cind++]  = y;
+		tmp[cind++]  = getZ(nz / 2);
+		double ttau = tau, teta = getZ(nz / 2);
+		double tt = tau * cosh(teta);
+		double tz = tau * sinh(teta);
+		tmp[cind++]  = tt;
+		tmp[cind++]  = tz;
+		tmp[cind++]  = e;
+		tmp[cind++]  = s;
+		tmp[cind++]  = p;
+		tmp[cind++]  = t;
+		tmp[cind++]  = nb;
+		tmp[cind++]  = nq;
+		tmp[cind++]  = ns;
+		tmp[cind++]  = c->getTauP();
+		tmp[cind++]  = vx;
+		tmp[cind++]  = vy;
+		double ep = (T0xx - T0yy) / (T0xx + T0yy), epp = (Txx - Tyy) / (Txx + Tyy);
+		if (ep!=ep) ep = 0.;
+		if (epp!=epp) epp = 0.;
+		tmp[cind++]  = ep;
+		tmp[cind++]  = epp;
+		outp.YOut.push_back(tmp);
+	}
+
+	for (int ix = 2; ix < nx - 2; ix++)
+		for (int iy = 2; iy < ny - 2; iy++) {
+			Cell *c = getCell(ix, iy, nz / 2);
+			getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
+			eos->eos(e, nb, nq, ns, t, mub, muq, mus, p, c->getTauP());
+			//double s = eos->s(e, nb, nq, ns);
+			s = eos->s(e, nb, nq, ns, c->getTauP());
+			double T0xx = (e + p) * vx * vx / (1.0 - vx * vx - vy * vy - pow(tanh(vz), 2)) + p;
+			double T0yy = (e + p) * vy * vy / (1.0 - vx * vx - vy * vy - pow(tanh(vz), 2)) + p;
+			double Txx = (e + p + c->getPi()) * vx * vx / (1.0 - vx * vx - vy * vy - pow(tanh(vz), 2)) + p + c->getPi() + c->getpi(1, 1);
+			double Tyy = (e + p + c->getPi()) * vy * vy / (1.0 - vx * vx - vy * vy - pow(tanh(vz), 2)) + p + c->getPi() + c->getpi(2, 2);
+			std::vector<double> tmp(NQu);
+			int cind = 0;
+			tmp[cind++]  = tau;
+			tmp[cind++]  = getX(ix);
+			tmp[cind++]  = getY(iy);
+			tmp[cind++]  = getZ(nz / 2);
+			double ttau = tau, teta = getZ(nz / 2);
+			double tt = tau * cosh(teta);
+			double tz = tau * sinh(teta);
+			tmp[cind++]  = tt;
+			tmp[cind++]  = tz;
+			tmp[cind++]  = e;
+			tmp[cind++]  = s;
+			tmp[cind++]  = p;
+			tmp[cind++]  = t;
+			tmp[cind++]  = nb;
+			tmp[cind++]  = nq;
+			tmp[cind++]  = ns;
+			tmp[cind++]  = c->getTauP();
+			tmp[cind++]  = vx;
+			tmp[cind++]  = vy;
+			double ep = (T0xx - T0yy) / (T0xx + T0yy), epp = (Txx - Tyy) / (Txx + Tyy);
+			if (ep!=ep) ep = 0.;
+			if (epp!=epp) epp = 0.;
+			tmp[cind++]  = ep;
+			tmp[cind++]  = epp;
+			outp.XYOut.push_back(tmp);
+		  }
+
+	for (int iz = 0; iz < nz; iz++) {
+		double z = getZ(iz);
+		Cell *c = getCell(nx / 2, ny / 2, iz);
+		getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
+		eos->eos(e, nb, nq, ns, t, mub, muq, mus, p, c->getTauP());
+		s = eos->s(e, nb, nq, ns, c->getTauP());
+		double T0xx = (e + p) * vx * vx / (1.0 - vx * vx - vy * vy - pow(tanh(vz), 2)) + p;
+		double T0yy = (e + p) * vy * vy / (1.0 - vx * vx - vy * vy - pow(tanh(vz), 2)) + p;
+		double Txx = (e + p + c->getPi()) * vx * vx / (1.0 - vx * vx - vy * vy - pow(tanh(vz), 2)) + p + c->getPi() + c->getpi(1, 1);
+		double Tyy = (e + p + c->getPi()) * vy * vy / (1.0 - vx * vx - vy * vy - pow(tanh(vz), 2)) + p + c->getPi() + c->getpi(2, 2);
+		std::vector<double> tmp(NQu);
+		int cind = 0;
+		tmp[cind++]  = tau;
+		tmp[cind++]  = getX(nx / 2);
+		tmp[cind++]  = getY(ny / 2);
+		tmp[cind++]  = getZ(iz);
+		double ttau = tau, teta = getZ(iz);
+		double tt = tau * cosh(teta);
+		double tz = tau * sinh(teta);
+		tmp[cind++]  = tt;
+		tmp[cind++]  = tz;
+		tmp[cind++]  = e;
+		tmp[cind++]  = s;
+		tmp[cind++]  = p;
+		tmp[cind++]  = t;
+		tmp[cind++]  = nb;
+		tmp[cind++]  = nq;
+		tmp[cind++]  = ns;
+		tmp[cind++]  = c->getTauP();
+		tmp[cind++]  = vx;
+		tmp[cind++]  = vy;
+		double ep = (T0xx - T0yy) / (T0xx + T0yy), epp = (Txx - Tyy) / (Txx + Tyy);
+		if (ep!=ep) ep = 0.;
+		if (epp!=epp) epp = 0.;
+		tmp[cind++]  = ep;
+		tmp[cind++]  = epp;
+		outp.EtaOut.push_back(tmp);
+	}
+	//return ret;
 }

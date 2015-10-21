@@ -50,6 +50,11 @@ Cell::Cell() {
   Pi0 = 0.0;
   PiH0 = 0.0;
   setAllM(0.);
+
+  TauP = 0.0;
+  TauPH = 0.0;
+  TauP0 = 0.0;
+  TauPH0 = 0.0;
 }
 
 void Cell::updateByFlux() {
@@ -233,6 +238,8 @@ void Cell::setPrimVar(EoS *eos, double tau, double _e, double _nb, double _nq,
     //		exit(1) ;
     return;
   }
+
+  TauP = tau;
 }
 
 void Cell::Dump(double tau) {
