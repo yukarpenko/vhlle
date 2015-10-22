@@ -24,11 +24,11 @@ class EoS {
   // eos() gets all EoS relations together:
   // {p,T,mu_b,mu_q,mu_s}={p,T,mu_b,mu_q,mu_s}(e,n_b,n_q,n_s)
   virtual void eos(double e, double nb, double nq, double ns, double &T,
-                   double &mub, double &muq, double &mus, double &p) = 0;
+                   double &mub, double &muq, double &mus, double &p, double tau = 1.) = 0;
   // gets only pressure : p=p(e,n_b,n_q,n_s)
   virtual double p(double e, double nb, double ns, double nq) = 0;
   // gets entropy density
-  double s(double e, double nb, double nq, double ns);
+  virtual double s(double e, double nb, double nq, double ns, double tau = 1.);
   // speed of sound squared: this variant is only used in
   // HLLE solver, where the optimal value is 1/3
   inline double cs2(void) { return 1. / 3.; }
@@ -51,7 +51,7 @@ class EoSs : public EoS {
   ~EoSs();
 
   virtual inline void eos(double e, double nb, double nq, double ns, double &T,
-                          double &mub, double &muq, double &mus, double &_p) {
+                          double &mub, double &muq, double &mus, double &_p, double tau = 1.) {
     _p = p(e);
     T = t(e);
     mub = muq = mus = 0.;

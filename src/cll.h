@@ -38,8 +38,12 @@ class Cell {
                            // half-step updated (piH)
   double Pi,
       PiH;  // Pi, WITHOUT tau factor, final (Pi) and half-step updated (PiH)
+  double TauP,
+      TauPH;  // TauP, WITHOUT tau factor, final (TauP) and half-step updated (TauPH)
   double pi0[10], piH0[10];  // // pi^{mu nu}, WITHOUT tau factor, auxiliary
   double Pi0, PiH0;  // viscous, WITHOUT tau factor, auxiliary
+  double TauP0,
+      TauPH0;  // TauP, WITHOUT tau factor, auxiliary
   double flux[7];  // cumulative fluxes
   Cell *next[3];   // pointer to the next cell in a given direction
   Cell *prev[3];   // pointer to the previous cell in a given direction
@@ -97,6 +101,11 @@ class Cell {
   inline double getPi0(void) { return Pi0; }
   inline double getPiH0(void) { return PiH0; }
 
+  inline double getTauP(void) { return TauP; }
+  inline double getTauPH(void) { return TauPH; }
+  inline double getTauP0(void) { return TauP0; }
+  inline double getTauPH0(void) { return TauPH0; }
+
   inline void setpi(const int &i, const int &j, const double &val) {
     pi[index44(i, j)] = val;
   }
@@ -121,6 +130,13 @@ class Cell {
   inline void setPiH0(const double &val) { PiH0 = val; }
   inline void addPi0(const double &val) { Pi0 += val; }
   inline void addPiH0(const double &val) { PiH0 += val; }
+
+  inline void setTauP(const double &val) { TauP = val; }
+  inline void setTauPH(const double &val) { TauPH = val; }
+  inline void setTauP0(const double &val) { TauP0 = val; }
+  inline void setTauPH0(const double &val) { TauPH0 = val; }
+  inline void addTauP0(const double &val) { TauP0 += val; }
+  inline void addTauPH0(const double &val) { TauPH0 += val; }
 
   inline void getQ(double *_Q) {
     for (int i = 0; i < 7; i++) _Q[i] = Q[i];

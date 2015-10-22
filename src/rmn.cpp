@@ -2,7 +2,7 @@
 #include <fstream>
 #include <iomanip>
 #include <cstdlib>
-#include <execinfo.h>
+//#include <execinfo.h>
 #include <signal.h>
 #include "rmn.h"
 
@@ -17,11 +17,11 @@ void handler(int sig) {
   size_t size;
 
   // get void*'s for all entries on the stack
-  size = backtrace(array, 10);
+  //size = backtrace(array, 10);
 
   // print out all the frames to stderr
   cout << "Error: signal " << sig << endl;
-  backtrace_symbols_fd(array, size, 2);
+  //backtrace_symbols_fd(array, size, 2);
   exit(1);
 }
 

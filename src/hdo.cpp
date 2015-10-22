@@ -20,7 +20,11 @@
 #include <fstream>
 #include <iomanip>
 #include <algorithm>
+#ifdef _MSC_VER
+#include "unistd.h"
+#else
 #include <unistd.h>
+#endif
 #include "hdo.h"
 #include "inc.h"
 #include "rmn.h"
@@ -41,6 +45,15 @@ double sign(double x) {
   else
     return 0.;
 }
+
+/*bool isinf(const double &op) {
+	return (op>1e215);
+}
+
+bool isnan(const double &op) {
+	return (op!=op);
+}*/
+
 
 // this version contains NO PRE-ADVECTION for the IS solution
 
@@ -415,8 +428,9 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
   //############## get transport coefficients
   double T, mub, muq, mus;
   double etaS, zetaS;
-  double s = eos->s(e1, nb, nq, ns);  // entropy density in the current cell
-  eos->eos(e1, nb, nq, ns, T, mub, muq, mus, p);
+  //double s = eos->s(e1, nb, nq, ns);  // entropy density in the current cell
+  double s = eos->s(e1, nb, nq, ns, c->getTauP());
+  eos->eos(e1, nb, nq, ns, T, mub, muq, mus, p, c->getTauP());
   trcoeff->getEta(e1, T, etaS, zetaS);
   //##############
   // if(e1<0.00004) s=0. ; // negative pressure due to pi^zz for small e
@@ -595,8 +609,9 @@ void Hydro::setNSvalues() {
         double T, mub, muq, mus;
         double etaS, zetaS;
         double s =
-            eos->s(e, nb, nq, ns);  // entropy density in the current cell
-        eos->eos(e, nb, nq, ns, T, mub, muq, mus, p);
+            //eos->s(e, nb, nq, ns);  // entropy density in the current cell
+			eos->s(e, nb, nq, ns, c->getTauP());
+        eos->eos(e, nb, nq, ns, T, mub, muq, mus, p, c->getTauP());
         trcoeff->getEta(e, T, etaS, zetaS);
         for (int i = 0; i < 4; i++)
           for (int j = 0; j < 4; j++) piNS[i][j] = 0.0;  // reset piNS
@@ -634,7 +649,7 @@ void Hydro::ISformal() {
           // 1) relaxation(pi)+source(pi) terms for half-step
           double gamma = 1.0 / sqrt(1.0 - vx * vx - vy * vy - vz * vz);
           NSquant(ix, iy, iz, piNS, PiNS, dmu, du);
-          eos->eos(e, nb, nq, ns, T, mub, muq, mus, p);
+          eos->eos(e, nb, nq, ns, T, mub, muq, mus, p, c->getTauP());	// TODO TauP ---> half-step?
           //############# get relaxation times
           double taupi, tauPi;
           trcoeff->getTau(T, taupi, tauPi);
@@ -984,6 +999,9 @@ void Hydro::performStep(void) {
   tau += dt;
   f->correctImagCells();
 
+  //==== update proper times of fluid cells ====
+  TauProperPropagate();
+
   //===== viscous part ======
   if (trcoeff->isViscous()) {
     setQfull();  // set the values of full Q^\mu including visc corrections
@@ -1021,4 +1039,74 @@ void Hydro::performStep(void) {
   }
   //==== finishing work ====
   f->correctImagCellsFull();
+}
+
+
+void Hydro::TauProperPropagate() {
+  double e, p, nb, nq, ns, vx, vy, vz, T, mub, muq, mus;
+  //double piNS[4][4], PiNS, dmu[4][4], du, pi[4][4], piH[4][4], Pi, PiH;
+  double TauP, TauPH;
+  const double gmumu[4] = {1., -1., -1., -1.};
+
+  // loop #1 (relaxation+source terms)
+  for (int ix = 0; ix < f->getNX(); ix++)
+    for (int iy = 0; iy < f->getNY(); iy++)
+      for (int iz = 0; iz < f->getNZ(); iz++) {
+        Cell *c = f->getCell(ix, iy, iz);
+        c->getPrimVarHCenter(eos, tau - dt / 2., e, p, nb, nq, ns, vx, vy,
+                             vz);  // instead of getPrimVar()
+        if (e <= 0.) {             // empty cell?
+		  c->setTauPH0(c->getTauP() + dt / 2.);
+          c->setTauP0(c->getTauP() + dt);
+        } else {  // non-empty cell
+          // 1) relaxation(pi)+source(pi) terms for half-step
+          double gamma = 1.0 / sqrt(1.0 - vx * vx - vy * vy - vz * vz);
+          //eos->eos(e, nb, nq, ns, T, mub, muq, mus, p);
+          //############# get relaxation times
+          //#############
+          // relaxation term, TauP-->half-step
+          c->setTauPH0(c->getTauP() + 1. * dt / 2.0 / gamma);
+          // 1) relaxation(piH)+source(piH) terms for full-step
+          c->setTauP0(c->getTauP() + 1. * dt / gamma);
+        }  // end non-empty cell
+      }    // end loop #1
+
+  // 3) -- advection ---
+  for (int ix = 0; ix < f->getNX(); ix++)
+    for (int iy = 0; iy < f->getNY(); iy++)
+      for (int iz = 0; iz < f->getNZ(); iz++) {
+        Cell *c = f->getCell(ix, iy, iz);
+        c->getPrimVarHCenter(eos, tau - 0.5 * dt, e, p, nb, nq, ns, vx, vy,
+                             vz);  // getPrimVar() before
+        if (e <= 0.) {
+			c->setTauP(c->getTauP0());
+			c->setTauPH(c->getTauPH0());
+			continue;
+		}
+        double xm = -vx * dt / f->getDx();
+        double ym = -vy * dt / f->getDy();
+        double zm = -vz * dt / f->getDz() / (tau - 0.5 * dt);
+        double xmH = -vx * dt / f->getDx() / 2.0;
+        double ymH = -vy * dt / f->getDy() / 2.0;
+        double zmH = -vz * dt / f->getDz() / (tau - 0.5 * dt) / 2.0;
+        double wx[2] = {(1. - fabs(xm)), fabs(xm)};
+        double wy[2] = {(1. - fabs(ym)), fabs(ym)};
+        double wz[2] = {(1. - fabs(zm)), fabs(zm)};
+        double wxH[2] = {(1. - fabs(xmH)), fabs(xmH)};
+        double wyH[2] = {(1. - fabs(ymH)), fabs(ymH)};
+        double wzH[2] = {(1. - fabs(zmH)), fabs(zmH)};
+        TauP = TauPH = 0.0;
+        for (int jx = 0; jx < 2; jx++)
+          for (int jy = 0; jy < 2; jy++)
+            for (int jz = 0; jz < 2; jz++) {
+              // pi,Pi-->full step, piH,PiH-->half-step
+              Cell *c1 = f->getCell(ix + jx * sign(xm), iy + jy * sign(ym),
+                                    iz + jz * sign(zm));
+              TauP += wx[jx] * wy[jy] * wz[jz] * c1->getTauP0();
+              TauPH += wxH[jx] * wyH[jy] * wzH[jz] * c1->getTauPH0();
+            }
+        // updating to the new values
+        c->setTauP(TauP);
+        c->setTauPH(TauPH);
+      }  // advection loop (all cells)
 }
