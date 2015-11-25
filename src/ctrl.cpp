@@ -150,7 +150,6 @@ void inithydrohlle_(double* _tau0, double* _tau_max, double* _dtau)
     start = 0;
     time(&start);
     h->setNSvalues() ; // initialize viscous terms
-    h->setQfull() ; // set Qfull in each cell, in order to output IC correctly
 }
 
 

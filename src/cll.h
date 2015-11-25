@@ -33,7 +33,6 @@ class Cell {
   double Q[7];      // final values at a given timestep
   double Qh[7];     // half-step updated values
   double Qprev[7];  // values at the end of previous timestep
-  double Qfull[7];  // full T^{0\mu} with viscous terms, WITHOUT tau factor
   double pi[10], piH[10];  // pi^{mu nu}, WITHOUT tau factor, final (pi) and
                            // half-step updated (piH)
   double Pi,
@@ -72,12 +71,6 @@ class Cell {
     for (int i = 0; i < 7; i++) Qh[i] = _Qh[i];
     if (Qh[T_] < 0.) {
       for (int i = 0; i < 7; i++) Qh[i] = 0.;
-    }
-  }
-  inline void setQfull(double *_Qf) {
-    for (int i = 0; i < 7; i++) Qfull[i] = _Qf[i];
-    if (Qfull[T_] < 0.) {
-      for (int i = 0; i < 7; i++) Qfull[i] = 0.;
     }
   }
 
@@ -127,9 +120,6 @@ class Cell {
   }
   inline void getQh(double *_Qh) {
     for (int i = 0; i < 7; i++) _Qh[i] = Qh[i];
-  }
-  inline void getQfull(double *_Qf) {
-    for (int i = 0; i < 7; i++) _Qf[i] = Qfull[i];
   }
   inline void saveQprev(void) {
     for (int i = 0; i < 7; i++) Qprev[i] = Q[i];
@@ -191,10 +181,6 @@ class Cell {
   void getPrimVarPrev(EoS *eos, double tau, double &_e, double &_p, double &_nb,
                       double &_nq, double &_ns, double &_vx, double &_vy,
                       double &_vz);
-  // (e,p,n,v) from the Qfull, which includes viscous corrections
-  void getPrimVarFull(EoS *eos, double &_e, double &_p, double &_nb,
-                      double &_nq, double &_ns, double &_vx, double &_vy,
-                      double &_vz);
   // calculate and set Q from (e,n,v)
   void setPrimVar(EoS *eos, double tau, double _e, double _nb, double _nq,
                   double _ns, double _vx, double _vy, double _vz);
@@ -215,9 +201,6 @@ class Cell {
   }
   void updateByFlux();       // Q = Q + flux
   void updateQtoQhByFlux();  // Qh = Q + flux
-  void updateQfullByFlux();  // Qfull = Qfull + flux
-  void correctQideal(EoS *eos,
-                     double tau);  // correct Q based on Qfull and pi^{mu nu}
   inline void setViscCorrCutFlag(double value) { viscCorrCut = value; }
   inline double getViscCorrCutFlag(void) { return viscCorrCut; }
   void Dump(double tau);  // dump the contents of the cell into dump.dat

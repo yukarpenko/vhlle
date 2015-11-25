@@ -45,7 +45,6 @@ class Hydro {
   // advances numerical solution for shear/bulk in a whole grid over one
   // timestep
   void ISformal();
-  void setQfull();
   // advances numerical solution for Q (including ideal and viscous fluxes and
   // source terms) over one timestep
   void performStep(void);
