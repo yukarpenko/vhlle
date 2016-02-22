@@ -4,8 +4,11 @@
 #include <algorithm>
 #include <cmath>
 
+//#include <iostream>
+
 using namespace std;
 
+// A simple linear spline class
 class SplineFunction
 {
 public:
@@ -26,21 +29,19 @@ public:
     }
     double f(double arg) const
     {
-        unsigned int ind = 0;
+		unsigned int ind = 0;
         pair<double, double> op = make_pair(arg, 0.);
         vector< pair<double, double> >::const_iterator it = lower_bound(vals.begin(), vals.end(), op);
         ind = distance(vals.begin(), it);
-        /*while (ind<vals.size() && arg>=vals[ind].first)
-        {
-            if (fabs(vals[ind].first-arg)<1e-10) return vals[ind].second;
-            ind++;
-        }*/
-        if (ind==0) return vals[0].second +
+        if (ind<=0) return vals[0].second +
             (arg - vals[0].first) *
             (vals[1].second - vals[0].second) / (vals[1].first - vals[0].first);
-        if (ind==vals.size()) return vals[ind-2].second +
-            (arg - vals[ind-2].first) *
-            (vals[ind-1].second - vals[ind-2].second) / (vals[ind-1].first - vals[ind-2].first);
+        if (ind>=vals.size()) { 
+			ind = vals.size();
+			return vals[ind-2].second +
+				(arg - vals[ind-2].first) *
+				(vals[ind-1].second - vals[ind-2].second) / (vals[ind-1].first - vals[ind-2].first);
+		}
         return vals[ind-1].second +
             (arg - vals[ind-1].first) *
             (vals[ind].second - vals[ind-1].second) / (vals[ind].first - vals[ind-1].first);
@@ -51,8 +52,8 @@ public:
         pair<double, double> op = make_pair(arg, 0.);
         vector< pair<double, double> >::const_iterator it = lower_bound(vals.begin(), vals.end(), op);
         ind = distance(vals.begin(), it);
-        if (ind==0) return (vals[1].second - vals[0].second) / (vals[1].first - vals[0].first);
-        if (ind==vals.size()) return (vals[ind-1].second - vals[ind-2].second) / (vals[ind-1].first - vals[ind-2].first);
+        if (ind<=0) return (vals[1].second - vals[0].second) / (vals[1].first - vals[0].first);
+        if (ind>=vals.size()) { ind = vals.size(); return (vals[ind-1].second - vals[ind-2].second) / (vals[ind-1].first - vals[ind-2].first); }
         return (vals[ind].second - vals[ind-1].second) / (vals[ind].first - vals[ind-1].first);
 	}
     double fsquare(double arg)
@@ -87,12 +88,7 @@ public:
         vals.push_back(make_pair(0., val));
         vals.push_back(make_pair(1., val));
     }
-    //void loadFromFile(const char *file);
 };
 
-/*SplineFunction::SplineFunction()
-{
-    vals.resize(0);
-}*/
 
 #endif // SPLINEFUNCTION_H

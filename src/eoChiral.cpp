@@ -178,7 +178,7 @@ void EoSChiral::eos(double e, double nb, double nq, double ns, double& T,
   muq = 0.0;  // generally it's not zero, but...but
 }
 
-double EoSChiral::p(double e, double nb, double nq, double ns) {
+double EoSChiral::p(double e, double nb, double nq, double ns, double tau) {
   if (e < 1.46 && nb < 0.3)
     return eossmall->p(e, nb);
   else if (e < 146. && nb < 6.)

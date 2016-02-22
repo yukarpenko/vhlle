@@ -17,7 +17,7 @@ public:
 		mub = muq = mus = 0.;
 	}
 
-  virtual inline double p(double e, double nb, double ns, double nq) {
+  virtual inline double p(double e, double nb, double ns, double nq, double tau = 1.) {
     return e / 3.;
   }
 

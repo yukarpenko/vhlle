@@ -112,14 +112,17 @@ void ICGlauberMC::setIC(Fluid *f, EoS *eos) {
         double y = f->getY(iy);
         double eta = f->getZ(iz);
         double etaFactor;
-        double eta1 = fabs(eta) < 1.3 ? 0.0 : fabs(eta) - 1.3;
-        etaFactor = exp(-eta1 * eta1 / 2.1 / 2.1) * (fabs(eta) < 5.3 ? 1.0 : 0.0);
+        //double eta1 = fabs(eta) < 1.3 ? 0.0 : fabs(eta) - 1.3;
+        //etaFactor = exp(-eta1 * eta1 / 2.1 / 2.1) * (fabs(eta) < 5.3 ? 1.0 : 0.0);
 
 		e = 0.;
 		for(int ia=0;ia<A;++ia)
 			if (NWA[ia]>0) e += Gauss(x, y, xA[ia], yA[ia], rhad);
 		for(int ib=0;ib<A;++ib)
 			if (NWB[ib]>0) e += Gauss(x, y, xB[ib], yB[ib], rhad);
+
+		if (fabs(eta)<3.0) etaFactor = 1.;
+		else etaFactor = exp(-(fabs(eta)-3.0)*(fabs(eta)-3.0)/2./0.4/0.4);
 
         e *= etaFactor * epsilon;
         //if (e < 0.5) e = 0.0;
@@ -132,7 +135,7 @@ void ICGlauberMC::setIC(Fluid *f, EoS *eos) {
       avv_den += e;
 
         c->setPrimVar(eos, tau0, e, nb, nq, 0., vx, vy, vz);
-        double _p = eos->p(e, nb, nq, 0.);
+        double _p = eos->p(e, nb, nq, 0., c->getTauP());
         const double gamma2 = 1.0 / (1.0 - vx * vx - vy * vy - vz * vz);
         Etotal +=
             ((e + _p) * gamma2 * (cosh(eta) + vz * sinh(eta)) - _p * cosh(eta));

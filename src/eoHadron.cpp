@@ -151,7 +151,7 @@ void EoSHadron::eos(double e, double nb, double nq, double ns, double &T,
   // cout <<  e <<" "<< nb <<" "<< nq <<" "<< ns <<" "<< _T<<endl;
 }
 
-double EoSHadron::p(double e, double nb, double nq, double ns) {
+double EoSHadron::p(double e, double nb, double nq, double ns, double tau) {
   if (e <= 0.) return 0.0;
   if (e < e_min) return e / e_min * ptab[index3(0, nnb / 2, nnq / 2)];
   const double xe = log(e / e0);

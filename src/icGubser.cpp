@@ -53,7 +53,7 @@ void ICGubser::setIC(Fluid *f, EoS *eos, double tau) {
         avv_den += e;
 
         c->setPrimVar(eos, tau, e, nb, nq, 0., vx, vy, vz);
-        double _p = eos->p(e, nb, nq, 0.);
+        double _p = eos->p(e, nb, nq, 0., c->getTauP());
         const double gamma2 = 1.0 / (1.0 - vx * vx - vy * vy - vz * vz);
         Etotal +=
             ((e + _p) * gamma2 * (cosh(eta) + vz * sinh(eta)) - _p * cosh(eta));

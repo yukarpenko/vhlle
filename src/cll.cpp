@@ -87,7 +87,7 @@ void Cell::getPrimVar(EoS *eos, double tau, double &_e, double &_p, double &_nb,
                       double &_vz) {
   double _Q[7];
   for (int i = 0; i < 7; i++) _Q[i] = Q[i] / tau;
-  transformPV(eos, _Q, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
+  transformPV(eos, _Q, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz, TauP);
   //-------------------- debug ---------------
   if (_nb != _nb) {
     cout << "---error in getPrimVar:\n";
@@ -108,7 +108,7 @@ void Cell::getPrimVarLeft(EoS *eos, double tau, double &_e, double &_p,
     dQ[i] = minmod((Qr[i] - Q[i]) / 2., (Q[i] - Ql[i]) / 2.);
 
   for (int i = 0; i < 7; i++) Ql[i] = (Q[i] - dQ[i]) / tau;
-  transformPV(eos, Ql, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
+  transformPV(eos, Ql, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz, TauP);
   //-------------------- debug ---------------
   if (_nb != _nb) {
     cout << "---error in getPrimVarLeft:\n";
@@ -131,7 +131,7 @@ void Cell::getPrimVarRight(EoS *eos, double tau, double &_e, double &_p,
     dQ[i] = minmod((Qr[i] - Q[i]) / 2., (Q[i] - Ql[i]) / 2.);
 
   for (int i = 0; i < 7; i++) Qr[i] = (Q[i] + dQ[i]) / tau;
-  transformPV(eos, Qr, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
+  transformPV(eos, Qr, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz, TauP);
   //-------------------- debug ---------------
   if (_nb != _nb) {
     cout << "---error in getPrimVarRight:\n";
@@ -154,7 +154,7 @@ void Cell::getPrimVarHLeft(EoS *eos, double tau, double &_e, double &_p,
     dQ[i] = minmod((Qr[i] - Qh[i]) / 2., (Qh[i] - Ql[i]) / 2.);
 
   for (int i = 0; i < 7; i++) Ql[i] = (Qh[i] - dQ[i]) / tau;
-  transformPV(eos, Ql, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
+  transformPV(eos, Ql, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz, TauP);
   //-------------------- debug ---------------
   if (_nb != _nb) {
     cout << "---error in getPrimVarHLeft:\n";
@@ -177,7 +177,7 @@ void Cell::getPrimVarHRight(EoS *eos, double tau, double &_e, double &_p,
     dQ[i] = minmod((Qr[i] - Qh[i]) / 2., (Qh[i] - Ql[i]) / 2.);
 
   for (int i = 0; i < 7; i++) Qr[i] = (Qh[i] + dQ[i]) / tau;
-  transformPV(eos, Qr, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
+  transformPV(eos, Qr, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz, TauP);
   //-------------------- debug ---------------
   if (_nb != _nb) {
     cout << "---error in getPrimVarHRight:\n";
@@ -193,7 +193,7 @@ void Cell::getPrimVarHCenter(EoS *eos, double tau, double &_e, double &_p,
                              double &_vy, double &_vz) {
   double _Q[7];
   for (int i = 0; i < 7; i++) _Q[i] = Qh[i] / tau;
-  transformPV(eos, _Q, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
+  transformPV(eos, _Q, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz, TauP);
 }
 
 void Cell::getPrimVarPrev(EoS *eos, double tau, double &_e, double &_p,
@@ -201,7 +201,7 @@ void Cell::getPrimVarPrev(EoS *eos, double tau, double &_e, double &_p,
                           double &_vy, double &_vz) {
   double _Q[7];
   for (int i = 0; i < 7; i++) _Q[i] = Qprev[i] / tau;
-  transformPV(eos, _Q, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
+  transformPV(eos, _Q, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz, TauP);
 }
 
 void Cell::getPrimVarFull(EoS *eos, double &_e, double &_p, double &_nb,
@@ -210,7 +210,7 @@ void Cell::getPrimVarFull(EoS *eos, double &_e, double &_p, double &_nb,
   double Qideal[7];
   for (int i = 0; i < 4; i++) Qideal[i] = Qfull[i] - pi[index44(0, i)];
   for (int i = 4; i < 7; i++) Qideal[i] = Qfull[i];
-  transformPVBulk(eos, Pi, Qideal, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
+  transformPVBulk(eos, Pi, Qideal, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz, TauP);
   //-------------------- debug ---------------
   if (_nb != _nb) {
     cout << "---error in getPrimVarHRight:\n";
@@ -222,7 +222,7 @@ void Cell::getPrimVarFull(EoS *eos, double &_e, double &_p, double &_nb,
 void Cell::setPrimVar(EoS *eos, double tau, double _e, double _nb, double _nq,
                       double _ns, double _vx, double _vy, double _vz) {
   const double gamma2 = 1. / (1 - _vx * _vx - _vy * _vy - _vz * _vz);
-  const double p = eos->p(_e, _nb, _nq, _ns);
+  const double p = eos->p(_e, _nb, _nq, _ns, TauP);
   Q[T_] = tau * (_e + p * (_vx * _vx + _vy * _vy + _vz * _vz)) * gamma2;
   Q[X_] = tau * (_e + p) * _vx * gamma2;
   Q[Y_] = tau * (_e + p) * _vy * gamma2;
