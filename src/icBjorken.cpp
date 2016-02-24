@@ -1,28 +1,20 @@
 #include <fstream>
 #include <iomanip>
-#include <iomanip>
-#include <TF1.h>
-#include <TF2.h>
-#include <TGraph.h>
+#include <iostream>
 
 #include "fld.h"
 #include "eos.h"
-#include "ic.h"
+#include "icBjorken.h"
 #include "inc.h"
-#include "s95p.h"
 
 using namespace std;
 
-
-IC::IC(char* icInputFile, double s0ScaleFactor)
-{
- s95p::loadSongIC(icInputFile, s0ScaleFactor);
+ICBjorken::ICBjorken(double e) : epsilon(e) {
 }
 
-IC::~IC(void) {}
+ICBjorken::~ICBjorken(void) {}
 
-
-void IC::setIC(Fluid *f, EoS *eos, double tau) {
+void ICBjorken::setIC(Fluid *f, EoS *eos, double tau) {
   double e, nb, nq, vx = 0., vy = 0., vz = 0.;
   Cell *c;
 
@@ -37,12 +29,9 @@ void IC::setIC(Fluid *f, EoS *eos, double tau) {
         double y = f->getY(iy);
         double eta = f->getZ(iz);
 
-        double eta1 = fabs(eta) < 1.3 ? 0.0 : fabs(eta) - 1.3;
-        double etaFactor =
-              exp(-eta1 * eta1 / 2.1 / 2.1) * (fabs(eta) < 5.3 ? 1.0 : 0.0);
-        e = s95p::getSongEps(x, y) * etaFactor;
-        if (e < 0.5) e = 0.0;
-        vx = vy = 0.0;
+		e = epsilon;
+		vx = vy = 0.;
+
         nb = nq = 0.0;
         vz = 0.0;
 
@@ -50,7 +39,7 @@ void IC::setIC(Fluid *f, EoS *eos, double tau) {
         avv_den += e;
 
         c->setPrimVar(eos, tau, e, nb, nq, 0., vx, vy, vz);
-		double _p = eos->p(e, nb, nq, 0., c->getTauP());
+        double _p = eos->p(e, nb, nq, 0., c->getTauP());
         const double gamma2 = 1.0 / (1.0 - vx * vx - vy * vy - vz * vz);
         Etotal +=
             ((e + _p) * gamma2 * (cosh(eta) + vz * sinh(eta)) - _p * cosh(eta));

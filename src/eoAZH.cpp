@@ -140,7 +140,7 @@ void EoSAZH::eos(double e, double nb, double nq, double ns, double &T,
   muq = mus = 0.0;
 }
 
-double EoSAZH::p(double e, double nb, double nq, double ns) {
+double EoSAZH::p(double e, double nb, double nq, double ns, double tau) {
   if (e > p1->emax())
     return p2->get(e, fabs(nb));
   else if (e > p1->emin_())

@@ -23,7 +23,7 @@ class EoS3f : public EoS {
   void getun(double n, int &ixn, double &un);
   virtual void eos(double e, double nb, double nq, double ns, double &_T,
                    double &_mub, double &_muq, double &_mus, double &_p, double tau = 1.);
-  virtual inline double p(double e, double nb, double nq, double ns) {
+  virtual inline double p(double e, double nb, double nq, double ns, double tau = 1.) {
     double T, mub, muq, mus, pp;
     eos(e, nb, nq, ns, T, mub, muq, mus, pp);
     return pp;

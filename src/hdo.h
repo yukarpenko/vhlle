@@ -29,7 +29,7 @@ class Hydro {
   // viscous source step for a given cell (ix,iy,iz)
   void visc_source_step(int ix, int iy, int iz);
   void source(double tau, double x, double y, double z, double Q[7],
-              double S[7]);
+              double S[7], double TauP = 1.);
   // ideal source step for a given cell (ix,iy,iz)
   void source_step(int ix, int iy, int iz, int mode);
   // shear stress tensor and bulk pressure in Navier-Stokes (NS) limit

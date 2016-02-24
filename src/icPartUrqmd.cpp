@@ -218,7 +218,7 @@ void IcPartUrqmd::setIC(Fluid* f, EoS* eos) {
         if (ix == nx / 2 && iy == ny / 2 && iz == nz / 2)
           cout << "IcUrqmd, center: " << xmin + ix* dx << "  " << zmin + iz* dz
                << "  " << Q[T_] << "  " << Q[Z_] << endl;
-        transformPV(eos, Q, e, p, nb, nq, ns, vx, vy, vz);
+        transformPV(eos, Q, e, p, nb, nq, ns, vx, vy, vz, tau0);
         if (e < 1e-7 || fabs(f->getX(ix)) > 10. || fabs(f->getY(iy)) > 10. ||
             fabs(f->getZ(iz)) > 5.) {
           e = nb = nq = 0.0;

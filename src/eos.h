@@ -26,7 +26,7 @@ class EoS {
   virtual void eos(double e, double nb, double nq, double ns, double &T,
                    double &mub, double &muq, double &mus, double &p, double tau = 1.) = 0;
   // gets only pressure : p=p(e,n_b,n_q,n_s)
-  virtual double p(double e, double nb, double ns, double nq) = 0;
+  virtual double p(double e, double nb, double ns, double nq, double tau = 1.) = 0;
   // gets entropy density
   virtual double s(double e, double nb, double nq, double ns, double tau = 1.);
   // speed of sound squared: this variant is only used in
@@ -56,7 +56,7 @@ class EoSs : public EoS {
     T = t(e);
     mub = muq = mus = 0.;
   }
-  virtual inline double p(double e, double nb, double ns, double nq) {
+  virtual inline double p(double e, double nb, double ns, double nq, double tau = 1.) {
     return p(e);
   }
 

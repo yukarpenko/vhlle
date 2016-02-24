@@ -2,10 +2,10 @@
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
-#include "eos.h"
 #include "eoSimpleSpline.h"
+#include "inc.h"
 
-EoSimpleSpline::EoSimpleSpline(std::string fname)
+EoSimpleSpline::EoSimpleSpline(std::string fname, double taus_, double tau0_) : taus(taus_), tau0(tau0_)
 {
 	ifstream finput(fname.c_str(), ios::in);
 
@@ -27,6 +27,12 @@ EoSimpleSpline::EoSimpleSpline(std::string fname)
 
 	splPE.fill(evec, pvec);
 	splTE.fill(evec, Tvec);
+
+	splPT.fill(Tvec, pvec);
+	splET.fill(Tvec, evec);
+
+	sigq  = 7.0 * C_PI * C_PI * 3.0 / 20.0;
+	siggl = 8.0 * C_PI * C_PI / 15.0; 
 }
 
 
@@ -42,8 +48,13 @@ double EoSimpleSpline::dpe(double e) {
 	return splPE.df(e);
 }
 
-double EoSimpleSpline::t(double e) {
-	return splTE.f(e);
+double EoSimpleSpline::t(double e, double tau) {
+	double ret = splTE.f(e);
+	if (taus>0.0) {
+		double lambda = 1. - exp((tau0-tau)/taus);
+		ret *= pow((sigq + siggl) / (sigq*lambda + siggl), 0.25);
+	}
+	return ret;
 }
 
 double EoSimpleSpline::mu(double e) {

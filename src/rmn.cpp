@@ -26,7 +26,7 @@ void handler(int sig) {
 }
 
 void transformPV(EoS *eos, double Q[7], double &e, double &p, double &nb,
-                 double &nq, double &ns, double &vx, double &vy, double &vz) {
+                 double &nq, double &ns, double &vx, double &vy, double &vz, double TauP) {
   // conserved -> primitive transtormation requires
   // a numerical solution to 1D nonlinear algebraic equation:
   // v = M / ( Q_t + p(Q_t-M*v, n) )       (A.2)
@@ -59,7 +59,7 @@ void transformPV(EoS *eos, double Q[7], double &e, double &p, double &nb,
     nb = Q[NB_];
     nq = Q[NQ_];
     ns = Q[NS_];
-    p = eos->p(e, nb, nq, ns);
+    p = eos->p(e, nb, nq, ns, TauP);
     return;
   }
   if (M > Q[T_]) {
@@ -75,7 +75,7 @@ void transformPV(EoS *eos, double Q[7], double &e, double &p, double &nb,
   nb = Q[NB_] * sqrt(1 - v * v);
   nq = Q[NQ_] * sqrt(1 - v * v);
   ns = Q[NS_] * sqrt(1 - v * v);
-  p = eos->p(e, nb, nq, ns);
+  p = eos->p(e, nb, nq, ns, TauP);
   f = (Q[T_] + p) * v - M;
   df = (Q[T_] + p) - M * v * dpe;
   dvold = vh - vl;
@@ -100,7 +100,7 @@ void transformPV(EoS *eos, double Q[7], double &e, double &p, double &nb,
     nb = Q[NB_] * sqrt(1 - v * v);
     nq = Q[NQ_] * sqrt(1 - v * v);
     ns = Q[NS_] * sqrt(1 - v * v);
-    p = eos->p(e, nb, nq, ns);
+    p = eos->p(e, nb, nq, ns, TauP);
     f = (Q[T_] + p) * v - M;
     df = (Q[T_] + p) - M * v * dpe;
 
@@ -122,7 +122,7 @@ void transformPV(EoS *eos, double Q[7], double &e, double &p, double &nb,
   vy = v * Q[Y_] / M;
   vz = v * Q[Z_] / M;
   e = Q[T_] - M * v;
-  p = eos->p(e, nb, nq, ns);
+  p = eos->p(e, nb, nq, ns, TauP);
   nb = Q[NB_] * sqrt(1 - vx * vx - vy * vy - vz * vz);
   nq = Q[NQ_] * sqrt(1 - vx * vx - vy * vy - vz * vz);
   ns = Q[NS_] * sqrt(1 - vx * vx - vy * vy - vz * vz);
@@ -139,7 +139,7 @@ void transformPV(EoS *eos, double Q[7], double &e, double &p, double &nb,
 
 void transformPVBulk(EoS *eos, double Pi, double Q[7], double &e, double &p,
                      double &nb, double &nq, double &ns, double &vx, double &vy,
-                     double &vz) {
+                     double &vz, double TauP) {
   const int MAXIT = 100;
   const double dpe = 1. / 3.;
   const double corrf = 0.9999;
@@ -166,7 +166,7 @@ void transformPVBulk(EoS *eos, double Pi, double Q[7], double &e, double &p,
     nb = Q[NB_];
     nq = Q[NQ_];
     ns = Q[NS_];
-    p = eos->p(e, nb, nq, ns) + Pi;
+    p = eos->p(e, nb, nq, ns, TauP) + Pi;
     return;
   }
   if (M > Q[T_]) {
@@ -182,7 +182,7 @@ void transformPVBulk(EoS *eos, double Pi, double Q[7], double &e, double &p,
   nb = Q[NB_] * sqrt(1 - v * v);
   nq = Q[NQ_] * sqrt(1 - v * v);
   ns = Q[NS_] * sqrt(1 - v * v);
-  p = eos->p(e, nb, nq, ns) + Pi;
+  p = eos->p(e, nb, nq, ns, TauP) + Pi;
   f = (Q[T_] + p) * v - M;
   df = (Q[T_] + p) - M * v * dpe;
   dvold = vh - vl;
@@ -207,7 +207,7 @@ void transformPVBulk(EoS *eos, double Pi, double Q[7], double &e, double &p,
     nb = Q[NB_] * sqrt(1 - v * v);
     nq = Q[NQ_] * sqrt(1 - v * v);
     ns = Q[NS_] * sqrt(1 - v * v);
-    p = eos->p(e, nb, nq, ns) + Pi;
+    p = eos->p(e, nb, nq, ns, TauP) + Pi;
     f = (Q[T_] + p) * v - M;
     df = (Q[T_] + p) - M * v * dpe;
 
@@ -229,7 +229,7 @@ void transformPVBulk(EoS *eos, double Pi, double Q[7], double &e, double &p,
   vy = v * Q[Y_] / M;
   vz = v * Q[Z_] / M;
   e = Q[T_] - M * v;
-  p = eos->p(e, nb, nq, ns);
+  p = eos->p(e, nb, nq, ns, TauP);
   nb = Q[NB_] * sqrt(1 - vx * vx - vy * vy - vz * vz);
   nq = Q[NQ_] * sqrt(1 - vx * vx - vy * vy - vz * vz);
   ns = Q[NS_] * sqrt(1 - vx * vx - vy * vy - vz * vz);

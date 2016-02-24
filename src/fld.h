@@ -4,6 +4,8 @@
 class EoS;
 class TransportCoeff;
 class Cornelius;
+class Photons;
+class Dileptons;
 
 #ifdef _MSC_VER
 
@@ -14,15 +16,17 @@ bool isnan(const double &op);
 #endif
 
 #include <vector>
+#include <fstream>
 
 // This structure contains output of physical quantities at a given tau timestep
-// Quantities: e, s, p, T, nb, nq, ns, taup, vx, vy
+// Quantities: e, s, p, T, nb, nq, ns, taup, vx, vy, v_T, ep, epp
 struct TauOutput {
 	std::vector< std::vector<double> > XOut;	// At Y=Eta=0
 	std::vector< std::vector<double> > YOut;	// At X=Eta=0
 	std::vector< std::vector<double> > XYOut;	// At Eta=0
 	std::vector< std::vector<double> > EtaOut;	// At X=Y=0
-	double E, Efull, S, dSdEta;
+	double tau, E, Efull, Nb1, Nb2, S, dSdEta;//, e, s, p, T, nb, nq, ns, tauP, vx, vy, v_T, ep, epp
+	std::vector<double> TauOut;
 };
 
 // this class contains the information and methods related to the hydro grid
@@ -104,4 +108,7 @@ class Fluid {
 
   //TauOutput output(double tau);
   void output(double tau, TauOutput & outp);
+
+  void processPhotons(double tau, double dtau, Photons *phot, int mode = 0);
+  void processDileptons(double tau, double dtau, Dileptons *dilept, int mode = 0);
 };

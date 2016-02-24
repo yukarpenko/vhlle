@@ -28,6 +28,8 @@
 #include "eos.h"
 #include "trancoeff.h"
 #include "cornelius.h"
+#include "photons.h"
+#include "dileptons.h"
 
 #define OUTPI
 
@@ -178,11 +180,11 @@ void Fluid::initOutput(char *dir, int maxstep, double tau0, int cmpr2dOut) {
          << getX(getNX() - 3) << "  " << getY(2) << "  " << getY(getNY() - 3)
          << endl;
 
-  foutXTau.open("outXTau_QGP_ideal_Nf3.dat", fstream::out);
+  foutXTau.open((string(dir) + "-outXTau.dat").c_str(), fstream::out);
   foutXTau << "tau(fm/c)" << "\t" << "x(fm)" << "\t" << "T(GeV)" << "\t" << "e(GeV/fm3)" << "\t" << "vx" << "\t" << "vy" << "\t" << "TauP" << "\n";
-  foutYTau.open("outYTau_QGP_ideal_Nf3.dat", fstream::out);
+  foutYTau.open((string(dir) + "-outYTau.dat").c_str(), fstream::out);
   foutYTau << "tau(fm/c)" << "\t" << "y(fm)" << "\t" << "T(GeV)" << "\t" << "e(GeV/fm3)" << "\t" << "vx" << "\t" << "vy" << "\t" << "TauP" << "\n";
-  foutTau.open("outTau_QGP_ideal_Nf3.dat", fstream::out);
+  foutTau.open((string(dir) + "-outTau.dat").c_str(), fstream::out);
   foutTau << "tau(fm/c)" << "\t" << "T(GeV)" << "\t" << "e(GeV/fm3)" << "\t" << "dS/deta" << "\t" << "dE/deta" << "\t" << "dEfull/deta" << "\t" 
 	  << "dNb1/deta" << "\t" << "dNb2/deta" << "\t" << "TauP" << "\t" 
 	  << "ep" << "\t" << "ep'" << "\n";
@@ -649,7 +651,7 @@ void Fluid::outputSurface(double tau) {
               }
 		  
 		  double _ns = 0.0;
-		  transformPV(eos, QC, eC, pC, nbC, nqC, _ns, vxC, vyC, vzC);
+		  transformPV(eos, QC, eC, pC, nbC, nqC, _ns, vxC, vyC, vzC, TauPC);
           eos->eos(eC, nbC, nqC, _ns, TC, mubC, muqC, musC, pC, TauPC);	// TODO tauPC
 		  sC = eos->s(eC, nbC, nqC, _ns, TauPC);
           if (TC > 0.4 || fabs(mubC) > 0.85) {
@@ -896,7 +898,7 @@ void Fluid::outputCorona(double tau) {
               }
 
           double _ns = 0.0;
-          transformPV(eos, QC, eC, pC, nbC, nqC, _ns, vxC, vyC, vzC);
+          transformPV(eos, QC, eC, pC, nbC, nqC, _ns, vxC, vyC, vzC, TauPC);
 		  eos->eos(eC, nbC, nqC, _ns, TC, mubC, muqC, musC, pC, TauPC);	// TODO tauC
 		  sC = eos->s(eC, nbC, nqC, _ns, TauPC);
           if (TC > 0.4 || fabs(mubC) > 0.85) {
@@ -1173,14 +1175,14 @@ void Fluid::outputTau(double tau) {
 
 //TauOutput Fluid::output(double tau) {
 void Fluid::output(double tau, TauOutput & outp) {
-	const int NQu = 18;
+	const int NQu = 19;
 	//TauOutput ret;
 	outp.XOut.resize(0);
 	outp.YOut.resize(0);
 	outp.XYOut.resize(0);
 	outp.EtaOut.resize(0);
 
-	double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz, s;
+	double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz, s, Q[7];
 	for (int ix = 0; ix < nx; ix++) {
 		double x = getX(ix);
 		Cell *c = getCell(ix, ny / 2, nz / 2);
@@ -1212,6 +1214,7 @@ void Fluid::output(double tau, TauOutput & outp) {
 		tmp[cind++]  = c->getTauP();
 		tmp[cind++]  = vx;
 		tmp[cind++]  = vy;
+		tmp[cind++]  = sqrt(vx*vx + vy*vy);
 		double ep = (T0xx - T0yy) / (T0xx + T0yy), epp = (Txx - Tyy) / (Txx + Tyy);
 		if (ep!=ep) ep = 0.;
 		if (epp!=epp) epp = 0.;
@@ -1252,6 +1255,7 @@ void Fluid::output(double tau, TauOutput & outp) {
 		tmp[cind++]  = c->getTauP();
 		tmp[cind++]  = vx;
 		tmp[cind++]  = vy;
+		tmp[cind++]  = sqrt(vx*vx + vy*vy);
 		double ep = (T0xx - T0yy) / (T0xx + T0yy), epp = (Txx - Tyy) / (Txx + Tyy);
 		if (ep!=ep) ep = 0.;
 		if (epp!=epp) epp = 0.;
@@ -1259,6 +1263,9 @@ void Fluid::output(double tau, TauOutput & outp) {
 		tmp[cind++]  = epp;
 		outp.YOut.push_back(tmp);
 	}
+
+	vector<double> avq(NQu, 0.);
+	double norm = 0.;
 
 	for (int ix = 2; ix < nx - 2; ix++)
 		for (int iy = 2; iy < ny - 2; iy++) {
@@ -1272,33 +1279,38 @@ void Fluid::output(double tau, TauOutput & outp) {
 			double Txx = (e + p + c->getPi()) * vx * vx / (1.0 - vx * vx - vy * vy - pow(tanh(vz), 2)) + p + c->getPi() + c->getpi(1, 1);
 			double Tyy = (e + p + c->getPi()) * vy * vy / (1.0 - vx * vx - vy * vy - pow(tanh(vz), 2)) + p + c->getPi() + c->getpi(2, 2);
 			std::vector<double> tmp(NQu);
-			int cind = 0;
-			tmp[cind++]  = tau;
-			tmp[cind++]  = getX(ix);
-			tmp[cind++]  = getY(iy);
-			tmp[cind++]  = getZ(nz / 2);
+			int cind = 0, cind2 = 0;
+			norm += e;
+			tmp[cind++]  = tau; avq[cind2++] += tau * e;
+			tmp[cind++]  = getX(ix); avq[cind2++] += getX(ix) * e;
+			tmp[cind++]  = getY(iy); avq[cind2++] += getY(iy) * e;
+			tmp[cind++]  = getZ(nz / 2); avq[cind2++] += getZ(nz / 2) * e;
 			double ttau = tau, teta = getZ(nz / 2);
 			double tt = tau * cosh(teta);
 			double tz = tau * sinh(teta);
-			tmp[cind++]  = tt;
-			tmp[cind++]  = tz;
-			tmp[cind++]  = e;
-			tmp[cind++]  = s;
-			tmp[cind++]  = p;
-			tmp[cind++]  = t;
-			tmp[cind++]  = nb;
-			tmp[cind++]  = nq;
-			tmp[cind++]  = ns;
-			tmp[cind++]  = c->getTauP();
-			tmp[cind++]  = vx;
-			tmp[cind++]  = vy;
+			tmp[cind++]  = tt; avq[cind2++] += tt * e;
+			tmp[cind++]  = tz; avq[cind2++] += tz * e;
+			tmp[cind++]  = e;  avq[cind2++] += e * e;
+			tmp[cind++]  = s;  avq[cind2++] += s * e;
+			tmp[cind++]  = p;  avq[cind2++] += p * e;
+			tmp[cind++]  = t;  avq[cind2++] += t * e;
+			tmp[cind++]  = nb; avq[cind2++] += nb * e;
+			tmp[cind++]  = nq; avq[cind2++] += nq * e;
+			tmp[cind++]  = ns; avq[cind2++] += ns * e;
+			tmp[cind++]  = c->getTauP(); avq[cind2++] += c->getTauP() * e;
+			tmp[cind++]  = vx; avq[cind2++] += vx * e;
+			tmp[cind++]  = vy; avq[cind2++] += vy * e;
+			tmp[cind++]  = sqrt(vx*vx + vy*vy); avq[cind2++] += sqrt(vx*vx + vy*vy) * e;
 			double ep = (T0xx - T0yy) / (T0xx + T0yy), epp = (Txx - Tyy) / (Txx + Tyy);
 			if (ep!=ep) ep = 0.;
 			if (epp!=epp) epp = 0.;
-			tmp[cind++]  = ep;
-			tmp[cind++]  = epp;
+			tmp[cind++]  = ep;  avq[cind2++] += ep * e;
+			tmp[cind++]  = epp; avq[cind2++] += epp * e;
 			outp.XYOut.push_back(tmp);
 		  }
+
+	for(int i=0;i<avq.size();++i) avq[i] /= norm;
+	outp.TauOut = avq;
 
 	for (int iz = 0; iz < nz; iz++) {
 		double z = getZ(iz);
@@ -1331,6 +1343,7 @@ void Fluid::output(double tau, TauOutput & outp) {
 		tmp[cind++]  = c->getTauP();
 		tmp[cind++]  = vx;
 		tmp[cind++]  = vy;
+		tmp[cind++]  = sqrt(vx*vx + vy*vy);
 		double ep = (T0xx - T0yy) / (T0xx + T0yy), epp = (Txx - Tyy) / (Txx + Tyy);
 		if (ep!=ep) ep = 0.;
 		if (epp!=epp) epp = 0.;
@@ -1338,5 +1351,89 @@ void Fluid::output(double tau, TauOutput & outp) {
 		tmp[cind++]  = epp;
 		outp.EtaOut.push_back(tmp);
 	}
+
+	{
+		double E = 0., Efull = 0., Px = 0., Nb1 = 0., Nb2 = 0., S = 0., dSdEta = 0.;
+		double Txx = 0., Tyy = 0.;
+		double T0xx = 0., T0yy = 0.;
+		double eta = 0.;
+		for (int ix = 2; ix < nx - 2; ix++)
+			for (int iy = 2; iy < ny - 2; iy++)
+			  for (int iz = 2; iz < nz - 2; iz++) 
+			  {
+				Cell *c = getCell(ix, iy, iz);
+				getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
+				c->getQ(Q);
+				eos->eos(e, nb, nq, ns, t, mub, muq, mus, p, c->getTauP());
+				//double s = eos->s(e, nb, nq, ns);
+				double s = eos->s(e, nb, nq, ns, c->getTauP());
+				eta = getZ(iz);
+
+				T0xx += (e + p) * vx * vx / (1.0 - vx * vx - vy * vy - pow(tanh(vz), 2)) + p;
+				T0yy += (e + p) * vy * vy / (1.0 - vx * vx - vy * vy - pow(tanh(vz), 2)) + p;
+				Txx  += (e + p + c->getPi()) * vx * vx / (1.0 - vx * vx - vy * vy - pow(tanh(vz), 2)) + p + c->getPi() + c->getpi(1, 1);
+				Tyy  += (e + p + c->getPi()) * vy * vy / (1.0 - vx * vx - vy * vy - pow(tanh(vz), 2)) + p + c->getPi() + c->getpi(2, 2);
+
+				E += tau * (e + p) / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz)) *
+						 (cosh(eta) - tanh(vz) * sinh(eta)) -
+					 tau * p * cosh(eta);
+				Nb1 += Q[NB_];
+				Nb2 += tau * nb * (cosh(eta) - tanh(vz) * sinh(eta)) /
+					   sqrt(1. - vx * vx - vy * vy - tanh(vz) * tanh(vz));
+				// -- noneq. corrections to entropy flux
+				const double gmumu[4] = {1., -1., -1., -1.};
+				double deltas = 0.;
+				for (int i = 0; i < 4; i++)
+				  for (int j = 0; j < 4; j++)
+					deltas += pow(c->getpi(i, j), 2) * gmumu[i] * gmumu[j];
+				if (t > 0.05) s += 1.5 * deltas / ((e + p) * t);
+				S += tau * s * (cosh(eta) - tanh(vz) * sinh(eta)) /
+					 sqrt(1. - vx * vx - vy * vy - tanh(vz) * tanh(vz));
+				if (iz==nz/2)
+					dSdEta += tau * s * (cosh(eta) - tanh(vz) * sinh(eta)) /
+							  sqrt(1. - vx * vx - vy * vy - tanh(vz) * tanh(vz));
+				Efull +=
+					tau * (e + p) / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz)) *
+						(cosh(eta) - tanh(vz) * sinh(eta)) -
+					tau * p * cosh(eta);
+				if (trcoeff->isViscous())
+				  Efull += tau * c->getpi(0, 0) * cosh(eta) +
+						   tau * c->getpi(0, 3) * sinh(eta);
+			  }
+		E = E * dx * dy * dz;
+		Efull = Efull * dx * dy * dz;
+		Nb1 *= dx * dy * dz;
+		Nb2 *= dx * dy * dz;
+		S *= dx * dy * dz;
+		dSdEta *= dx * dy;
+		outp.tau = tau;
+		outp.E = E;
+		outp.Efull = Efull;
+		outp.Nb1 = Nb1;
+		outp.Nb2 = Nb2;
+		outp.S = S;
+		outp.dSdEta = dSdEta;
+	}
 	//return ret;
+}
+
+void Fluid::processPhotons(double tau, double dtau, Photons *phot, int mode) {
+	//phot->addCellBISymm(tau, dtau, this, eos, getCell(nx/2, ny/2, nz / 2));
+	//return;
+	if (nz==5) // Boost-invariant
+		for (int ix = 2; ix < nx - 2; ix++)
+			for (int iy = 2; iy < ny - 2; iy++) {
+				if (mode==0) phot->addCellBI(tau, dtau, this, eos, getCell(ix, iy, nz / 2));
+				else phot->addCellBISymm(tau, dtau, this, eos, getCell(ix, iy, nz / 2));
+			  }
+}
+
+void Fluid::processDileptons(double tau, double dtau, Dileptons *dilept, int mode) {
+	//phot->addCellBISymm(tau, dtau, this, eos, getCell(nx/2, ny/2, nz / 2));
+	//return;
+	if (nz==5) // Boost-invariant
+		for (int ix = 2; ix < nx - 2; ix++)
+			for (int iy = 2; iy < ny - 2; iy++) {
+				dilept->addCellBI(tau, dtau, this, eos, getCell(ix, iy, nz / 2));
+			  }
 }

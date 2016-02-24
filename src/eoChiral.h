@@ -10,5 +10,5 @@ class EoSChiral : public EoS {
 
   virtual void eos(double e, double nb, double nq, double ns, double &_T,
                    double &_mub, double &_muq, double &_mus, double &_p, double tau = 1.);
-  virtual double p(double e, double nb, double nq, double ns);
+  virtual double p(double e, double nb, double nq, double ns, double tau = 1.);
 };

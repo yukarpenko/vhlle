@@ -311,10 +311,10 @@ void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode) {
 }
 
 void Hydro::source(double tau1, double x, double y, double z, double Q[7],
-                   double S[7]) {
+                   double S[7], double TauP) {
   double _Q[7], e, p, nb, nq, ns, vx, vy, vz;
   for (int i = 0; i < 7; i++) _Q[i] = Q[i] / tau1;  // no tau factor in  _Q
-  transformPV(eos, _Q, e, p, nb, nq, ns, vx, vy, vz);
+  transformPV(eos, _Q, e, p, nb, nq, ns, vx, vy, vz, TauP);
   S[T_] = -_Q[T_] * vz * vz - p * (1. + vz * vz);
   S[X_] = 0.;
   S[Y_] = 0.;
@@ -345,7 +345,7 @@ void Hydro::source_step(int ix, int iy, int iz, int mode) {
     c->getQh(Q);
     tau1 = tau + 0.5 * dt;
   }
-  source(tau1, x, y, z, Q, k);
+  source(tau1, x, y, z, Q, k, c->getTauP());
   for (int i = 0; i < 7; i++) k[i] *= _dt;
 
   if (k[NB_] != k[NB_]) {  // something failed
