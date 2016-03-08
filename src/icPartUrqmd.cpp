@@ -202,7 +202,7 @@ void IcPartUrqmd::makeSmoothTable(int npart) {
 }
 
 void IcPartUrqmd::setIC(Fluid* f, EoS* eos) {
-  double E = 0.0, Px = 0.0, Py = 0.0, Pz = 0.0, Nb = 0.0;
+  double E = 0.0, Px = 0.0, Py = 0.0, Pz = 0.0, Nb = 0.0, S = 0.0;
   double Q[7], e, p, nb, nq, ns, vx, vy, vz;
   for (int ix = 0; ix < nx; ix++)
     for (int iy = 0; iy < ny; iy++)
@@ -240,7 +240,9 @@ void IcPartUrqmd::setIC(Fluid* f, EoS* eos) {
         Px += tau0 * (e + p) * u[1] * u[0] * dx * dy * dz;
         Py += tau0 * (e + p) * u[2] * u[0] * dx * dy * dz;
         Nb += tau0 * nb * u[0] * dx * dy * dz;
+        S += tau0 * eos->s(e, nb, nq, ns) * u[0] * dx * dy * dz;
       }
   cout << "hydrodynamic E = " << E << "  Pz = " << Pz << "  Nbar = " << Nb
        << endl << "  Px = " << Px << "  Py = " << Py << endl;
+  cout << "initial_entropy S_ini = " << S << endl;
 }
