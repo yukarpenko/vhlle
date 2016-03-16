@@ -64,6 +64,12 @@ class Fluid {
   void correctImagCells(void);      // only ideal hydro part
   void correctImagCellsFull(void);  // correct ideal+visc
   void updateM(double tau, double dt);
+  // shear stress tensor and bulk pressure in Navier-Stokes (NS) limit
+  // plus \partial_\mu u^\nu matrix (dmu) and
+  // expansion scalar \partial_mu u^\mu (du)
+  // for a given cell (ix,iy,iz)
+  void NSquant(double tau, int ix, int iy, int iz, double pi[][4], double &Pi,
+               double dmu[4][4], double &du);
 
   void outputGnuplot(double tau);
   void outputSurface(double tau);

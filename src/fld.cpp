@@ -449,6 +449,216 @@ void transformToLab(double eta, double &vx, double &vy, double &vz) {
   vz = tanh(Y);
 }
 
+// for the procedure below, the following approximations are used:
+// dv/d(tau) = v^{t+dt}_ideal - v^{t}
+// dv/dx_i ~ v^{x+dx}-v{x-dx},
+// which makes sense after non-viscous step
+void Fluid::NSquant(double tau, int ix, int iy, int iz, double pi[4][4],
+                    double &Pi, double dmu[4][4], double &du) {
+  const double VMIN = 1e-2;
+  const double UDIFF = 3.0;
+  double e0, e1, p, nb, nq, ns, vx1, vy1, vz1, vx0, vy0, vz0, vxH, vyH, vzH;
+  double ut0, ux0, uy0, uz0, ut1, ux1, uy1, uz1;
+  //	double dmu [4][4] ; // \partial_\mu u^\nu matrix
+  // coordinates: 0=tau, 1=x, 2=y, 3=eta
+  double Z[4][4][4][4];  // Z[mu][nu][lambda][rho]
+  double uuu[4];         // the 4-velocity
+  double gmunu[4][4] = {{1, 0, 0, 0},
+                        {0, -1, 0, 0},
+                        {0, 0, -1, 0},
+                        {0, 0, 0, -1}};  // omit 1/tau^2 in g^{eta,eta}
+  Cell *c = getCell(ix, iy, iz);
+  // check if the cell is next to vacuum from +-x, +-y side:
+  if (c->getNext(X_)->getMaxM() <= 0.9 || c->getNext(Y_)->getMaxM() <= 0.9 ||
+      c->getPrev(X_)->getMaxM() <= 0.9 || c->getPrev(Y_)->getMaxM() <= 0.9 ||
+      getCell(ix + 1, iy + 1, iz)->getMaxM() <= 0.9 ||
+      getCell(ix + 1, iy - 1, iz)->getMaxM() <= 0.9 ||
+      getCell(ix - 1, iy + 1, iz)->getMaxM() <= 0.9 ||
+      getCell(ix - 1, iy - 1, iz)->getMaxM() <= 0.9) {
+    for (int i = 0; i < 4; i++)
+      for (int j = 0; j < 4; j++) {
+        pi[i][j] = 0.;
+        dmu[i][j] = 0.;
+      }
+    Pi = du = 0.;
+    return;
+  }
+  // calculation of \partial_\mu u^\nu matrix
+  // mu=first index, nu=second index
+  // centered differences with respect to the values at (it+1/2, ix, iy, iz)
+  // d_tau u^\mu
+  c->getPrimVarPrev(eos, tau - dt, e0, p, nb, nq, ns, vx0, vy0, vz0);
+  c->getPrimVar(eos, tau, e1, p, nb, nq, ns, vx1, vy1, vz1);
+  c->getPrimVarHCenter(eos, tau - 0.5 * dt, e1, p, nb, nq, ns, vxH, vyH, vzH);
+  //############## get transport coefficients
+  double T, mub, muq, mus;
+  double etaS, zetaS;
+  double s = eos->s(e1, nb, nq, ns);  // entropy density in the current cell
+  eos->eos(e1, nb, nq, ns, T, mub, muq, mus, p);
+  trcoeff->getEta(e1, T, etaS, zetaS);
+  //##############
+  // if(e1<0.00004) s=0. ; // negative pressure due to pi^zz for small e
+  ut0 = 1.0 / sqrt(1.0 - vx0 * vx0 - vy0 * vy0 - vz0 * vz0);
+  ux0 = ut0 * vx0;
+  uy0 = ut0 * vy0;
+  uz0 = ut0 * vz0;
+  ut1 = 1.0 / sqrt(1.0 - vx1 * vx1 - vy1 * vy1 - vz1 * vz1);
+  ux1 = ut1 * vx1;
+  uy1 = ut1 * vy1;
+  uz1 = ut1 * vz1;
+  uuu[0] = 1.0 / sqrt(1.0 - vxH * vxH - vyH * vyH - vzH * vzH);
+  uuu[1] = uuu[0] * vxH;
+  uuu[2] = uuu[0] * vyH;
+  uuu[3] = uuu[0] * vzH;
+
+  dmu[0][0] = (ut1 * ut1 - ut0 * ut0) / 2. / uuu[0] / dt;
+  dmu[0][1] = (ux1 * ux1 - ux0 * ux0) / 2. / uuu[1] / dt;
+  dmu[0][2] = (uy1 * uy1 - uy0 * uy0) / 2. / uuu[2] / dt;
+  dmu[0][3] = (uz1 * uz1 - uz0 * uz0) / 2. / uuu[3] / dt;
+  if (fabs(0.5 * (ut1 + ut0) / ut1) > UDIFF) dmu[0][0] = (ut1 - ut0) / dt;
+  if (fabs(uuu[1]) < VMIN || fabs(0.5 * (ux1 + ux0) / ux1) > UDIFF)
+    dmu[0][1] = (ux1 - ux0) / dt;
+  if (fabs(uuu[2]) < VMIN || fabs(0.5 * (uy1 + uy0) / uy1) > UDIFF)
+    dmu[0][2] = (uy1 - uy0) / dt;
+  if (fabs(uuu[3]) < VMIN || fabs(0.5 * (uz1 + uz0) / uz1) > UDIFF)
+    dmu[0][3] = (uz1 - uz0) / dt;
+  if (e1 <= 0. || e0 <= 0.) {  // matter-vacuum
+    dmu[0][0] = dmu[0][1] = dmu[0][2] = dmu[0][3] = 0.;
+  }
+  // d_x u^\mu
+  getCell(ix + 1, iy, iz)
+      ->getPrimVarHCenter(eos, tau, e1, p, nb, nq, ns, vx1, vy1, vz1);
+  getCell(ix - 1, iy, iz)
+      ->getPrimVarHCenter(eos, tau, e0, p, nb, nq, ns, vx0, vy0, vz0);
+  if (e1 > 0. && e0 > 0.) {
+    ut0 = 1.0 / sqrt(1.0 - vx0 * vx0 - vy0 * vy0 - vz0 * vz0);
+    ux0 = ut0 * vx0;
+    uy0 = ut0 * vy0;
+    uz0 = ut0 * vz0;
+    ut1 = 1.0 / sqrt(1.0 - vx1 * vx1 - vy1 * vy1 - vz1 * vz1);
+    ux1 = ut1 * vx1;
+    uy1 = ut1 * vy1;
+    uz1 = ut1 * vz1;
+    dmu[1][0] = 0.25 * (ut1 * ut1 - ut0 * ut0) / uuu[0] / dx;
+    dmu[1][1] = 0.25 * (ux1 * ux1 - ux0 * ux0) / uuu[1] / dx;
+    dmu[1][2] = 0.25 * (uy1 * uy1 - uy0 * uy0) / uuu[2] / dx;
+    dmu[1][3] = 0.25 * (uz1 * uz1 - uz0 * uz0) / uuu[3] / dx;
+    if (fabs(0.5 * (ut1 + ut0) / uuu[0]) > UDIFF)
+      dmu[1][0] = 0.5 * (ut1 - ut0) / dx;
+    if (fabs(uuu[1]) < VMIN || fabs(0.5 * (ux1 + ux0) / uuu[1]) > UDIFF)
+      dmu[1][1] = 0.5 * (ux1 - ux0) / dx;
+    if (fabs(uuu[2]) < VMIN || fabs(0.5 * (uy1 + uy0) / uuu[2]) > UDIFF)
+      dmu[1][2] = 0.5 * (uy1 - uy0) / dx;
+    if (fabs(uuu[3]) < VMIN || fabs(0.5 * (uz1 + uz0) / uuu[3]) > UDIFF)
+      dmu[1][3] = 0.5 * (uz1 - uz0) / dx;
+  } else {  // matter-vacuum
+    dmu[1][0] = dmu[1][1] = dmu[1][2] = dmu[1][3] = 0.;
+  }
+  if (fabs(dmu[1][3]) > 1e+10)
+    cout << "dmu[1][3]:  " << uz1 << "  " << uz0 << "  " << uuu[3] << endl;
+  // d_y u^\mu
+  getCell(ix, iy + 1, iz)
+      ->getPrimVarHCenter(eos, tau, e1, p, nb, nq, ns, vx1, vy1, vz1);
+  getCell(ix, iy - 1, iz)
+      ->getPrimVarHCenter(eos, tau, e0, p, nb, nq, ns, vx0, vy0, vz0);
+  if (e1 > 0. && e0 > 0.) {
+    ut0 = 1.0 / sqrt(1.0 - vx0 * vx0 - vy0 * vy0 - vz0 * vz0);
+    ux0 = ut0 * vx0;
+    uy0 = ut0 * vy0;
+    uz0 = ut0 * vz0;
+    ut1 = 1.0 / sqrt(1.0 - vx1 * vx1 - vy1 * vy1 - vz1 * vz1);
+    ux1 = ut1 * vx1;
+    uy1 = ut1 * vy1;
+    uz1 = ut1 * vz1;
+    dmu[2][0] = 0.25 * (ut1 * ut1 - ut0 * ut0) / uuu[0] / dy;
+    dmu[2][1] = 0.25 * (ux1 * ux1 - ux0 * ux0) / uuu[1] / dy;
+    dmu[2][2] = 0.25 * (uy1 * uy1 - uy0 * uy0) / uuu[2] / dy;
+    dmu[2][3] = 0.25 * (uz1 * uz1 - uz0 * uz0) / uuu[3] / dy;
+    if (fabs(0.5 * (ut1 + ut0) / uuu[0]) > UDIFF)
+      dmu[2][0] = 0.5 * (ut1 - ut0) / dy;
+    if (fabs(uuu[1]) < VMIN || fabs(0.5 * (ux1 + ux0) / uuu[1]) > UDIFF)
+      dmu[2][1] = 0.5 * (ux1 - ux0) / dy;
+    if (fabs(uuu[2]) < VMIN || fabs(0.5 * (uy1 + uy0) / uuu[2]) > UDIFF)
+      dmu[2][2] = 0.5 * (uy1 - uy0) / dy;
+    if (fabs(uuu[3]) < VMIN || fabs(0.5 * (uz1 + uz0) / uuu[3]) > UDIFF)
+      dmu[2][3] = 0.5 * (uz1 - uz0) / dy;
+  } else {  // matter-vacuum
+    dmu[2][0] = dmu[2][1] = dmu[2][2] = dmu[2][3] = 0.;
+  }
+  // d_z u^\mu
+  getCell(ix, iy, iz + 1)
+      ->getPrimVarHCenter(eos, tau, e1, p, nb, nq, ns, vx1, vy1, vz1);
+  getCell(ix, iy, iz - 1)
+      ->getPrimVarHCenter(eos, tau, e0, p, nb, nq, ns, vx0, vy0, vz0);
+  if (e1 > 0. && e0 > 0.) {
+    ut0 = 1.0 / sqrt(1.0 - vx0 * vx0 - vy0 * vy0 - vz0 * vz0);
+    ux0 = ut0 * vx0;
+    uy0 = ut0 * vy0;
+    uz0 = ut0 * vz0;
+    ut1 = 1.0 / sqrt(1.0 - vx1 * vx1 - vy1 * vy1 - vz1 * vz1);
+    ux1 = ut1 * vx1;
+    uy1 = ut1 * vy1;
+    uz1 = ut1 * vz1;
+    dmu[3][0] = 0.25 * (ut1 * ut1 - ut0 * ut0) / uuu[0] / dz / (tau + 0.5 * dt);
+    dmu[3][1] = 0.25 * (ux1 * ux1 - ux0 * ux0) / uuu[1] / dz / (tau + 0.5 * dt);
+    dmu[3][2] = 0.25 * (uy1 * uy1 - uy0 * uy0) / uuu[2] / dz / (tau + 0.5 * dt);
+    dmu[3][3] = 0.25 * (uz1 * uz1 - uz0 * uz0) / uuu[3] / dz / (tau + 0.5 * dt);
+    if (fabs(0.5 * (ut1 + ut0) / uuu[0]) > UDIFF)
+      dmu[3][0] = 0.5 * (ut1 - ut0) / dz / (tau + 0.5 * dt);
+    if (fabs(uuu[1]) < VMIN || fabs(0.5 * (ux1 + ux0) / uuu[1]) > UDIFF)
+      dmu[3][1] = 0.5 * (ux1 - ux0) / dz / (tau + 0.5 * dt);
+    if (fabs(uuu[2]) < VMIN || fabs(0.5 * (uy1 + uy0) / uuu[2]) > UDIFF)
+      dmu[3][2] = 0.5 * (uy1 - uy0) / dz / (tau + 0.5 * dt);
+    if (fabs(uuu[3]) < VMIN || fabs(0.5 * (uz1 + uz0) / uuu[3]) > UDIFF)
+      dmu[3][3] = 0.5 * (uz1 - uz0) / dz / (tau + 0.5 * dt);
+  } else {  // matter-vacuum
+    dmu[3][0] = dmu[3][1] = dmu[3][2] = dmu[3][3] = 0.;
+  }
+  // additional terms from Christoffel symbols :)
+  dmu[3][0] += uuu[3] / (tau - 0.5 * dt);
+  dmu[3][3] += uuu[0] / (tau - 0.5 * dt);
+  // calculation of Z[mu][nu][lambda][rho]
+  for (int i = 0; i < 4; i++)
+    for (int j = 0; j < 4; j++)
+      for (int k = 0; k < 4; k++)
+        for (int l = 0; l < 4; l++) Z[i][j][k][l] = 0.0;
+  // filling Z matrix
+  for (int mu = 0; mu < 4; mu++)
+    for (int nu = 0; nu < 4; nu++)
+      for (int lam = 0; lam < 4; lam++)
+        for (int rho = 0; rho < 4; rho++) {
+          if (nu == rho)
+            Z[mu][nu][lam][rho] += 0.5 * (gmunu[mu][lam] - uuu[mu] * uuu[lam]);
+          if (mu == rho)
+            Z[mu][nu][lam][rho] += 0.5 * (gmunu[nu][lam] - uuu[nu] * uuu[lam]);
+          if (lam == rho)
+            Z[mu][nu][lam][rho] -= (gmunu[mu][nu] - uuu[mu] * uuu[nu]) / 3.0;
+        }
+  // calculating sigma[mu][nu]
+  for (int i = 0; i < 4; i++)
+    for (int j = 0; j < 4; j++) {
+      pi[i][j] = 0.0;
+      for (int k = 0; k < 4; k++)
+        for (int l = 0; l < 4; l++) {
+          pi[i][j] += Z[i][j][k][l] * dmu[k][l] * 2.0 * etaS * s / 5.068;
+        }
+    }
+  Pi = -zetaS * s * (dmu[0][0] + dmu[1][1] + dmu[2][2] + dmu[3][3]) /
+       5.068;  // fm^{-4} --> GeV/fm^3
+  du = dmu[0][0] + dmu[1][1] + dmu[2][2] + dmu[3][3];
+  //--------- debug part: NaN/inf check, trace check, diag check, transversality
+  //check
+  for (int i = 0; i < 4; i++)
+    for (int j = 0; j < 4; j++) {
+      if (pi[i][j] != 0. && fabs(1.0 - pi[j][i] / pi[i][j]) > 1e-10)
+        cout << "non-diag: " << pi[i][j] << "  " << pi[j][i] << endl;
+      if (isinf(pi[i][j]) || isnan(pi[i][j])) {
+        cout << "hydro:NSquant: inf/nan i " << i << " j " << j << endl;
+        exit(1);
+      }
+    }
+}
+
 void Fluid::outputSurface(double tau) {
   static double nbSurf = 0.0;
   double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz, Q[7];

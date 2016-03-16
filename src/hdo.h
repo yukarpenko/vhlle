@@ -32,12 +32,6 @@ class Hydro {
               double S[7]);
   // ideal source step for a given cell (ix,iy,iz)
   void source_step(int ix, int iy, int iz, int mode);
-  // shear stress tensor and bulk pressure in Navier-Stokes (NS) limit
-  // plus \partial_\mu u^\nu matrix (dmu) and
-  // expansion scalar \partial_mu u^\mu (du)
-  // for a given cell (ix,iy,iz)
-  void NSquant(int ix, int iy, int iz, double pi[][4], double &Pi,
-               double dmu[4][4], double &du);
   // sets the values of shear stress/bulk pressure in NS limit in all hydro grid
   void setNSvalues();
   // advances numerical solution for shear/bulk in a whole grid over one
