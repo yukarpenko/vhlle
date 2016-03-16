@@ -69,7 +69,7 @@ class Fluid {
   // expansion scalar \partial_mu u^\mu (du)
   // for a given cell (ix,iy,iz)
   void NSquant(double tau, int ix, int iy, int iz, double pi[][4], double &Pi,
-               double dmu[4][4], double &du);
+               double dmu[4][4], double dbeta[4][4], double &du);
 
   void outputGnuplot(double tau);
   void outputSurface(double tau);

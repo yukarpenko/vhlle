@@ -402,6 +402,7 @@ void Hydro::setNSvalues() {
 void Hydro::ISformal() {
   double e, p, nb, nq, ns, vx, vy, vz, T, mub, muq, mus;
   double piNS[4][4], PiNS, dmu[4][4], du, pi[4][4], piH[4][4], Pi, PiH;
+  double dbeta[4][4];
   const double gmumu[4] = {1., -1., -1., -1.};
 
   // loop #1 (relaxation+source terms)
@@ -422,7 +423,7 @@ void Hydro::ISformal() {
         } else {  // non-empty cell
           // 1) relaxation(pi)+source(pi) terms for half-step
           double gamma = 1.0 / sqrt(1.0 - vx * vx - vy * vy - vz * vz);
-          f->NSquant(tau, ix, iy, iz, piNS, PiNS, dmu, du);
+          f->NSquant(tau, ix, iy, iz, piNS, PiNS, dmu, dbeta, du);
           eos->eos(e, nb, nq, ns, T, mub, muq, mus, p);
           //############# get relaxation times
           double taupi, tauPi;
