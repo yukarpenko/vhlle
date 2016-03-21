@@ -3,9 +3,9 @@ ROOTCFLAGS   := $(shell root-config --cflags)
 ROOTLIBS     := $(shell root-config --libs)
 
 CXX           = g++
-CXXFLAGS      = -Wall -fPIC -O3 -march=native
+CXXFLAGS      = -Wall -fPIC -O3
 LD            = g++
-LDFLAGS       = -O3 -march=native
+LDFLAGS       = -O3
 
 CXXFLAGS     += $(ROOTCFLAGS)
 LIBS          = $(ROOTLIBS) $(SYSLIBS)

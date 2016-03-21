@@ -22,6 +22,10 @@ const double Ra = 6.37;    // radius
 const double dlt = 0.54;   // diffuseness
 const double sigma = 4.0;  // NN cross section in fm^2
 
+const double etam = 2.0;
+const double etaflat = 1.0;
+const double sigEta = 1.3;
+
 const int nphi = 301;
 
 ICGlauber::ICGlauber(double e, double impactPar, double _tau0) {
@@ -32,42 +36,34 @@ ICGlauber::ICGlauber(double e, double impactPar, double _tau0) {
 
 ICGlauber::~ICGlauber(void) {}
 
-double ICGlauber::eProfile(double x, double y) {
+double fplu(double eta)
+{
+ if(eta<-etam)
+  return 0.;
+ else if(eta<=etam)
+  return (eta+etam)/(2.0*etam);
+ else
+  return 1.;
+}
+
+double fmin(double eta)
+{
+ if(eta<-etam)
+  return 1.;
+ else if(eta<=etam)
+  return (-eta+etam)/(2.0*etam);
+ else
+  return 0.;
+}
+
+double ICGlauber::eProfile(double x, double y, double eta) {
  prms[0] = sqrt((x + b / 2.0) * (x + b / 2.0) + y * y);
  const double tpp = iff->Integral(-3.0 * Ra, 3.0 * Ra, prms, 1.0e-9);
  prms[0] = sqrt((x - b / 2.0) * (x - b / 2.0) + y * y);
  const double tmm = iff->Integral(-3.0 * Ra, 3.0 * Ra, prms, 1.0e-9);
- return epsilon *
-        pow(1. / rho0 * (tpp * (1.0 - pow((1.0 - sigma * tmm / A), A)) +
-                         tmm * (1.0 - pow((1.0 - sigma * tpp / A), A))),
-            1.0);
-}
-
-void ICGlauber::findRPhi(void) {
-  _rphi = new double[nphi];
-  for (int iphi = 0; iphi < nphi; iphi++) {
-    double phi = iphi * C_PI * 2. / (nphi - 1);
-    double r = 0., r1 = 0., r2 = 2. * Ra;
-    while (fabs((r2 - r1) / r2) > 0.001 && r2 > 0.001) {
-      r = 0.5 * (r1 + r2);
-      if (eProfile(r * cos(phi), r * sin(phi)) > 0.5)
-        r1 = r;
-      else
-        r2 = r;
-    }
-    _rphi[iphi] = r;
-  }
-}
-
-
-double ICGlauber::rPhi(double phi) {
-  const double cpi = C_PI;
-  phi = phi - 2. * cpi * floor(phi / 2. / cpi);
-  int iphi = (int)(phi / (2. * cpi) * (nphi - 1));
-  int iphi1 = iphi + 1;
-  if (iphi1 == nphi) iphi = nphi - 2;
-  return _rphi[iphi] * (1. - (phi / (2. * cpi) * (nphi - 1) - iphi)) +
-         _rphi[iphi1] * (phi / (2. * cpi) * (nphi - 1) - iphi);
+ double T1 = tpp * (1.0 - pow((1.0 - sigma * tmm / A), A));
+ double T2 = tmm * (1.0 - pow((1.0 - sigma * tpp / A), A));
+ return 2.0 * (T1 * fmin(eta) + T2 * fplu(eta));
 }
 
 
@@ -95,16 +91,9 @@ void ICGlauber::setIC(Fluid *f, EoS *eos) {
   prms[1] = A / intgr2;
   prms[2] = Ra;
   prms[3] = dlt;
-  iff = new TF1("WoodSaxonDF", this, &ICGlauber::WoodSaxon, -3.0 * Ra, 3.0 * Ra, 4,
-                "IC", "WoodSaxon");
-  prms[0] = 0.0;
-  const double tpp = iff->Integral(-3.0 * Ra, 3.0 * Ra, prms, 1.0e-9);
-  rho0 = 2.0 * tpp * (1.0 - pow((1.0 - sigma * tpp / A), A));
+  iff = new TF1("WoodSaxonDF", this, &ICGlauber::WoodSaxon, -3.0 * Ra, 3.0 * Ra, 4, "IC", "WoodSaxon");
+  rho0 = eProfile(0., 0., 0.);
 
-  findRPhi();  // fill in R(phi) table
-  cout << "R(phi) =  ";
-  for (int jj = 0; jj < 5; jj++) cout << rPhi(jj * C_PI / 2.) << "  ";  // test
-  cout << endl;
   //--------------
   double avv_num = 0., avv_den = 0.;
   double Etotal = 0.0;
@@ -116,11 +105,10 @@ void ICGlauber::setIC(Fluid *f, EoS *eos) {
         double x = f->getX(ix);
         double y = f->getY(iy);
         double eta = f->getZ(iz);
-        double etaFactor;
-        double eta1 = fabs(eta) < 1.3 ? 0.0 : fabs(eta) - 1.3;
-        etaFactor = exp(-eta1 * eta1 / 2.1 / 2.1) * (fabs(eta) < 5.3 ? 1.0 : 0.0);
-        e = eProfile(x, y) * etaFactor;
-        if (e < 0.5) e = 0.0;
+        double etat = fabs(eta) - 0.5 * etaflat;
+        double H = etat>0. ? exp(-etat*etat/(2.0*sigEta*sigEta)) : 1.0;
+        e = epsilon * eProfile(x, y, eta) / rho0 * H;
+        if (e < 0.05) e = 0.0;
         vx = vy = 0.0;
         nb = nq = 0.0;
         vz = 0.0;
