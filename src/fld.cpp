@@ -367,14 +367,12 @@ void Fluid::outputGnuplot(double tau) {
     foutx << setw(14) << tau << setw(14) << x << setw(14) << vx << setw(14)
           << vy << setw(14) << e << setw(14) << nb << setw(14) << t << setw(14)
           << mub;
-    foutx << setw(14) << c->getpi(0, 0) << setw(14) << c->getpi(0, 1)
-          << setw(14) << c->getpi(0, 2);
-    foutx << setw(14) << c->getpi(0, 3) << setw(14) << c->getpi(1, 1)
-          << setw(14) << c->getpi(1, 2);
-    foutx << setw(14) << c->getpi(1, 3) << setw(14) << c->getpi(2, 2)
-          << setw(14) << c->getpi(2, 3);
-    foutx << setw(14) << c->getpi(3, 3) << setw(14) << c->getPi() << setw(14)
-          << c->getViscCorrCutFlag() << endl;
+    double _piNS [4][4], _PiNS, dmu[4][4], dbeta[4][4], du;
+    NSquant(tau, ix, ny / 2, nz / 2, _piNS, _PiNS, dmu, dbeta, du);
+    for(int i=0; i<4; i++)
+    for(int j=0; j<4; j++)
+     foutx << setw(14) << dbeta[i][j];
+    foutx << endl;
   }
   foutx << endl;
 
@@ -387,14 +385,12 @@ void Fluid::outputGnuplot(double tau) {
     fouty << setw(14) << tau << setw(14) << y << setw(14) << vy << setw(14)
           << vx << setw(14) << e << setw(14) << nb << setw(14) << t << setw(14)
           << mub;
-    fouty << setw(14) << c->getpi(0, 0) << setw(14) << c->getpi(0, 1)
-          << setw(14) << c->getpi(0, 2);
-    fouty << setw(14) << c->getpi(0, 3) << setw(14) << c->getpi(1, 1)
-          << setw(14) << c->getpi(1, 2);
-    fouty << setw(14) << c->getpi(1, 3) << setw(14) << c->getpi(2, 2)
-          << setw(14) << c->getpi(2, 3);
-    fouty << setw(14) << c->getpi(3, 3) << setw(14) << c->getPi() << setw(14)
-          << c->getViscCorrCutFlag() << endl;
+    double _piNS [4][4], _PiNS, dmu[4][4], dbeta[4][4], du;
+    NSquant(tau, nx / 2, iy, nz / 2, _piNS, _PiNS, dmu, dbeta, du);
+    for(int i=0; i<4; i++)
+    for(int j=0; j<4; j++)
+     fouty << setw(14) << dbeta[i][j];
+    fouty << endl;
   }
   fouty << endl;
 
@@ -428,14 +424,12 @@ void Fluid::outputGnuplot(double tau) {
     foutz << setw(14) << tau << setw(14) << z << setw(14) << vz << setw(14)
           << vx << setw(14) << e << setw(14) << nb << setw(14) << t << setw(14)
           << mub;
-    foutz << setw(14) << c->getpi(0, 0) << setw(14) << c->getpi(0, 1)
-          << setw(14) << c->getpi(0, 2);
-    foutz << setw(14) << c->getpi(0, 3) << setw(14) << c->getpi(1, 1)
-          << setw(14) << c->getpi(1, 2);
-    foutz << setw(14) << c->getpi(1, 3) << setw(14) << c->getpi(2, 2)
-          << setw(14) << c->getpi(2, 3);
-    foutz << setw(14) << c->getpi(3, 3) << setw(14) << c->getPi() << setw(14)
-          << c->getViscCorrCutFlag() << endl;
+    double _piNS [4][4], _PiNS, dmu[4][4], dbeta[4][4], du;
+    NSquant(tau, nx / 2, ny / 2, iz, _piNS, _PiNS, dmu, dbeta, du);
+    for(int i=0; i<4; i++)
+    for(int j=0; j<4; j++)
+     foutz << setw(14) << dbeta[i][j];
+    foutz << endl;
   }
   foutz << endl;
 }
@@ -481,6 +475,7 @@ void Fluid::NSquant(double tau, int ix, int iy, int iz, double pi[4][4],
       for (int j = 0; j < 4; j++) {
         pi[i][j] = 0.;
         dmu[i][j] = 0.;
+        dbeta[i][j] = 0.;
       }
     Pi = du = 0.;
     return;
