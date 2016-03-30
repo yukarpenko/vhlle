@@ -22,7 +22,7 @@ class Fluid {
   double ecrit;
   double vEff, EtotSurf;  // cumulative effective volume and
   std::ofstream foutkw, foutkw_dim, foutxvisc, foutyvisc, foutdiagvisc, foutx,
-      fouty, foutdiag, foutz, fout_aniz, fout2d, ffreeze;
+      fouty, foutdiag, foutz, fout_aniz, fout2d, fout3d, ffreeze;
   int compress2dOut;
 
  public:
@@ -72,6 +72,7 @@ class Fluid {
                double dmu[4][4], double dbeta[4][4], double &du);
 
   void outputGnuplot(double tau);
+  void outputSnapshot(double tau);
   void outputSurface(double tau);
   void outputCorona(double tau);
 };

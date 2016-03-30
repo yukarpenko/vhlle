@@ -40,6 +40,7 @@ class Cell {
       PiH;  // Pi, WITHOUT tau factor, final (Pi) and half-step updated (PiH)
   double pi0[10], piH0[10];  // // pi^{mu nu}, WITHOUT tau factor, auxiliary
   double Pi0, PiH0;  // viscous, WITHOUT tau factor, auxiliary
+  double dbeta [4][4]; // derivatives of beta vector
   double flux[7];  // cumulative fluxes
   Cell *next[3];   // pointer to the next cell in a given direction
   Cell *prev[3];   // pointer to the previous cell in a given direction
@@ -160,6 +161,17 @@ class Cell {
   inline void setpiH0(double values[4][4]) {
     for (int i = 0; i < 4; i++)
       for (int j = 0; j < 4; j++) piH0[index44(i, j)] = values[i][j];
+  }
+  inline void setDbeta(double values[4][4]) {
+    for (int i = 0; i < 4; i++)
+      for (int j = 0; j < 4; j++) dbeta[i][j] = values[i][j];
+  }
+  inline void resetDbeta() {
+    for (int i = 0; i < 4; i++)
+      for (int j = 0; j < 4; j++) dbeta[i][j] = 0.0;
+  }
+  inline double getDbeta(int i, int j) {
+   return dbeta[i][j];
   }
 
   // get the energy density, pressure, charge densities and flow velocity

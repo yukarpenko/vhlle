@@ -420,10 +420,12 @@ void Hydro::ISformal() {
             }
           c->setPiH0(0.0);
           c->setPi0(0.0);
+          c->resetDbeta();
         } else {  // non-empty cell
           // 1) relaxation(pi)+source(pi) terms for half-step
           double gamma = 1.0 / sqrt(1.0 - vx * vx - vy * vy - vz * vz);
           f->NSquant(tau, ix, iy, iz, piNS, PiNS, dmu, dbeta, du);
+          c->setDbeta(dbeta);
           eos->eos(e, nb, nq, ns, T, mub, muq, mus, p);
           //############# get relaxation times
           double taupi, tauPi;

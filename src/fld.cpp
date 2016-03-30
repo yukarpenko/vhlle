@@ -133,6 +133,8 @@ void Fluid::initOutput(char *dir, int maxstep, double tau0, int cmpr2dOut) {
   outaniz.append("/out.aniz.dat");
   string out2d = dir;
   out2d.append("/out2D.dat");
+  string out3d = dir;
+  out3d.append("/3D.dat");
   string outfreeze = dir;
   outfreeze.append("/freezeout.dat");
   foutx.open(outx.c_str());
@@ -140,6 +142,7 @@ void Fluid::initOutput(char *dir, int maxstep, double tau0, int cmpr2dOut) {
   foutz.open(outz.c_str());
   foutdiag.open(outdiag.c_str());
   fout2d.open(out2d.c_str());
+  fout3d.open(out3d.c_str());
   foutxvisc.open(outxvisc.c_str());
   foutyvisc.open(outyvisc.c_str());
   foutdiagvisc.open(outdiagvisc.c_str());
@@ -367,11 +370,9 @@ void Fluid::outputGnuplot(double tau) {
     foutx << setw(14) << tau << setw(14) << x << setw(14) << vx << setw(14)
           << vy << setw(14) << e << setw(14) << nb << setw(14) << t << setw(14)
           << mub;
-    double _piNS [4][4], _PiNS, dmu[4][4], dbeta[4][4], du;
-    NSquant(tau, ix, ny / 2, nz / 2, _piNS, _PiNS, dmu, dbeta, du);
     for(int i=0; i<4; i++)
     for(int j=0; j<4; j++)
-     foutx << setw(14) << dbeta[i][j];
+     foutx << setw(14) << c->getDbeta(i,j);
     foutx << endl;
   }
   foutx << endl;
@@ -385,11 +386,9 @@ void Fluid::outputGnuplot(double tau) {
     fouty << setw(14) << tau << setw(14) << y << setw(14) << vy << setw(14)
           << vx << setw(14) << e << setw(14) << nb << setw(14) << t << setw(14)
           << mub;
-    double _piNS [4][4], _PiNS, dmu[4][4], dbeta[4][4], du;
-    NSquant(tau, nx / 2, iy, nz / 2, _piNS, _PiNS, dmu, dbeta, du);
     for(int i=0; i<4; i++)
     for(int j=0; j<4; j++)
-     fouty << setw(14) << dbeta[i][j];
+     fouty << setw(14) << c->getDbeta(i,j);
     fouty << endl;
   }
   fouty << endl;
@@ -424,14 +423,36 @@ void Fluid::outputGnuplot(double tau) {
     foutz << setw(14) << tau << setw(14) << z << setw(14) << vz << setw(14)
           << vx << setw(14) << e << setw(14) << nb << setw(14) << t << setw(14)
           << mub;
-    double _piNS [4][4], _PiNS, dmu[4][4], dbeta[4][4], du;
-    NSquant(tau, nx / 2, ny / 2, iz, _piNS, _PiNS, dmu, dbeta, du);
     for(int i=0; i<4; i++)
     for(int j=0; j<4; j++)
-     foutz << setw(14) << dbeta[i][j];
+     foutz << setw(14) << c->getDbeta(i,j);
     foutz << endl;
   }
   foutz << endl;
+}
+
+void Fluid::outputSnapshot(double tau) {
+  double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz;
+
+  // X direction
+  for (int ix = 0; ix < nx; ix++)
+  for (int iy = 0; iy < ny; iy++)
+  for (int iz = 0; iz < nz; iz++) {
+    double x = getX(ix);
+    double y = getY(iy);
+    double eta = getZ(iz);
+    Cell *c = getCell(ix, iy, iz);
+    getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
+    eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
+    fout3d << setw(14) << tau << setw(14) << x << setw(14) << y << setw(14)
+          << eta << setw(14) << e << setw(14) << vx << setw(14) << vy << setw(14)
+          << vz;
+    for(int i=0; i<4; i++)
+    for(int j=0; j<4; j++)
+     fout3d << setw(14) << c->getDbeta(i,j);
+    fout3d << endl;
+  }
+  fout3d << endl;
 }
 
 // unput: geom. rapidity + velocities in Bjorken frame, --> output: velocities
@@ -787,6 +808,7 @@ void Fluid::outputSurface(double tau) {
         //----- Cornelius stuff
         double QCube[2][2][2][2][7];
         double piSquare[2][2][2][10], PiSquare[2][2][2];
+        double dbetaSq [2][2][2][4][4];
         for (int jx = 0; jx < 2; jx++)
           for (int jy = 0; jy < 2; jy++)
             for (int jz = 0; jz < 2; jz++) {
@@ -803,6 +825,9 @@ void Fluid::outputSurface(double tau) {
               for (int ii = 0; ii < 4; ii++)
                 for (int jj = 0; jj <= ii; jj++)
                   piSquare[jx][jy][jz][index44(ii, jj)] = cc->getpi(ii, jj);
+              for (int i=0; i<4; i++)
+              for (int j=0; j<4; j++)
+               dbetaSq[jx][jy][jz][i][j] = cc->getDbeta(i,j);
               PiSquare[jx][jy][jz] = cc->getPi();
             }
         cornelius->find_surface_4d(ccube);
@@ -849,6 +874,7 @@ void Fluid::outputSurface(double tau) {
             cout << "#### Error (surface): high T/mu_b ####\n";
           }
           if (eC > ecrit * 2.0 || eC < ecrit * 0.5) nsusp++;
+          double dbetaC [4][4] = {0.};
           for (int jx = 0; jx < 2; jx++)
             for (int jy = 0; jy < 2; jy++)
               for (int jz = 0; jz < 2; jz++) {
@@ -856,6 +882,9 @@ void Fluid::outputSurface(double tau) {
                   piC[ii] += piSquare[jx][jy][jz][ii] * wCenX[jx] * wCenY[jy] *
                              wCenZ[jz];
                 PiC += PiSquare[jx][jy][jz] * wCenX[jx] * wCenY[jy] * wCenZ[jz];
+                for(int i=0; i<4; i++)
+                for(int j=0; j<4; j++)
+                 dbetaC[i][j] += dbetaSq[jx][jy][jz][i][j]*wCenX[jx]*wCenY[jy]*wCenZ[jz];
               }
           double v2C = vxC * vxC + vyC * vyC + vzC * vzC;
           if (v2C > 1.) {
@@ -917,14 +946,12 @@ void Fluid::outputSurface(double tau) {
           {{ch, 0., 0., -sh}, {0., 1., 0., 0.}, {0., 0., 1., 0.},
            {-sh, 0., 0., ch}}; // Jacobian to transform covariant (lower index)
            // vector from Milne to Cartesian coordinate system
-          double _piNS [4][4], _PiNS, dmu[4][4], dbeta[4][4], du;
-          NSquant(tau, ix, iy, iz, _piNS, _PiNS, dmu, dbeta, du);
           double dbetaCart [4][4] = {0};
           for(int i=0; i<4; i++)
           for(int j=0; j<4; j++)
           for(int k=0; k<4; k++)
           for(int l=0; l<4; l++)
-           dbetaCart [i][j] += jacob[i][k] * jacob[j][l] * dbeta[k][l]
+           dbetaCart [i][j] += jacob[i][k] * jacob[j][l] * dbetaC[k][l]
                                * gmumu[l]; // which equals to d_i beta_j
           for(int i=0; i<4; i++)
           for(int j=0; j<4; j++)
@@ -1147,22 +1174,9 @@ void Fluid::outputCorona(double tau) {
           for (int ii = 0; ii < 10; ii++) ffreeze << setw(24) << picart[ii];
           ffreeze << setw(24) << PiC << endl;
 #else
-          const double jacob [4][4] =
-          {{ch, 0., 0., -sh}, {0., 1., 0., 0.}, {0., 0., 1., 0.},
-           {-sh, 0., 0., ch}}; // Jacobian to transform covariant (lower index)
-           // vector from Milne to Cartesian coordinate system
-          double _piNS [4][4], _PiNS, dmu[4][4], dbeta[4][4], du;
-          NSquant(tau, ix, iy, iz, _piNS, _PiNS, dmu, dbeta, du);
-          double dbetaCart [4][4] = {0};
           for(int i=0; i<4; i++)
           for(int j=0; j<4; j++)
-          for(int k=0; k<4; k++)
-          for(int l=0; l<4; l++)
-           dbetaCart [i][j] += jacob[i][k] * jacob[j][l] * dbeta[k][l]
-                               * gmumu[l]; // which equals to d_i beta_j
-          for(int i=0; i<4; i++)
-          for(int j=0; j<4; j++)
-           ffreeze << setw(24) << dbetaCart[i][j];
+           ffreeze << setw(24) << 0.0;
           ffreeze << endl;
 #endif
           double dEsurfVisc = 0.;

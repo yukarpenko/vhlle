@@ -249,6 +249,8 @@ int main(int argc, char **argv) {
     }
     f->outputGnuplot(h->getTau());
     f->outputSurface(h->getTau());
+    //if(istep%20==0)  // 3D debug output: disk space comsuming
+     //f->outputSnapshot(h->getTau());
   }
 
   end = 0;
