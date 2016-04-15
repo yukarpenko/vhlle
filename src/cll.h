@@ -164,7 +164,11 @@ class Cell {
   }
   inline void setDbeta(double values[4][4]) {
     for (int i = 0; i < 4; i++)
-      for (int j = 0; j < 4; j++) dbeta[i][j] = values[i][j];
+      for (int j = 0; j < 4; j++) {
+       dbeta[i][j] = values[i][j];
+       dbeta[i][j] = std::min(dbeta[i][j], 100.);
+       dbeta[i][j] = std::max(dbeta[i][j], -100.);
+      }
   }
   inline void resetDbeta() {
     for (int i = 0; i < 4; i++)
