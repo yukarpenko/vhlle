@@ -203,6 +203,8 @@ void IcPartUrqmd::makeSmoothTable(int npart) {
 
 void IcPartUrqmd::setIC(Fluid* f, EoS* eos) {
   double E = 0.0, Px = 0.0, Py = 0.0, Pz = 0.0, Nb = 0.0, S = 0.0;
+  double Jy0 = 0.0, Jint1 = 0.0, Jint3 = 0.0, Xcm = 0.0, Ycm = 0.0, Zcm = 0.0;
+  double Tcm = 0.0;
   double Q[7], e, p, nb, nq, ns, vx, vy, vz;
   for (int ix = 0; ix < nx; ix++)
     for (int iy = 0; iy < ny; iy++)
@@ -230,19 +232,44 @@ void IcPartUrqmd::setIC(Fluid* f, EoS* eos) {
         const double gamma = 1.0 / sqrt(1.0 - vx * vx - vy * vy - vz * vz);
         double u[4] = {gamma, gamma * vx, gamma * vy, gamma * vz};
         double eta = zmin + iz * dz;
-        E += tau0 * ((e + p) * u[0] * (u[0] * cosh(eta) + u[3] * sinh(eta)) -
-                     p * cosh(eta)) *
-             dx * dy * dz;
+        double coshEta = cosh(eta);
+        double sinhEta = sinh(eta);
+        double u0lab = u[0] * coshEta + u[3] * sinhEta;
+        double uzlab = u[0] * sinhEta + u[3] * coshEta;
+        double dE = tau0 * ((e + p) * u[0] * u0lab - p * coshEta) * dx * dy * dz;
+        E += dE;
         // if(zmin+iz*dz>0.)
-        Pz += tau0 * ((e + p) * u[0] * (u[0] * sinh(eta) + u[3] * cosh(eta)) -
-                      p * sinh(eta)) *
-              dx * dy * dz;
+        Pz += tau0 * ((e + p) * u[0] * uzlab - p * sinhEta) * dx * dy * dz;
         Px += tau0 * (e + p) * u[1] * u[0] * dx * dy * dz;
         Py += tau0 * (e + p) * u[2] * u[0] * dx * dy * dz;
         Nb += tau0 * nb * u[0] * dx * dy * dz;
         S += tau0 * eos->s(e, nb, nq, ns) * u[0] * dx * dy * dz;
+        // angular momentum calculation
+        const double t = tau0 * coshEta;
+        const double z = tau0 * sinhEta;
+        const double x = xmin + ix * dx;
+        const double y = ymin + iy * dy;
+        Xcm += x * dE;
+        Ycm += y * dE;
+        Zcm += z * dE;
+        Tcm += t * dE;
+        Jy0 += tau0 * (e + p) * u[0] * (z * u[1] - x * uzlab) *
+              dx * dy * dz * gevtofm;
+        Jint1 += tau0 * (e + p) * u[0] * u[1] * dx * dy * dz * gevtofm;
+        Jint3 += tau0 * (e + p) * u[0] * uzlab * dx * dy * dz * gevtofm;
       }
+  Xcm = Xcm / E;
+  Ycm = Ycm / E;
+  Zcm = Zcm / E;
+  Tcm = Tcm / E;
+  double Jy = Jy0 - Zcm * Jint1 + Xcm * Jint3;
   cout << "hydrodynamic E = " << E << "  Pz = " << Pz << "  Nbar = " << Nb
        << endl << "  Px = " << Px << "  Py = " << Py << endl;
   cout << "initial_entropy S_ini = " << S << endl;
+  cout << "Xcm: " << sqrt(Tcm*Tcm - Zcm*Zcm) << "  " << Xcm << "  " << Ycm <<
+       "  " << 0.5*log((Tcm+Zcm)/(Tcm-Zcm)) << endl;
+  cout << "initial/corrected J_y  " << Jy0 << " " << Jy << endl;
+  cout << "J_to_analyze " << setw(14) << E << setw(14) << Nb << setw(14) <<
+       Jy << endl;
+//  exit(1);
 }
