@@ -75,4 +75,5 @@ class Fluid {
   void outputSnapshot(double tau);
   void outputSurface(double tau);
   void outputCorona(double tau);
+  void outputOmegaXZ(void);
 };

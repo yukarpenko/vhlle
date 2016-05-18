@@ -204,6 +204,7 @@ void IcPartUrqmd::makeSmoothTable(int npart) {
 void IcPartUrqmd::setIC(Fluid* f, EoS* eos) {
   double E = 0.0, Px = 0.0, Py = 0.0, Pz = 0.0, Nb = 0.0, S = 0.0;
   double Jy0 = 0.0, Jint1 = 0.0, Jint3 = 0.0, Xcm = 0.0, Ycm = 0.0, Zcm = 0.0;
+  double Jy0_midrap = 0.0; // same quantity at midrapidity
   double Tcm = 0.0;
   double Q[7], e, p, nb, nq, ns, vx, vy, vz;
   for (int ix = 0; ix < nx; ix++)
@@ -257,6 +258,9 @@ void IcPartUrqmd::setIC(Fluid* f, EoS* eos) {
               dx * dy * dz * gevtofm;
         Jint1 += tau0 * (e + p) * u[0] * u[1] * dx * dy * dz * gevtofm;
         Jint3 += tau0 * (e + p) * u[0] * uzlab * dx * dy * dz * gevtofm;
+        if(iz>nz/2 - 2 && iz<nz/2 + 2)
+         Jy0_midrap += tau0 * (e + p) * u[0] * (z * u[1] - x * uzlab) *
+              dx * dy * dz * gevtofm;
       }
   Xcm = Xcm / E;
   Ycm = Ycm / E;
@@ -271,5 +275,6 @@ void IcPartUrqmd::setIC(Fluid* f, EoS* eos) {
   cout << "initial/corrected J_y  " << Jy0 << " " << Jy << endl;
   cout << "J_to_analyze " << setw(14) << E << setw(14) << Nb << setw(14) <<
        Jy << endl;
+  cout << "uncorrected J_y midrapidity: " << Jy0_midrap << endl;
 //  exit(1);
 }

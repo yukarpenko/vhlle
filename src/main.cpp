@@ -251,6 +251,7 @@ int main(int argc, char **argv) {
     f->outputSurface(h->getTau());
     //if(istep%20==0)  // 3D debug output: disk space comsuming
      //f->outputSnapshot(h->getTau());
+    if(istep==0) f->outputOmegaXZ();
   }
 
   end = 0;
