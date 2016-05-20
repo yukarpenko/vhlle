@@ -1209,11 +1209,14 @@ void Fluid::outputCorona(double tau) {
 void Fluid::outputOmegaXZ()
 {
  double omegaXZ = 0.0;
+ int ncell = 0;
  for (int ix = 2; ix < nx - 2; ix++)
   for (int iy = 2; iy < ny - 2; iy++)
    for (int iz = nz/2 - 1; iz < nz/2 + 2; iz++) {
     Cell *c = getCell(ix, iy, iz);
-    omegaXZ += 0.5* (c->getDbeta(1,3) - c->getDbeta(3,1));
+    double dOmegaXZ = 0.5* (c->getDbeta(1,3) - c->getDbeta(3,1));
+    omegaXZ += dOmegaXZ;
+    if(fabs(dOmegaXZ)>1e-10) ncell++;
    }
-  cout << "initial_omegaXEta: " << omegaXZ << endl;
+  cout << "initial_av_omegaXEta: " << omegaXZ/ncell << endl;
 }
