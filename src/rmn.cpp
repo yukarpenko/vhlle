@@ -51,7 +51,7 @@ void transformPV(EoS *eos, double Q[7], double &e, double &p, double &nb,
     nb = nq = ns = 0.;
     return;
   }
-  if (M == 0.) {
+  if (M < 1e-130) {
     e = Q[T_];
     vx = 0.;
     vy = 0.;
