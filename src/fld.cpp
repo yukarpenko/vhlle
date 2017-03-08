@@ -29,7 +29,7 @@
 #include "trancoeff.h"
 #include "cornelius.h"
 
-//#define OUTPI
+#define OUTPI
 
 // change to hadron EoS (e.g. Laine) to calculate v,T,mu at the surface
 #define SWAP_EOS
@@ -432,7 +432,7 @@ void Fluid::outputGnuplot(double tau) {
 }
 
 void Fluid::outputSnapshot(double tau) {
-  double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz;
+  double e, p, nb, nq, ns, T, mub, muq, mus, vx, vy, vz;
 
   // X direction
   for (int ix = 0; ix < nx; ix++)
@@ -443,7 +443,9 @@ void Fluid::outputSnapshot(double tau) {
     double eta = getZ(iz);
     Cell *c = getCell(ix, iy, iz);
     getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
-    eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
+    eos->eos(e, nb, nq, ns, T, mub, muq, mus, p);
+    if(T<0.01) T = 100.0;
+    double gam = 1.0/sqrt(1.0 - vx*vx - vy*vy - tanh(vz)*tanh(vz));
     fout3d << setw(14) << tau << setw(14) << x << setw(14) << y << setw(14)
           << eta << setw(14) << e << setw(14) << vx << setw(14) << vy << setw(14)
           << vz;
@@ -940,8 +942,8 @@ void Fluid::outputSurface(double tau) {
                                            2. * sh * ch * piC[index44(0, 3)];
 #ifdef OUTPI
           for (int ii = 0; ii < 10; ii++) ffreeze << setw(24) << picart[ii];
-          ffreeze << setw(24) << PiC << endl;
-#else
+          ffreeze << setw(24) << PiC ;
+#endif
           const double jacob [4][4] =
           {{ch, 0., 0., -sh}, {0., 1., 0., 0.}, {0., 0., 1., 0.},
            {-sh, 0., 0., ch}}; // Jacobian to transform covariant (lower index)
@@ -957,7 +959,6 @@ void Fluid::outputSurface(double tau) {
           for(int j=0; j<4; j++)
            ffreeze << setw(24) << dbetaCart[i][j];
           ffreeze << endl;
-#endif
           double dEsurfVisc = 0.;
           for (int i = 0; i < 4; i++)
             dEsurfVisc += picart[index44(0, i)] * dsigma[i];
@@ -1172,13 +1173,12 @@ void Fluid::outputCorona(double tau) {
                                            2. * sh * ch * piC[index44(0, 3)];
 #ifdef OUTPI
           for (int ii = 0; ii < 10; ii++) ffreeze << setw(24) << picart[ii];
-          ffreeze << setw(24) << PiC << endl;
-#else
+          ffreeze << setw(24) << PiC;
+#endif
           for(int i=0; i<4; i++)
           for(int j=0; j<4; j++)
            ffreeze << setw(24) << 0.0;
           ffreeze << endl;
-#endif
           double dEsurfVisc = 0.;
           for (int i = 0; i < 4; i++)
             dEsurfVisc += picart[index44(0, i)] * dsigma[i];
