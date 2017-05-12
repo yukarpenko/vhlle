@@ -29,7 +29,8 @@
 #include "trancoeff.h"
 #include "cornelius.h"
 
-#define OUTPI
+// pi^{mu nu} and Pi output
+//#define OUTPI
 
 // change to hadron EoS (e.g. Laine) to calculate v,T,mu at the surface
 #define SWAP_EOS
