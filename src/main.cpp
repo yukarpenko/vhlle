@@ -29,6 +29,7 @@
 #include "icPartUrqmd.h"
 #include "icGlauber.h"
 #include "icGubser.h"
+#include "icGlissando.h"
 #include "eos.h"
 #include "eo3.h"
 #include "eo1.h"
@@ -215,6 +216,10 @@ int main(int argc, char **argv) {
   }else if(icModel==4){ // analytical Gubser solution
    ICGubser *ic = new ICGubser();
    ic->setIC(f, eos, tau0);
+   delete ic;
+  }else if(icModel==5){ // IC from GLISSANDO + rapidity dependence
+   IcGlissando *ic = new IcGlissando(f, icInputFile, tau0);
+   ic->setIC(f, eos);
    delete ic;
   }else{
    cout << "icModel = " << icModel << " not implemented\n";

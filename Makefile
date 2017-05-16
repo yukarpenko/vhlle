@@ -14,7 +14,7 @@ vpath %.cpp src
 objdir     = obj
 
 SRC        = cll.cpp eos.cpp eo3.cpp eo1.cpp eoChiral.cpp eoHadron.cpp eoAZH.cpp trancoeff.cpp fld.cpp hdo.cpp s95p.cpp icurqmd.cpp ic.cpp ickw.cpp icPartUrqmd.cpp main.cpp rmn.cpp cornelius.cpp \
-             icGlauber.cpp icGubser.cpp
+             icGlauber.cpp icGubser.cpp icGlissando.cpp
 OBJS       = $(patsubst %.cpp,$(objdir)/%.o,$(SRC)) 
               
 TARGET	   = hlle_visc
