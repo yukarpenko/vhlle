@@ -4,6 +4,12 @@ class EoS;
 
 class IcGlissando {
 private:
+ double eta0; // midrapidity plateau
+ double sigEta; // diffuseness of rapidity profile
+ double ybeam; // beam rapidity
+ double alphaMix; // WN/binary mixing
+ double Rg; // Gaussian smearing in transverse dir
+ double sNorm; // normalization of initial entropy profile
  int nx, ny, nz, nevents;
  double xmin, xmax, ymin, ymax, zmin, zmax;
  double dx, dy, dz;
@@ -20,7 +26,7 @@ private:
  void makeSmoothTable(int npart);
 
 public:
- IcGlissando(Fluid *f, char *filename, double tau0);
+ IcGlissando(Fluid *f, const char *filename, double tau0, const char* setup);
  ~IcGlissando();
  void setIC(Fluid *f, EoS *eos);
 };

@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include <cstring>
 
 #include "eos.h"
 #include "eoChiral.h"
@@ -21,7 +22,7 @@ const double alphaMix = 0.15; // WN/binary mixing
 const double Rg = 0.4; // Gaussian smearing in transverse dir
 const double sNorm = 0.58; // normalization of initial entropy profile
 
-IcGlissando::IcGlissando(Fluid* f, char* filename, double _tau0) {
+IcGlissando::IcGlissando(Fluid* f, const char* filename, double _tau0, const char* setup) {
  cout << "loading GLISSANDO IC\n";
  nx = f->getNX();
  ny = f->getNY();
@@ -37,6 +38,27 @@ IcGlissando::IcGlissando(Fluid* f, char* filename, double _tau0) {
  zmax = f->getZ(nz - 1);
 
  tau0 = _tau0;
+ 
+ if(strcmp(setup,"LHC276")==0) {
+  eta0 = 2.3; // midrapidity plateau
+  sigEta = 1.4; // diffuseness of rapidity profile
+  ybeam = 7.98; // beam rapidity, for 200 GeV RHIC
+  alphaMix = 0.15; // WN/binary mixing
+  Rg = 0.4; // Gaussian smearing in transverse dir
+  sNorm = 0.96; // normalization of initial entropy profile
+  cout << "IcGlissando: setup for 2.76 TeV LHC\n";
+ } else if(strcmp(setup,"RHIC200")==0) {
+  eta0 = 1.5; // midrapidity plateau
+  sigEta = 1.4; // diffuseness of rapidity profile
+  ybeam = 5.36; // beam rapidity, for 200 GeV RHIC
+  alphaMix = 0.125; // WN/binary mixing
+  Rg = 0.4; // Gaussian smearing in transverse dir
+  sNorm = 0.63; // normalization of initial entropy profile
+  cout << "IcGlissando: setup for 200 GeV RHIC\n";
+ } else {
+  cout << "IcGlissando: optional parameter LHC276 or RHIC200 is expected\n";
+  exit(0);
+ }
 
  nsmoothx = (int)(3.0 * Rg / dx);  // smoothly distribute to +- this many cells
  nsmoothy = nsmoothx;
