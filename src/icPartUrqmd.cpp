@@ -203,9 +203,9 @@ void IcPartUrqmd::makeSmoothTable(int npart) {
 
 void IcPartUrqmd::setIC(Fluid* f, EoS* eos) {
   double E = 0.0, Px = 0.0, Py = 0.0, Pz = 0.0, Nb = 0.0, S = 0.0;
-  double Jy0 = 0.0, Jint1 = 0.0, Jint3 = 0.0, Xcm = 0.0, Ycm = 0.0, Zcm = 0.0;
-  double E_midrap = 0.0, Jy0_midrap = 0.0; // same quantity at midrapidity
-  double Tcm = 0.0;
+  double Jx0 = 0., Jy0 = 0., Jint1 = 0., Jint2 = 0., Jint3 = 0.;
+  double E_midrap = 0.0; // same quantity at midrapidity
+  double Xcm = 0., Ycm = 0., Zcm = 0., Tcm = 0.0;
   double Q[7], e, p, nb, nq, ns, vx, vy, vz;
   for (int ix = 0; ix < nx; ix++)
     for (int iy = 0; iy < ny; iy++)
@@ -250,33 +250,36 @@ void IcPartUrqmd::setIC(Fluid* f, EoS* eos) {
         const double z = tau0 * sinhEta;
         const double x = xmin + ix * dx;
         const double y = ymin + iy * dy;
-        Xcm += x * dE;
-        Ycm += y * dE;
-        Zcm += z * dE;
-        Tcm += t * dE;
-        Jy0 += tau0 * (e + p) * u[0] * (z * u[1] - x * uzlab) *
-              dx * dy * dz * gevtofm;
-        Jint1 += tau0 * (e + p) * u[0] * u[1] * dx * dy * dz * gevtofm;
-        Jint3 += tau0 * (e + p) * u[0] * uzlab * dx * dy * dz * gevtofm;
         if(iz>nz/2 - 2 && iz<nz/2 + 2){
-	 E_midrap += dE;
-         Jy0_midrap += tau0 * (e + p) * u[0] * (z * u[1] - x * uzlab) *
-              dx * dy * dz * gevtofm;
-	}
+         Xcm += x * dE;
+         Ycm += y * dE;
+         Zcm += z * dE;
+         Tcm += t * dE;
+         Jx0 += tau0 * (e + p) * u[0] * (z * u[2] - y * uzlab) *
+               dx * dy * dz * gevtofm;
+         Jy0 += tau0 * (e + p) * u[0] * (z * u[1] - x * uzlab) *
+               dx * dy * dz * gevtofm;
+         Jint1 += tau0 * (e + p) * u[0] * u[1] * dx * dy * dz * gevtofm;
+         Jint2 += tau0 * (e + p) * u[0] * u[2] * dx * dy * dz * gevtofm;
+         Jint3 += tau0 * (e + p) * u[0] * uzlab * dx * dy * dz * gevtofm;
+         E_midrap += dE;
+	       }
       }
-  Xcm = Xcm / E;
-  Ycm = Ycm / E;
-  Zcm = Zcm / E;
-  Tcm = Tcm / E;
+  Xcm = Xcm / E_midrap;
+  Ycm = Ycm / E_midrap;
+  Zcm = Zcm / E_midrap;
+  Tcm = Tcm / E_midrap;
   double Jy = Jy0 - Zcm * Jint1 + Xcm * Jint3;
+  double Jx = Jx0 - Zcm * Jint2 + Ycm * Jint3;
   cout << "hydrodynamic E = " << E << "  Pz = " << Pz << "  Nbar = " << Nb
        << endl << "  Px = " << Px << "  Py = " << Py << endl;
   cout << "initial_entropy S_ini = " << S << endl;
   cout << "Xcm: " << sqrt(Tcm*Tcm - Zcm*Zcm) << "  " << Xcm << "  " << Ycm <<
        "  " << 0.5*log((Tcm+Zcm)/(Tcm-Zcm)) << endl;
-  cout << "initial/corrected J_y  " << Jy0 << " " << Jy << endl;
+  cout << "initial_J_midrap  " << Jx0 << " " << Jy0 << endl;
+  cout << "corrected_J_midrap  " << Jx << " " << Jy << endl;
   cout << "J_to_analyze " << setw(14) << E << setw(14) << Nb << setw(14) <<
        Jy << endl;
-  cout << "midrapidity_E_Jy: " << E_midrap << " " << Jy0_midrap << endl;
+  cout << "midrapidity_E: " << E_midrap << endl;
 //  exit(1);
 }
