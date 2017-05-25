@@ -15,13 +15,6 @@
 
 using namespace std;
 
-const double eta0 = 1.5; // midrapidity plateau
-const double sigEta = 1.4; // diffuseness of rapidity profile
-const double ybeam = 5.36; // beam rapidity, for 200 GeV RHIC
-const double alphaMix = 0.15; // WN/binary mixing
-const double Rg = 0.4; // Gaussian smearing in transverse dir
-const double sNorm = 0.58; // normalization of initial entropy profile
-
 IcGlissando::IcGlissando(Fluid* f, const char* filename, double _tau0, const char* setup) {
  cout << "loading GLISSANDO IC\n";
  nx = f->getNX();
@@ -53,7 +46,7 @@ IcGlissando::IcGlissando(Fluid* f, const char* filename, double _tau0, const cha
   ybeam = 5.36; // beam rapidity, for 200 GeV RHIC
   alphaMix = 0.125; // WN/binary mixing
   Rg = 0.4; // Gaussian smearing in transverse dir
-  sNorm = 0.63; // normalization of initial entropy profile
+  sNorm = 0.56; // normalization of initial entropy profile
   cout << "IcGlissando: setup for 200 GeV RHIC\n";
  } else {
   cout << "IcGlissando: optional parameter LHC276 or RHIC200 is expected\n";
