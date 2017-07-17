@@ -5,8 +5,8 @@
 #include <iostream>
 #include <sstream>
 
-#include "eoChiral.h"
 #include "eos.h"
+#include "eoChiral.h"
 #include "fld.h"
 #include "icPartUrqmd.h"
 #include "rmn.h"

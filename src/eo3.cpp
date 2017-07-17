@@ -13,8 +13,8 @@
 #include <iostream>
 //#include <TF1.h>
 
-#include "eo3.h"
 #include "eos.h"
+#include "eo3.h"
 
 using namespace std;
 

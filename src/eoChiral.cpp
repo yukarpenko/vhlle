@@ -13,8 +13,8 @@
 #include <iostream>
 //#include <TF1.h>
 
-#include "eoChiral.h"
 #include "eos.h"
+#include "eoChiral.h"
 
 using namespace std;
 

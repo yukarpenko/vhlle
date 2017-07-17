@@ -22,12 +22,12 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
+#include "eos.h"
 #include "eo1.h"
 #include "eo3.h"
 #include "eoAZH.h"
 #include "eoChiral.h"
 #include "eoHadron.h"
-#include "eos.h"
 #include "fld.h"
 #include "hdo.h"
 #include "ic.h"

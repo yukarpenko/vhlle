@@ -5,8 +5,8 @@
 
 #include <fstream>
 #include <iostream>
-#include "eoHadron.h"
 #include "eos.h"
+#include "eoHadron.h"
 
 using namespace std;
 

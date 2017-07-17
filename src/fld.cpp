@@ -16,7 +16,6 @@
 *                                                                             *
 *******************************************************************************/
 
-#include "fld.h"
 #include <algorithm>
 #include <cmath>
 #include <fstream>
@@ -28,6 +27,7 @@
 #include "inc.h"
 #include "rmn.h"
 #include "trancoeff.h"
+#include "fld.h"
 
 #define OUTPI
 
