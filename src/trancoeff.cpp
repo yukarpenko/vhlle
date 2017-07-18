@@ -1,25 +1,43 @@
+#include <iostream>
+#include <iomanip>
 #include "eos.h"
 #include "trancoeff.h"
 #include "inc.h"
 
 TransportCoeff::TransportCoeff(double _etaS, double _zetaS, EoS *_eos) {
  etaS = _etaS;
- zetaS = _zetaS;
+ zetaS0 = _zetaS;
  eos = _eos;
+}
+
+void TransportCoeff::printZetaT()
+{
+ std::cout << "------zeta/s(T):\n";
+ for(double e=0.1; e<3.0; e+=0.1){
+  double T, mub, muq, mus, p;
+  eos->eos(e, 0., 0., 0., T, mub, muq, mus, p);
+  std::cout << std::setw(14) << T << std::setw(14) << zetaS(e, T) << std::endl;
+ }
+ std::cout << "---------------:\n";
+}
+
+double TransportCoeff::zetaS(double e, double T)
+{
+ return zetaS0 * (1. / 3. - eos->cs2(e)) / (exp((0.16 - T) / 0.001) + 1.);
 }
 
 void TransportCoeff::getEta(double e, double T, double &_etaS, double &_zetaS) {
  _etaS = etaS;
- _zetaS = zetaS * (1. / 3. - eos->cs2(e)) / (exp((0.16 - T) / 0.001) + 1.);
+ _zetaS = zetaS(e,T);
 }
 
-void TransportCoeff::getTau(double T, double &_taupi, double &_tauPi) {
+void TransportCoeff::getTau(double e, double T, double &_taupi, double &_tauPi) {
  if (T > 0.)
   _taupi = std::max(5. / 5.068 * etaS / T, 0.003);
  else
   _taupi = 0.1;
  if (T > 0.)
-  _tauPi = std::max(5. / 5.068 * (1. / 4. / C_PI) / T, 0.005);
+  _tauPi = std::max(1. / 5.068 * zetaS(e,T) / (15. * pow(0.33333-eos->cs2(e),2) * T), 0.005);
  else
   _tauPi = 0.1;
 }
