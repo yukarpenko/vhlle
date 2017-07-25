@@ -39,6 +39,7 @@ IcGlissando::IcGlissando(Fluid* f, const char* filename, double _tau0, const cha
   alphaMix = 0.15; // WN/binary mixing
   Rg = 0.4; // Gaussian smearing in transverse dir
   sNorm = 0.96; // normalization of initial entropy profile
+  A = 3.6e-5; // initial shear flow
   cout << "IcGlissando: setup for 2.76 TeV LHC\n";
  } else if(strcmp(setup,"RHIC200")==0) {
   eta0 = 1.5; // midrapidity plateau
@@ -47,6 +48,7 @@ IcGlissando::IcGlissando(Fluid* f, const char* filename, double _tau0, const cha
   alphaMix = 0.125; // WN/binary mixing
   Rg = 0.4; // Gaussian smearing in transverse dir
   sNorm = 0.56; // normalization of initial entropy profile
+  A = 5e-4; // initial shear flow
   cout << "IcGlissando: setup for 200 GeV RHIC\n";
  } else {
   cout << "IcGlissando: optional parameter LHC276 or RHIC200 is expected\n";
@@ -156,9 +158,10 @@ void IcGlissando::setIC(Fluid* f, EoS* eos) {
     e = s95p::s95p_e(sNorm * rho[ix][iy][iz] / nevents / dx / dy);
     p = eos->p(e, 0., 0., 0.);
     Cell* c = f->getCell(ix, iy, iz);
-    c->setPrimVar(eos, tau0, e, 0., 0., 0., 0., 0., 0.);
+    const double ueta = tanh(A*f->getX(ix))*sinh(ybeam-fabs(f->getZ(iz)));
+    double u[4] = {sqrt(1.0+ueta*ueta), 0., 0., ueta};
+    c->setPrimVar(eos, tau0, e, 0., 0., 0., 0., 0., u[3]/u[0]);
     if (e > 0.) c->setAllM(1.);
-    double u[4] = {1., 0., 0., 0.};
     double eta = zmin + iz * dz;
     double coshEta = cosh(eta);
     double sinhEta = sinh(eta);
@@ -205,6 +208,7 @@ void IcGlissando::setIC(Fluid* f, EoS* eos) {
  cout << "initial/corrected J_y  " << Jy0 << " " << Jy << endl;
  cout << "J_to_analyze " << setw(14) << E << setw(14) << Nb << setw(14) << Jy
       << endl;
- cout << "midrapidity_E_Jy: " << E_midrap << " " << Jy0_midrap << endl;
- //  exit(1);
+ cout << "1/tau*dE/dy_ini: : " << E_midrap/(3.0*dz*tau0) << endl;
+ cout << "1/tau*dJ/dy_ini: " << Jy0_midrap/(3.0*dz*tau0) << endl;
+ //exit(1);
 }

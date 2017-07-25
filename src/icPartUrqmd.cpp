@@ -104,7 +104,7 @@ IcPartUrqmd::IcPartUrqmd(Fluid* f, char* filename, double _Rgt, double _Rgz,
       makeSmoothTable(np);
       np = 0;
       nevents++;
-      // if(nevents>10000) return ;
+       if(nevents>100) return ;
     }
     if (np > NP - 1) cout << "ERROR: increase NP constant\n";
   }
@@ -204,7 +204,7 @@ void IcPartUrqmd::makeSmoothTable(int npart) {
 void IcPartUrqmd::setIC(Fluid* f, EoS* eos) {
   double E = 0.0, Px = 0.0, Py = 0.0, Pz = 0.0, Nb = 0.0, S = 0.0;
   double Jx0 = 0., Jy0 = 0., Jint1 = 0., Jint2 = 0., Jint3 = 0.;
-  double E_midrap = 0.0; // same quantity at midrapidity
+  double E_midrap = 0.0, S_midrap = 0.0; // same quantity at midrapidity
   double Xcm = 0., Ycm = 0., Zcm = 0., Tcm = 0.0;
   double Q[7], e, p, nb, nq, ns, vx, vy, vz;
   for (int ix = 0; ix < nx; ix++)
@@ -250,7 +250,7 @@ void IcPartUrqmd::setIC(Fluid* f, EoS* eos) {
         const double z = tau0 * sinhEta;
         const double x = xmin + ix * dx;
         const double y = ymin + iy * dy;
-        if(iz>nz/2 - 2 && iz<nz/2 + 2){
+        if(iz>nz/2 - 1 && iz<nz/2 + 1){
          Xcm += x * dE;
          Ycm += y * dE;
          Zcm += z * dE;
@@ -263,6 +263,7 @@ void IcPartUrqmd::setIC(Fluid* f, EoS* eos) {
          Jint2 += tau0 * (e + p) * u[0] * u[2] * dx * dy * dz * gevtofm;
          Jint3 += tau0 * (e + p) * u[0] * uzlab * dx * dy * dz * gevtofm;
          E_midrap += dE;
+         S_midrap += tau0 * eos->s(e, nb, nq, ns) * u[0] * dx * dy * dz;
 	       }
       }
   Xcm = Xcm / E_midrap;
@@ -277,9 +278,10 @@ void IcPartUrqmd::setIC(Fluid* f, EoS* eos) {
   cout << "Xcm: " << sqrt(Tcm*Tcm - Zcm*Zcm) << "  " << Xcm << "  " << Ycm <<
        "  " << 0.5*log((Tcm+Zcm)/(Tcm-Zcm)) << endl;
   cout << "initial_J_midrap  " << Jx0 << " " << Jy0 << endl;
-  cout << "corrected_J_midrap  " << Jx << " " << Jy << endl;
+  cout << "corrected_1/tau*dJ/dy  " << Jx/(1.0*dz*tau0) << " " << Jy/(1.0*dz*tau0) << endl;
   cout << "J_to_analyze " << setw(14) << E << setw(14) << Nb << setw(14) <<
        Jy << endl;
-  cout << "midrapidity_E: " << E_midrap << endl;
-//  exit(1);
+  cout << "1/tau*dE/dy_ini: " << E_midrap/(1.0*dz*tau0) << endl;
+  cout << "1/tau*dS/dy_ini: " << S_midrap/(1.0*dz*tau0) << endl;
+  //exit(1);
 }

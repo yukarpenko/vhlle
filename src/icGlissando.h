@@ -10,6 +10,7 @@ private:
  double alphaMix; // WN/binary mixing
  double Rg; // Gaussian smearing in transverse dir
  double sNorm; // normalization of initial entropy profile
+ double A; // initial shear flow constant
  int nx, ny, nz, nevents;
  double xmin, xmax, ymin, ymax, zmin, zmax;
  double dx, dy, dz;

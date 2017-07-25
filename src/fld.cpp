@@ -369,7 +369,7 @@ void Fluid::outputGnuplot(double tau) {
     getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
     eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
     foutx << setw(14) << tau << setw(14) << x << setw(14) << vx << setw(14)
-          << vy << setw(14) << e << setw(14) << nb << setw(14) << t << setw(14)
+          << vz << setw(14) << e << setw(14) << nb << setw(14) << t << setw(14)
           << mub;
     for(int i=0; i<4; i++)
     for(int j=0; j<4; j++)
