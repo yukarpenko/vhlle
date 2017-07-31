@@ -1,10 +1,10 @@
-#include "eos.h"
-#include <TGraph.h>
-#include <cstdlib>
-#include <fstream>
-#include <iostream>
 #include <string>
+#include <iostream>
+#include <fstream>
+#include <cstdlib>
+#include "eos.h"
 #include "inc.h"
+#include <TGraph.h>
 
 using namespace std;
 

@@ -1,18 +1,18 @@
+#include <iostream>
+#include <fstream>
+#include <iomanip>
+#include <cstring>
+#include <ctime>
+#include <sstream>
 #include <TApplication.h>
 #include <TCanvas.h>
 #include <TGraph.h>
-#include <cstring>
-#include <ctime>
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <sstream>
 
-#include "eo1.h"
+#include "eos.h"
 #include "eo3.h"
+#include "eo1.h"
 #include "eoChiral.h"
 #include "eoHadron.h"
-#include "eos.h"
 #include "rmn.h"
 
 using namespace std;

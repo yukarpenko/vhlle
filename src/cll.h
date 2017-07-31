@@ -17,8 +17,8 @@
 *******************************************************************************/
 
 #pragma once
-#include <algorithm>
 #include <iosfwd>
+#include <algorithm>
 #include "inc.h"
 class EoS;
 

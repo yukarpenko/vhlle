@@ -1,7 +1,7 @@
 #include <cmath>
-#include <cstdlib>
-#include <fstream>
 #include <iostream>
+#include <fstream>
+#include <cstdlib>
 
 extern int glauberVariable;
 

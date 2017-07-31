@@ -27,10 +27,10 @@
  *
  */
 
+#include <iostream>
+#include <fstream>
 #include <math.h>
 #include <stdlib.h>
-#include <fstream>
-#include <iostream>
 
 using namespace std;
 

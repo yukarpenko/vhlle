@@ -1,9 +1,9 @@
 #include <math.h>
-#include <cstdlib>
-#include <ctime>
-#include <fstream>
 #include <iomanip>
+#include <ctime>
+#include <cstdlib>
 #include <iostream>
+#include <fstream>
 
 #include "eos.h"
 #include "eoAZH.h"

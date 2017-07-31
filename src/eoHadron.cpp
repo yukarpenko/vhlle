@@ -1,10 +1,10 @@
 #include <cmath>
-#include <cstdlib>
-#include <ctime>
 #include <iomanip>
+#include <ctime>
+#include <cstdlib>
 
-#include <fstream>
 #include <iostream>
+#include <fstream>
 #include "eos.h"
 #include "eoHadron.h"
 

@@ -16,17 +16,17 @@
 *                                                                             *
 *******************************************************************************/
 
-#include "hdo.h"
-#include <unistd.h>
-#include <algorithm>
+#include <iostream>
 #include <fstream>
 #include <iomanip>
-#include <iostream>
-#include "cll.h"
-#include "eos.h"
-#include "fld.h"
+#include <algorithm>
+#include <unistd.h>
+#include "hdo.h"
 #include "inc.h"
 #include "rmn.h"
+#include "fld.h"
+#include "eos.h"
+#include "cll.h"
 #include "trancoeff.h"
 
 using namespace std;

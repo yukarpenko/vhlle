@@ -1,12 +1,12 @@
-#include <TF1.h>
-#include <TF2.h>
-#include <TGraph.h>
 #include <fstream>
 #include <iomanip>
 #include <iomanip>
+#include <TF1.h>
+#include <TF2.h>
+#include <TGraph.h>
 
-#include "eos.h"
 #include "fld.h"
+#include "eos.h"
 #include "icGlauber.h"
 #include "inc.h"
 
