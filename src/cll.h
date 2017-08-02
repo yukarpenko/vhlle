@@ -30,9 +30,9 @@ class Cell {
 private:
  // Q usually denotes the conserved quantities, T^{0i}
  // here, Q, Qh, Qprev etc. ~tau*T^{0i}, like Hirano'01
- double Q[7];             // final values at a given timestep
- double Qh[7];            // half-step updated values
- double Qprev[7];         // values at the end of previous timestep
+ double Q[7];      // final values at a given timestep
+ double Qh[7];     // half-step updated values
+ double Qprev[7];  // values at the end of previous timestep
  double pi[10], piH[10];  // pi^{mu nu}, WITHOUT tau factor, final (pi) and
                           // half-step updated (piH)
  double Pi,
@@ -199,6 +199,7 @@ public:
   for (int i = 0; i < 7; i++) flux[i] = 0.;
  }
  void updateByFlux();       // Q = Q + flux
+ void updateByViscFlux();   // this limits the update based on flux[0]/Q[0] ratio
  void updateQtoQhByFlux();  // Qh = Q + flux
  inline void setViscCorrCutFlag(double value) { viscCorrCut = value; }
  inline double getViscCorrCutFlag(void) { return viscCorrCut; }
