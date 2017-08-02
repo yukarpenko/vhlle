@@ -55,6 +55,11 @@ void Cell::updateByFlux() {
  for (int i = 0; i < 7; i++) Q[i] += flux[i];
 }
 
+void Cell::updateByViscFlux() {
+ if(fabs(flux[0])<0.5*Q[0])
+  for (int i = 0; i < 7; i++) Q[i] += flux[i];
+}
+
 void Cell::updateQtoQhByFlux() {
  for (int i = 0; i < 7; i++) Qh[i] = Q[i] + flux[i];
 }

@@ -1017,7 +1017,7 @@ void Hydro::performStep(void) {
    for (int iz = 0; iz < f->getNZ(); iz++)
     for (int ix = 0; ix < f->getNX(); ix++) {
      visc_source_step(ix, iy, iz);
-     f->getCell(ix, iy, iz)->updateByFlux();
+     f->getCell(ix, iy, iz)->updateByViscFlux();
      f->getCell(ix, iy, iz)->clearFlux();
     }
  } else {  // end viscous part
