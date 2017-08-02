@@ -35,7 +35,6 @@ Cell::Cell() {
   Q[i] = 0.;
   Qh[i] = 0.;
   Qprev[i] = 0.;
-  Qfull[i] = 0.;
   flux[i] = 0.;
  }
  viscCorrCut = 1.;
@@ -58,23 +57,6 @@ void Cell::updateByFlux() {
 
 void Cell::updateQtoQhByFlux() {
  for (int i = 0; i < 7; i++) Qh[i] = Q[i] + flux[i];
-}
-
-void Cell::updateQfullByFlux() {
- for (int i = 0; i < 7; i++) Qfull[i] += flux[i];
-}
-
-void Cell::correctQideal(EoS *eos, double tau) {
- double e, p, nb, nq, ns, vx, vy, vz;
- getPrimVarFull(eos, e, p, nb, nq, ns, vx, vy, vz);
- const double gamma2 = 1. / (1 - vx * vx - vy * vy - vz * vz);
- Q[T_] = tau * (e + p * (vx * vx + vy * vy + vz * vz)) * gamma2;
- Q[X_] = tau * (e + p) * vx * gamma2;
- Q[Y_] = tau * (e + p) * vy * gamma2;
- Q[Z_] = tau * (e + p) * vz * gamma2;
- Q[NB_] = tau * nb * sqrt(gamma2);
- Q[NQ_] = tau * nq * sqrt(gamma2);
- Q[NS_] = tau * ns * sqrt(gamma2);
 }
 
 void Cell::getPrimVar(EoS *eos, double tau, double &_e, double &_p, double &_nb,
@@ -197,21 +179,6 @@ void Cell::getPrimVarPrev(EoS *eos, double tau, double &_e, double &_p,
  double _Q[7];
  for (int i = 0; i < 7; i++) _Q[i] = Qprev[i] / tau;
  transformPV(eos, _Q, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
-}
-
-void Cell::getPrimVarFull(EoS *eos, double &_e, double &_p, double &_nb,
-                          double &_nq, double &_ns, double &_vx, double &_vy,
-                          double &_vz) {
- double Qideal[7];
- for (int i = 0; i < 4; i++) Qideal[i] = Qfull[i] - pi[index44(0, i)];
- for (int i = 4; i < 7; i++) Qideal[i] = Qfull[i];
- transformPVBulk(eos, Pi, Qideal, _e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
- //-------------------- debug ---------------
- if (_nb != _nb) {
-  cout << "---error in getPrimVarHRight:\n";
-  // Dump(tau) ;
- }
- //------------------------------------------
 }
 
 void Cell::setPrimVar(EoS *eos, double tau, double _e, double _nb, double _nq,
