@@ -215,7 +215,6 @@ int main(int argc, char **argv) {
  start = 0;
  time(&start);
  // h->setNSvalues() ; // initialize viscous terms
- h->setQfull();  // set Qfull in each cell, in order to output IC correctly
 
  f->initOutput(outputDir, maxstep, tau0, 2);
  f->outputCorona(tau0);

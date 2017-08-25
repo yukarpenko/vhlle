@@ -545,6 +545,18 @@ void Hydro::ISformal() {
     } else {  // non-empty cell
      // 1) relaxation(pi)+source(pi) terms for half-step
      double gamma = 1.0 / sqrt(1.0 - vx * vx - vy * vy - vz * vz);
+     double u[4];
+     u[0] = gamma;
+     u[1] = u[0] * vx;
+     u[2] = u[0] * vy;
+     u[3] = u[0] * vz;
+     // source term  + delta_Q_i/delta_tau
+     double flux[4];
+     for(int i=0; i<4; i++)
+      flux[i] = c->getpi(0,i) + c->getPi()*u[0]*u[i];
+     flux[0] += - c->getPi();
+     c->addFlux(flux[0], flux[1], flux[2], flux[3], 0., 0., 0.);
+     // now calculating viscous terms in NS limit
      NSquant(ix, iy, iz, piNS, PiNS, dmu, du);
      eos->eos(e, nb, nq, ns, T, mub, muq, mus, p);
      // orthogonality to u^mu and traceless check
@@ -585,11 +597,6 @@ void Hydro::ISformal() {
      c->setPiH0(c->getPi() - (c->getPi() - PiNS) * dt / 2.0 / gamma / tauPi);
 #endif
      // source from full IS equations (see  draft for the description)
-     double u[4];
-     u[0] = gamma;
-     u[1] = u[0] * vx;
-     u[2] = u[0] * vy;
-     u[3] = u[0] * vz;
      for (int i = 0; i < 4; i++)
       for (int j = 0; j <= i; j++) {
        c->addpiH0(i, j, -4. / 3. * c->getpi(i, j) * du / gamma * dt / 2.);
@@ -744,30 +751,21 @@ void Hydro::ISformal() {
      }
     c->setPi(Pi);
     c->setPiH(PiH);
+    // source term  - delta_Q_(i+1)/delta_tau
+    double gamma = 1.0 / sqrt(1.0 - vx * vx - vy * vy - vz * vz);
+    double u[4];
+    u[0] = gamma;
+    u[1] = u[0] * vx;
+    u[2] = u[0] * vy;
+    u[3] = u[0] * vz;
+    double flux[4];
+    for(int i=0; i<4; i++)
+     flux[i] = - (c->getpi(0,i) + c->getPi()*u[0]*u[i]);
+    flux[0] += c->getPi();
+    c->addFlux(flux[0], flux[1], flux[2], flux[3], 0., 0., 0.);
    }  // advection loop (all cells)
  cout << "ISformal: nOrthogFail = " << nOrthogFail << " , " << nOrthogNSFail
       << " , " << nTracelessFail << endl;
-}
-
-void Hydro::setQfull() {
- double uuu[4], Q[7];  // the 4-velocity
- double e, p, nb, nq, ns, vx, vy, vz;
- double gmunu[4][4] = {
-     {1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, -1, 0}, {0, 0, 0, -1}};
- for (int ix = 0; ix < f->getNX(); ix++)
-  for (int iy = 0; iy < f->getNY(); iy++)
-   for (int iz = 0; iz < f->getNZ(); iz++) {
-    Cell *c = f->getCell(ix, iy, iz);
-    c->getQ(Q);
-    c->getPrimVar(eos, e, p, nb, nq, ns, vx, vy, vz);
-    uuu[0] = 1.0 / sqrt(1.0 - vx * vx - vy * vy - vz * vz);
-    uuu[1] = vx * uuu[0];
-    uuu[2] = vy * uuu[0];
-    uuu[3] = vz * uuu[0];
-    for (int i = 0; i < 4; i++)
-     Q[i] += -c->getPi() * (gmunu[0][i] - uuu[0] * uuu[i]) + c->getpi(0, i);
-    c->setQfull(Q);
-   }
 }
 
 // this procedure explicitly uses T_==0, X_==1, Y_==2, Z_==3
@@ -902,7 +900,6 @@ void Hydro::performStep(void) {
 
  //===== viscous part ======
  if (trcoeff->isViscous()) {
-  setQfull();  // set the values of full Q^\mu including visc corrections
   ISformal();  // evolution of viscous quantities according to IS equations
 
   // X dir
@@ -930,8 +927,8 @@ void Hydro::performStep(void) {
    for (int iz = 0; iz < f->getNZ(); iz++)
     for (int ix = 0; ix < f->getNX(); ix++) {
      // visc_source_step(ix, iy, iz);  // not needed in Cartesian
-     f->getCell(ix, iy, iz)->updateQfullByFlux();
-     f->getCell(ix, iy, iz)->correctQideal(eos);
+     f->getCell(ix, iy, iz)->updateByFlux();
+     f->getCell(ix, iy, iz)->clearFlux();
     }
  } else {  // end viscous part
  }
