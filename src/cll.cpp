@@ -52,7 +52,9 @@ Cell::Cell() {
   setAllM(0.);
   for(int i=0; i<4; i++)
   for(int j=0; j<4; j++)
-   dbeta[i][j] = 0.0;
+   du[i][j] = 0.0;
+  for(int i=0; i<4; i++)
+   dT[i] = 0.0;
 }
 
 void Cell::updateByFlux() {

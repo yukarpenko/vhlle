@@ -373,7 +373,7 @@ void Fluid::outputGnuplot(double tau) {
           << mub;
     for(int i=0; i<4; i++)
     for(int j=0; j<4; j++)
-     foutx << setw(14) << c->getDbeta(i,j);
+     foutx << setw(14) << c->getDu(i,j);
     foutx << endl;
   }
   foutx << endl;
@@ -389,7 +389,7 @@ void Fluid::outputGnuplot(double tau) {
           << mub;
     for(int i=0; i<4; i++)
     for(int j=0; j<4; j++)
-     fouty << setw(14) << c->getDbeta(i,j);
+     fouty << setw(14) << c->getDu(i,j);
     fouty << endl;
   }
   fouty << endl;
@@ -426,7 +426,7 @@ void Fluid::outputGnuplot(double tau) {
           << mub;
     for(int i=0; i<4; i++)
     for(int j=0; j<4; j++)
-     foutz << setw(14) << c->getDbeta(i,j);
+     foutz << setw(14) << c->getDu(i,j);
     foutz << endl;
   }
   foutz << endl;
@@ -452,7 +452,7 @@ void Fluid::outputSnapshot(double tau) {
           << vz;
     for(int i=0; i<4; i++)
     for(int j=0; j<4; j++)
-     fout3d << setw(14) << c->getDbeta(i,j);
+     fout3d << setw(14) << c->getDu(i,j);
     fout3d << endl;
   }
   fout3d << endl;
@@ -472,7 +472,7 @@ void transformToLab(double eta, double &vx, double &vy, double &vz) {
 // dv/dx_i ~ v^{x+dx}-v{x-dx},
 // which makes sense after non-viscous step
 void Fluid::NSquant(double tau, int ix, int iy, int iz, double pi[4][4],
-                    double &Pi, double dmu[4][4], double dbeta[4][4],
+                    double &Pi, double dmu[4][4], double dT[4],
                     double &du) {
   const double VMIN = 1e-2;
   const double UDIFF = 3.0;
@@ -499,7 +499,7 @@ void Fluid::NSquant(double tau, int ix, int iy, int iz, double pi[4][4],
       for (int j = 0; j < 4; j++) {
         pi[i][j] = 0.;
         dmu[i][j] = 0.;
-        dbeta[i][j] = 0.;
+        dT[i] = 0.;
       }
     Pi = du = 0.;
     return;
@@ -537,10 +537,7 @@ void Fluid::NSquant(double tau, int ix, int iy, int iz, double pi[4][4],
   dmu[0][1] = (ux1 * ux1 - ux0 * ux0) / 2. / uuu[1] / dt;
   dmu[0][2] = (uy1 * uy1 - uy0 * uy0) / 2. / uuu[2] / dt;
   dmu[0][3] = (uz1 * uz1 - uz0 * uz0) / 2. / uuu[3] / dt;
-  dbeta[0][0] = (ut1 / T1 - ut0 / T0) / dt;
-  dbeta[0][1] = (ux1 / T1 - ux0 / T0) / dt;
-  dbeta[0][2] = (uy1 / T1 - uy0 / T0) / dt;
-  dbeta[0][3] = (uz1 / T1 - uz0 / T0) / dt;
+  dT[0] = (1. / T1 - 1. / T0) / dt;
   if (fabs(0.5 * (ut1 + ut0) / ut1) > UDIFF) dmu[0][0] = (ut1 - ut0) / dt;
   if (fabs(uuu[1]) < VMIN || fabs(0.5 * (ux1 + ux0) / ux1) > UDIFF)
     dmu[0][1] = (ux1 - ux0) / dt;
@@ -552,7 +549,7 @@ void Fluid::NSquant(double tau, int ix, int iy, int iz, double pi[4][4],
     dmu[0][0] = dmu[0][1] = dmu[0][2] = dmu[0][3] = 0.;
   }
   if(e1 <= 0. || e0 <= 0. || T1<=0. || T0<=0.) {
-    dbeta[0][0] = dbeta[0][1] = dbeta[0][2] = dbeta[0][3] = 0.;
+    dT[0] = 0.;
   }
   // d_x u^\mu
   getCell(ix + 1, iy, iz)
@@ -574,10 +571,7 @@ void Fluid::NSquant(double tau, int ix, int iy, int iz, double pi[4][4],
     dmu[1][1] = 0.25 * (ux1 * ux1 - ux0 * ux0) / uuu[1] / dx;
     dmu[1][2] = 0.25 * (uy1 * uy1 - uy0 * uy0) / uuu[2] / dx;
     dmu[1][3] = 0.25 * (uz1 * uz1 - uz0 * uz0) / uuu[3] / dx;
-    dbeta[1][0] = 0.5 * (ut1 / T1 - ut0 / T0) / dx;
-    dbeta[1][1] = 0.5 * (ux1 / T1 - ux0 / T0) / dx;
-    dbeta[1][2] = 0.5 * (uy1 / T1 - uy0 / T0) / dx;
-    dbeta[1][3] = 0.5 * (uz1 / T1 - uz0 / T0) / dx;
+    dT[1] = 0.5 * (1. / T1 - 1. / T0) / dx;
     if (fabs(0.5 * (ut1 + ut0) / uuu[0]) > UDIFF)
       dmu[1][0] = 0.5 * (ut1 - ut0) / dx;
     if (fabs(uuu[1]) < VMIN || fabs(0.5 * (ux1 + ux0) / uuu[1]) > UDIFF)
@@ -590,7 +584,7 @@ void Fluid::NSquant(double tau, int ix, int iy, int iz, double pi[4][4],
     dmu[1][0] = dmu[1][1] = dmu[1][2] = dmu[1][3] = 0.;
   }
   if(e1 <= 0. || e0 <= 0. || T1<=0. || T0<=0.) {
-    dbeta[1][0] = dbeta[1][1] = dbeta[1][2] = dbeta[1][3] = 0.;
+    dT[1] = 0.;
   }
   if (fabs(dmu[1][3]) > 1e+10)
     cout << "dmu[1][3]:  " << uz1 << "  " << uz0 << "  " << uuu[3] << endl;
@@ -614,10 +608,7 @@ void Fluid::NSquant(double tau, int ix, int iy, int iz, double pi[4][4],
     dmu[2][1] = 0.25 * (ux1 * ux1 - ux0 * ux0) / uuu[1] / dy;
     dmu[2][2] = 0.25 * (uy1 * uy1 - uy0 * uy0) / uuu[2] / dy;
     dmu[2][3] = 0.25 * (uz1 * uz1 - uz0 * uz0) / uuu[3] / dy;
-    dbeta[2][0] = 0.5 * (ut1 / T1 - ut0 / T0) / dy;
-    dbeta[2][1] = 0.5 * (ux1 / T1 - ux0 / T0) / dy;
-    dbeta[2][2] = 0.5 * (uy1 / T1 - uy0 / T0) / dy;
-    dbeta[2][3] = 0.5 * (uz1 / T1 - uz0 / T0) / dy;
+    dT[2] = 0.5 * (1. / T1 - 1. / T0) / dy;
     if (fabs(0.5 * (ut1 + ut0) / uuu[0]) > UDIFF)
       dmu[2][0] = 0.5 * (ut1 - ut0) / dy;
     if (fabs(uuu[1]) < VMIN || fabs(0.5 * (ux1 + ux0) / uuu[1]) > UDIFF)
@@ -630,7 +621,7 @@ void Fluid::NSquant(double tau, int ix, int iy, int iz, double pi[4][4],
     dmu[2][0] = dmu[2][1] = dmu[2][2] = dmu[2][3] = 0.;
   }
   if(e1 <= 0. || e0 <= 0. || T1<=0. || T0<=0.){
-    dbeta[2][0] = dbeta[2][1] = dbeta[2][2] = dbeta[2][3] = 0.;
+    dT[2] = 0.;
   }
   // d_z u^\mu
   getCell(ix, iy, iz + 1)
@@ -652,10 +643,7 @@ void Fluid::NSquant(double tau, int ix, int iy, int iz, double pi[4][4],
     dmu[3][1] = 0.25 * (ux1 * ux1 - ux0 * ux0) / uuu[1] / dz / (tau - 0.5 * dt);
     dmu[3][2] = 0.25 * (uy1 * uy1 - uy0 * uy0) / uuu[2] / dz / (tau - 0.5 * dt);
     dmu[3][3] = 0.25 * (uz1 * uz1 - uz0 * uz0) / uuu[3] / dz / (tau - 0.5 * dt);
-    dbeta[3][0] = 0.5 * (ut1 / T1 - ut0 / T0) / (dz * (tau - 0.5 * dt));
-    dbeta[3][1] = 0.5 * (ux1 / T1 - ux0 / T0) / (dz * (tau - 0.5 * dt));
-    dbeta[3][2] = 0.5 * (uy1 / T1 - uy0 / T0) / (dz * (tau - 0.5 * dt));
-    dbeta[3][3] = 0.5 * (uz1 / T1 - uz0 / T0) / (dz * (tau - 0.5 * dt));
+    dT[3] = 0.5 * (1. / T1 - 1. / T0) / (dz * (tau - 0.5 * dt));
     if (fabs(0.5 * (ut1 + ut0) / uuu[0]) > UDIFF)
       dmu[3][0] = 0.5 * (ut1 - ut0) / dz / (tau + 0.5 * dt);
     if (fabs(uuu[1]) < VMIN || fabs(0.5 * (ux1 + ux0) / uuu[1]) > UDIFF)
@@ -668,15 +656,11 @@ void Fluid::NSquant(double tau, int ix, int iy, int iz, double pi[4][4],
     dmu[3][0] = dmu[3][1] = dmu[3][2] = dmu[3][3] = 0.;
   }
   if(e1 <= 0. || e0 <= 0. || T1<=0. || T0<=0.){
-    dbeta[3][0] = dbeta[3][1] = dbeta[3][2] = dbeta[3][3] = 0.;
+    dT[3] = 0.;
   }
   // additional terms from Christoffel symbols :)
   dmu[3][0] += uuu[3] / (tau - 0.5 * dt);
   dmu[3][3] += uuu[0] / (tau - 0.5 * dt);
-  if(T>0.){
-  dbeta[3][0] += uuu[3] / (T * (tau - 0.5 * dt));
-  dbeta[3][3] += uuu[0] / (T * (tau - 0.5 * dt));
-  }
   // calculation of Z[mu][nu][lambda][rho]
   for (int i = 0; i < 4; i++)
     for (int j = 0; j < 4; j++)
@@ -811,7 +795,7 @@ void Fluid::outputSurface(double tau) {
         //----- Cornelius stuff
         double QCube[2][2][2][2][7];
         double piSquare[2][2][2][10], PiSquare[2][2][2];
-        double dbetaSq [2][2][2][4][4];
+        double duSq [2][2][2][4][4], dTSq [2][2][2][4];
         for (int jx = 0; jx < 2; jx++)
           for (int jy = 0; jy < 2; jy++)
             for (int jz = 0; jz < 2; jz++) {
@@ -830,7 +814,9 @@ void Fluid::outputSurface(double tau) {
                   piSquare[jx][jy][jz][index44(ii, jj)] = cc->getpi(ii, jj);
               for (int i=0; i<4; i++)
               for (int j=0; j<4; j++)
-               dbetaSq[jx][jy][jz][i][j] = cc->getDbeta(i,j);
+               duSq[jx][jy][jz][i][j] = cc->getDu(i,j);
+              for (int i=0; i<4; i++)
+               dTSq[jx][jy][jz][i] = cc->getDT(i);
               PiSquare[jx][jy][jz] = cc->getPi();
             }
         cornelius->find_surface_4d(ccube);
@@ -877,7 +863,7 @@ void Fluid::outputSurface(double tau) {
             cout << "#### Error (surface): high T/mu_b ####\n";
           }
           if (eC > ecrit * 2.0 || eC < ecrit * 0.5) nsusp++;
-          double dbetaC [4][4] = {0.};
+          double duC [4][4] = {0.}, dTC [4] = {0.};
           for (int jx = 0; jx < 2; jx++)
             for (int jy = 0; jy < 2; jy++)
               for (int jz = 0; jz < 2; jz++) {
@@ -887,7 +873,9 @@ void Fluid::outputSurface(double tau) {
                 PiC += PiSquare[jx][jy][jz] * wCenX[jx] * wCenY[jy] * wCenZ[jz];
                 for(int i=0; i<4; i++)
                 for(int j=0; j<4; j++)
-                 dbetaC[i][j] += dbetaSq[jx][jy][jz][i][j]*wCenX[jx]*wCenY[jy]*wCenZ[jz];
+                 duC[i][j] += duSq[jx][jy][jz][i][j]*wCenX[jx]*wCenY[jy]*wCenZ[jz];
+                for(int i=0; i<4; i++)
+                 dTC[i] += dTSq[jx][jy][jz][i]*wCenX[jx]*wCenY[jy]*wCenZ[jz];
               }
           double v2C = vxC * vxC + vyC * vyC + vzC * vzC;
           if (v2C > 1.) {
@@ -949,16 +937,21 @@ void Fluid::outputSurface(double tau) {
           {{ch, 0., 0., -sh}, {0., 1., 0., 0.}, {0., 0., 1., 0.},
            {-sh, 0., 0., ch}}; // Jacobian to transform covariant (lower index)
            // vector from Milne to Cartesian coordinate system
-          double dbetaCart [4][4] = {0};
+          double duCart [4][4] = {0.}, dTCart [4] = {0.};
           for(int i=0; i<4; i++)
           for(int j=0; j<4; j++)
           for(int k=0; k<4; k++)
           for(int l=0; l<4; l++)
-           dbetaCart [i][j] += jacob[i][k] * jacob[j][l] * dbetaC[k][l]
+           duCart [i][j] += jacob[i][k] * jacob[j][l] * duC[k][l]
                                * gmumu[l]; // which equals to d_i beta_j
           for(int i=0; i<4; i++)
+          for(int k=0; k<4; k++)
+           dTCart [i] += jacob[i][k] * dTC[k];
+          for(int i=0; i<4; i++)
           for(int j=0; j<4; j++)
-           ffreeze << setw(24) << dbetaCart[i][j];
+           ffreeze << setw(24) << duCart[i][j];
+          for(int i=0; i<4; i++)
+           ffreeze << setw(24) << dTCart[i];
           ffreeze << endl;
           double dEsurfVisc = 0.;
           for (int i = 0; i < 4; i++)
@@ -1179,6 +1172,8 @@ void Fluid::outputCorona(double tau) {
           for(int i=0; i<4; i++)
           for(int j=0; j<4; j++)
            ffreeze << setw(24) << 0.0;
+          for(int i=0; i<4; i++)
+           ffreeze << setw(24) << 0.0;
           ffreeze << endl;
           double dEsurfVisc = 0.;
           for (int i = 0; i < 4; i++)
@@ -1215,7 +1210,7 @@ void Fluid::outputOmegaXZ()
   for (int iy = 2; iy < ny - 2; iy++)
    for (int iz = nz/2 - 1; iz < nz/2 + 2; iz++) {
     Cell *c = getCell(ix, iy, iz);
-    double dOmegaXZ = 0.5* (c->getDbeta(1,3) - c->getDbeta(3,1));
+    double dOmegaXZ = 0.5* (c->getDu(1,3) - c->getDu(3,1));
     omegaXZ += dOmegaXZ;
     if(fabs(dOmegaXZ)>1e-10) ncell++;
    }

@@ -40,7 +40,7 @@ class Cell {
       PiH;  // Pi, WITHOUT tau factor, final (Pi) and half-step updated (PiH)
   double pi0[10], piH0[10];  // // pi^{mu nu}, WITHOUT tau factor, auxiliary
   double Pi0, PiH0;  // viscous, WITHOUT tau factor, auxiliary
-  double dbeta [4][4]; // derivatives of beta vector
+  double du [4][4], dT[4]; // derivatives of 4-velocity and temperature
   double flux[7];  // cumulative fluxes
   Cell *next[3];   // pointer to the next cell in a given direction
   Cell *prev[3];   // pointer to the previous cell in a given direction
@@ -162,20 +162,26 @@ class Cell {
     for (int i = 0; i < 4; i++)
       for (int j = 0; j < 4; j++) piH0[index44(i, j)] = values[i][j];
   }
-  inline void setDbeta(double values[4][4]) {
+  inline void setDuDT(double values[4][4], double valT [4]) {
     for (int i = 0; i < 4; i++)
       for (int j = 0; j < 4; j++) {
-       dbeta[i][j] = values[i][j];
-       dbeta[i][j] = std::min(dbeta[i][j], 100.);
-       dbeta[i][j] = std::max(dbeta[i][j], -100.);
+       du[i][j] = values[i][j];
+       du[i][j] = std::min(du[i][j], 100.);
+       du[i][j] = std::max(du[i][j], -100.);
       }
-  }
-  inline void resetDbeta() {
     for (int i = 0; i < 4; i++)
-      for (int j = 0; j < 4; j++) dbeta[i][j] = 0.0;
+      dT[i] = valT[i];
   }
-  inline double getDbeta(int i, int j) {
-   return dbeta[i][j];
+  inline void resetDuDT() {
+    for (int i = 0; i < 4; i++)
+      for (int j = 0; j < 4; j++) du[i][j] = 0.0;
+    for (int i = 0; i < 4; i++) dT[i] = 0.0;
+  }
+  inline double getDu(int i, int j) {
+   return du[i][j];
+  }
+  inline double getDT(int i) {
+   return dT[i];
   }
 
   // get the energy density, pressure, charge densities and flow velocity
