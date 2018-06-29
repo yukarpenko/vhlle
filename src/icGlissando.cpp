@@ -39,7 +39,7 @@ IcGlissando::IcGlissando(Fluid* f, const char* filename, double _tau0, const cha
   alphaMix = 0.15; // WN/binary mixing
   Rg = 0.4; // Gaussian smearing in transverse dir
   sNorm = 0.96; // normalization of initial entropy profile
-  A = 3.6e-5; // initial shear flow
+  A = 0.0 ; /// 3.6e-5; // initial shear flow
   cout << "IcGlissando: setup for 2.76 TeV LHC\n";
  } else if(strcmp(setup,"RHIC200")==0) {
   eta0 = 1.5; // midrapidity plateau
@@ -48,7 +48,7 @@ IcGlissando::IcGlissando(Fluid* f, const char* filename, double _tau0, const cha
   alphaMix = 0.125; // WN/binary mixing
   Rg = 0.4; // Gaussian smearing in transverse dir
   sNorm = 0.56; // normalization of initial entropy profile
-  A = 5e-4; // initial shear flow
+  A = 0.0 ; // 5e-4; // initial shear flow
   cout << "IcGlissando: setup for 200 GeV RHIC\n";
  } else {
   cout << "IcGlissando: optional parameter LHC276 or RHIC200 is expected\n";
