@@ -29,6 +29,7 @@
 #include "icPartUrqmd.h"
 #include "icGlauber.h"
 #include "icGubser.h"
+#include "icGlissando.h"
 #include "eos.h"
 #include "eo3.h"
 #include "eo1.h"
@@ -171,6 +172,7 @@ int main(int argc, char **argv) {
  char *parFile;
  if (argc == 1) {
   cout << "NO PARAMETERS, exiting\n";
+  cout << "usage: ./hlle_visc <input file> <optional params>\n";
   exit(1);
  } else {
   parFile = argv[1];
@@ -216,6 +218,10 @@ int main(int argc, char **argv) {
   ICGubser *ic = new ICGubser();
   ic->setIC(f, eos, tau0);
   delete ic;
+  }else if(icModel==5){ // IC from GLISSANDO + rapidity dependence
+   IcGlissando *ic = new IcGlissando(f, icInputFile, tau0, argv[2]);
+   ic->setIC(f, eos);
+   delete ic;
  } else {
   cout << "icModel = " << icModel << " not implemented\n";
  }
