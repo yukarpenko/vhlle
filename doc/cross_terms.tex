@@ -1,0 +1,55 @@
+\documentclass{revtex4}
+
+\usepackage{amsmath}
+\usepackage{xfrac}
+
+\newcommand{\dd}{\partial}
+
+\title{Cross terms}
+%\author{Iurii Karpenko}
+
+\begin{document}
+\maketitle
+
+\section{(Extra) Cross terms in the shear/bulk equations in vHLLE}
+
+
+The cross terms are taken as in \cite{Bernhard:2016tnd}:
+ \begin{align}\label{eqns1}
+ \dot\Pi &= \frac{-\zeta\theta-\Pi}{\tau_\Pi}-\frac{\delta_{\Pi\Pi}}{\tau_\Pi}\Pi\theta+
+   \frac{\lambda_{\Pi\pi}}{\tau_\Pi}\pi^{\mu\nu}\sigma_{\mu\nu} \\
+ \dot\pi^{\langle\mu\nu\rangle} &= \frac{2\eta\sigma^{\mu\nu}-\pi^{\mu\nu}}{\tau_\pi}-
+   \frac{\delta_{\pi\pi}}{\tau_\pi}\pi^{\mu\nu}\theta + \frac{\phi_7}{\tau_\pi}\pi_\alpha^{\langle\mu}\pi^{\nu\rangle\alpha}-\frac{\tau_{\pi\pi}}{\tau_\pi}\pi_\alpha^{\langle\mu}\sigma^{\nu\rangle\alpha} + \frac{\lambda_{\pi\Pi}}{\tau_\pi}\Pi\sigma^{\mu\nu}
+ \end{align}
+where as usual $\dot A=u^\mu \dd_\mu A$, and the ans\"atze for transport coefficients are taken as \cite{Denicol:2014vaa}:
+$$\frac{\delta_{\Pi\Pi}}{\tau_\Pi}=\frac 2 3,\quad
+\frac{\lambda_{\Pi\pi}}{\tau_\Pi}=\frac 8 5 \left(\frac 1 3 - c_s^2\right), \quad
+\frac{\delta_{\pi\pi}}{\tau_\pi}=\frac 4 3,\quad
+\phi_7 = \frac{9}{70 p},\quad
+\frac{\tau_{\pi\pi}}{\tau_\pi}=\frac{10}{7},\quad
+\frac{\lambda_{\pi\Pi}}{\tau_\pi}=\frac 6 5.$$
+relaxation times are taken as:
+$$\tau_\pi=\frac{5\eta}{sT},\quad \tau_\Pi=\frac{\zeta}{15(\sfrac{1}{3}-c_s^2)^2 sT}$$
+The symmetric traceless parts of contractions in the cross terms may be written in simplified explicit form due to properties of the shear stress tensor:
+$$\pi_\alpha^{\langle\mu}\sigma^{\nu\rangle\alpha}=\frac 1 2 \left(
+\pi^{\alpha\mu}\sigma^{\nu\alpha}g_{\alpha\alpha}+\pi^{\alpha\nu}\sigma^{\mu\alpha}g_{\alpha\alpha}\right)
+-\frac 1 3 \Delta^{\mu\nu}\pi^{\alpha\lambda}\sigma^{\alpha\lambda}g_{\alpha\alpha}g_{\lambda\lambda}$$
+
+$$ \pi_\alpha^{\langle\mu}\pi^{\nu\rangle\alpha}=\pi^{\alpha\mu}\pi^{\nu\alpha}g_{\alpha\alpha}
+-\frac 1 3 \Delta^{\mu\nu}\pi^{\alpha\lambda}\pi^{\alpha\lambda}g_{\alpha\alpha}g_{\lambda\lambda} $$
+\begin{thebibliography}{0}
+\bibitem{Bernhard:2016tnd}
+  J.~E.~Bernhard, J.~S.~Moreland, S.~A.~Bass, J.~Liu and U.~Heinz,
+  %``Applying Bayesian parameter estimation to relativistic heavy-ion collisions: simultaneous characterization of the initial state and quark-gluon plasma medium,''
+  Phys.\ Rev.\ C {\bf 94} (2016) no.2,  024907
+  %doi:10.1103/PhysRevC.94.024907
+  [arXiv:1605.03954 [nucl-th]].
+\bibitem{Denicol:2014vaa} 
+  G.~S.~Denicol, S.~Jeon and C.~Gale,
+  %``Transport Coefficients of Bulk Viscous Pressure in the 14-moment approximation,''
+  Phys.\ Rev.\ C {\bf 90}, no. 2, 024912 (2014)
+  %doi:10.1103/PhysRevC.90.024912
+  [arXiv:1403.0962 [nucl-th]].
+\end{thebibliography}
+
+\end{document}

@@ -181,15 +181,14 @@ int main(int argc, char **argv) {
  printParameters();
 
  // EoS
- // char * eosfile = "eos/Laine_nf3.dat" ;
- // int ncols = 3, nrows = 286 ;
- // eos = new EoSs(eosfile,ncols) ;
- if (eosType == 1)
+ if (eosType == 0)
+  eos = new EoSs("eos/Laine_nf3.dat", 3);
+ else if (eosType == 1)
   eos = new EoSChiral();
  else if (eosType == 2)
   eos = new EoSAZH();
  else {
-  cout << "eosType != 1,2\n";
+  cout << "eosType != 0,1,2\n";
   return 0;
  }
  EoS *eosH = new EoSHadron("eos/eosHadronLog.dat");
