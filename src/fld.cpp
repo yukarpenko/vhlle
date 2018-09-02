@@ -435,6 +435,64 @@ void Fluid::outputGnuplot(double tau) {
  foutz << endl;
 }
 
+void Fluid::getLocalQuant(double tau, double x, double y, double eta, double& T,
+ double& vx, double& vy, double& vz)
+// returns temperature and components of 3-vector of flow velocity,
+// interpolated to (x,y,eta)
+{
+ double e, p, nb, nq, ns, _vx, _vy, _vz, _T, mub, muq, mus;
+ if(x<minx || x>maxx || y<miny || y>maxy || eta<minz || eta>maxz){
+  T = vx = vy = vz = 0.;
+  return;
+ }
+ T = vx = vy = vz = 0.;
+ const int ix = (int)((x-minx)/dx);
+ const int iy = (int)((y-miny)/dy);
+ const int iz = (int)((eta-minz)/dz);
+ const double xm = x - getX(ix);
+ const double ym = y - getY(iy);
+ const double zm = eta - getZ(iz);
+ double wx [2] = {1.-xm/dx, xm/dx};
+ double wy [2] = {1.-ym/dy, ym/dy};
+ double wz [2] = {1.-zm/dz, zm/dz};
+ for(int i=0; i<2; i++)
+ for(int j=0; j<2; j++)
+ for(int k=0; k<2; k++) {
+  getCell(ix+i, iy+j, iz+k)->getPrimVar(eos, tau, e, p, nb, nq, ns, _vx, _vy, _vz);
+  eos->eos(e, nb, nq, ns, _T, mub, muq, mus, p);
+  T += wx[i]*wy[j]*wz[k]*_T;
+  vx += wx[i]*wy[j]*wz[k]*_vx;
+  vy += wx[i]*wy[j]*wz[k]*_vy;
+  vz += wx[i]*wy[j]*wz[k]*_vz;
+ }
+}
+
+void Fluid::absorbPmu(double tau, double x, double y, double eta, double E,
+ double px, double py, double pz)
+// melts a parton at position x, y, eta into the corresponding (+nearby)
+// fluid cell
+{
+ if(x<minx || x>maxx || y<miny || y>maxy || eta<minz || eta>maxz){
+  return;
+ }
+ cout << "FLabsorb" << setw(14) << tau << setw(14) << x << setw(14) << y << setw(14) << eta << endl << "--------" << setw(14) << E << setw(14) << px << setw(14) << py << setw(14) << pz << endl;
+ const int ix = (int)((x-minx)/dx);
+ const int iy = (int)((y-miny)/dy);
+ const int iz = (int)((eta-minz)/dz);
+ //const double xm = x - getX(ix);
+ //const double ym = y - getY(iy);
+ //const double zm = eta - getZ(iz);
+ //double wx [2] = {1.-xm/dx, xm/dx};
+ //double wy [2] = {1.-ym/dy, ym/dy};
+ //double wz [2] = {1.-zm/dz, zm/dz};
+ Cell* c =getCell(ix, iy, iz);
+ const double invVol = 1./(tau*getDx()*getDy()*getDz());
+ c->addFlux((E*cosh(eta)-pz*sinh(eta))*invVol, px*invVol, py*invVol,
+  (-E*sinh(eta)+pz*cosh(eta))*invVol, 0., 0., 0.);
+ c->updateByFlux();
+ c->clearFlux();
+}
+
 // unput: geom. rapidity + velocities in Bjorken frame, --> output: velocities
 // in lab.frame
 void transformToLab(double eta, double &vx, double &vy, double &vz) {

@@ -68,4 +68,8 @@ public:
  void outputGnuplot(double tau);
  void outputSurface(double tau);
  void outputCorona(double tau);
+ void getLocalQuant(double tau, double x, double y, double eta, double& T,
+ double& vx, double& vy, double& vz);
+ void absorbPmu(double tau, double x, double y, double eta, double E,
+ double px, double py, double pz);
 };

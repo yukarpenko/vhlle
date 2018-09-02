@@ -8,13 +8,13 @@ e_crit    0.5             !  criterion for surface finding
 
 nx        81             ! number of cells in X direction
 ny        81             ! number of cells in Y direction
-nz        51             ! number of cells in eta direction
+nz        11             ! number of cells in eta direction
 xmin     -16.0            ! coordinate of the first cell
 xmax      16.0            ! coordinate of the last cell
 ymin     -16.0
 ymax      16.0
-etamin   -10.0
-etamax    10.0
+etamin   -2.0
+etamax    2.0
 
 ! icModel: 1=Glauber, 2=Glauber_table+parametrized rapidity for energy conserv. check, 4=Gubser flow
 icModel    2
@@ -24,6 +24,6 @@ s0ScaleFactor  107.1  !53.55
 epsilon0   30.0
 impactPar  7.0
 tau0       0.5     ! starting proper time
-tauMax     10.0    ! proper time to stop hydro
-dtau       0.1    ! timestep
+tauMax     8.0    ! stop the hydro before the FO hypersurface collapses
+dtau       0.2    ! timestep
 

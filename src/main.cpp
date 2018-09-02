@@ -37,8 +37,12 @@
 #include "eoAZH.h"
 #include "eoHadron.h"
 #include "trancoeff.h"
+//--- parton cascade modules
+#include "const.h"
+#include "params.h"
+#include "cascade.h"
 
-using namespace std;
+//using namespace std;  // already declared in JT/const.h
 
 // program parameters, to be read from file
 int nx, ny, nz, eosType;
@@ -237,6 +241,20 @@ int main(int argc, char **argv) {
  start = 0;
  time(&start);
  // h->setNSvalues() ; // initialize viscous terms
+ // Jet init
+ vector<Jet*> jets;
+ JetParameters* jparams = new JetParameters("jparams");
+ srand(438468301);
+ init_tables(438468301);
+ jets.clear(); // clear the whole parton vector
+ jets.reserve(100);
+ // a sample jet
+ double E = 30.;
+ double pt = 10.;
+ double Q = sqrt(E*E-pt*pt)-0.01; // change the qmax in const.h accordingly!
+ int type = 1;
+ double Qa=qsuch(Q,type,E,pt); // pz=0, pplus=E
+ jets.push_back(new Jet(type, pt, 0., 0., E, Qa, -5.0, 0.0, 0.0, tau0));
 
  f->initOutput(outputDir, maxstep, tau0, 2);
  f->outputCorona(tau0);
@@ -252,9 +270,28 @@ int main(int argc, char **argv) {
   for (int j = 0; j < nSubSteps; j++) {
    h->performStep();
   }
+  double t = tau0 + istep*dtau; // beginning of timestep (for jet evolution)
+  //for(Jet* jet: jets) {
+  uint i=0;
+  while(i<jets.size()) {
+   if(jets[i]->nprts()==0){
+    vector<Jet*>::iterator it = jets.begin() + i ;
+    jets.erase(it);
+    continue;
+   }
+   jets[i]->makeStep(f, jparams, t, t+dtau);
+   i++;
+  };
   f->outputGnuplot(h->getTau());
   f->outputSurface(h->getTau());
  }
+
+ // printing final jets
+ ofstream fjetout ("jets_final");
+ for(uint i=0; i<jets.size(); i++) {
+  jets[i]->output(i, fjetout);
+ }
+ fjetout.close();
 
  end = 0;
  time(&end);
