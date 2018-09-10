@@ -257,7 +257,7 @@ int main(int argc, char **argv) {
  jets.push_back(new Jet(type, pt, 0., 0., E, Qa, -5.0, 0.0, 0.0, tau0));
 
  f->initOutput(outputDir, maxstep, tau0, 2);
- f->outputCorona(tau0);
+ //f->outputCorona(tau0);
 
  for (int istep = 0; istep < maxstep; istep++) {
   // decrease timestep automatically, but use fixed dtau for output
@@ -283,7 +283,7 @@ int main(int argc, char **argv) {
    i++;
   };
   f->outputGnuplot(h->getTau());
-  f->outputSurface(h->getTau());
+  //f->outputSurface(h->getTau());
  }
 
  // printing final jets

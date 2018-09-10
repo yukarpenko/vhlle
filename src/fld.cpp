@@ -155,11 +155,6 @@ void Fluid::initOutput(char *dir, int maxstep, double tau0, int cmpr2dOut) {
  fouty << "# " << maxstep + 1 << "  " << getNY() << endl;
  foutdiag << "# " << maxstep + 1 << "  " << getNX() << endl;
  foutz << "# " << maxstep + 1 << "  " << getNZ() << endl;
- fout2d << " " << maxstep + 1 << "  " << (getNX() - 5) + 1 << "  "
-        << (getNY() - 5) + 1 << endl;
- fout2d << tau0 << "  " << tau0 + 0.05 * maxstep << "  " << getX(2) << "  "
-        << getX(getNX() - 3) << "  " << getY(2) << "  " << getY(getNY() - 3)
-        << endl;
  outputGnuplot(tau0);
  fout_aniz << "#  tau  <<v_T>>  e_p  e'_p  (to compare with SongHeinz)\n";
 }
@@ -433,6 +428,18 @@ void Fluid::outputGnuplot(double tau) {
         << c->getViscCorrCutFlag() << endl;
  }
  foutz << endl;
+
+ // 2D
+ for (int ix = 0; ix < nx; ix++)
+ for (int iy = 0; iy < ny; iy++) {
+  double x = getX(ix);
+  double y = getY(iy);
+  Cell *c = getCell(ix, iy, nz / 2);
+  getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
+  eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
+  fout2d << setw(14) << tau << setw(14) << x << setw(14) << y << setw(14) << vx << setw(14) << vy << setw(14) << e << endl;
+ }
+ fout2d << endl;
 }
 
 void Fluid::getLocalQuant(double tau, double x, double y, double eta, double& T,
