@@ -52,21 +52,51 @@ Cell::Cell() {
 }
 
 void Cell::updateByFlux() {
- for (int i = 0; i < 7; i++) Q[i] += flux[i];
+ if(Q[0]+flux[0]<0.)
+  return;
+ for (int i = 0; i < 7; i++) {
+  Q[i] += flux[i];
+  #ifdef NAN_DEBUG
+  if(std::isinf(Q[i]) or std::isnan(Q[i])) {
+   cout << "Cell::updateByFlux inf/nan\n";
+  }
+  #endif
+ }
 }
 
 void Cell::updateByViscFlux() {
  if(fabs(flux[0]) <= 0.5*Q[0]) {
-  for (int i = 0; i < 7; i++) Q[i] += flux[i];
+  for (int i = 0; i < 7; i++) {
+   Q[i] += flux[i];
+   #ifdef NAN_DEBUG
+   if(std::isinf(Q[i]) or std::isnan(Q[i])) {
+    cout << "Cell::updateByFlux inf/nan\n";
+   }
+   #endif
+  }
  } else {
   double fac;
   fac = fabs(0.5*Q[0]/flux[0]);
-  for (int i = 0; i < 7; i++) Q[i] += fac*flux[i];
+  for (int i = 0; i < 7; i++) {
+   Q[i] += fac*flux[i];
+   #ifdef NAN_DEBUG
+   if(std::isinf(Q[i]) or std::isnan(Q[i])) {
+    cout << "Cell::updateByFlux inf/nan\n";
+   }
+   #endif
+  }
  }
 }
 
 void Cell::updateQtoQhByFlux() {
- for (int i = 0; i < 7; i++) Qh[i] = Q[i] + flux[i];
+ for (int i = 0; i < 7; i++) {
+  Qh[i] = Q[i] + flux[i];
+  #ifdef NAN_DEBUG
+  if(std::isinf(Qh[i]) or std::isnan(Qh[i])) {
+   cout << "Cell::updateQtoQhByFlux inf/nan\n";
+  }
+  #endif
+ }
 }
 
 void Cell::getPrimVar(EoS *eos, double tau, double &_e, double &_p, double &_nb,
