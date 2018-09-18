@@ -4,6 +4,7 @@
 class EoS;
 class TransportCoeff;
 class Cornelius;
+class GaussSmear;
 
 // this class contains the information and methods related to the hydro grid
 // 'z' direction actually denotes eta direction, as well as
@@ -13,6 +14,8 @@ private:
  EoS *eos, *eosH;          // equation(s) of state
  TransportCoeff *trcoeff;  // transport coefficients for visc fluid
  Cornelius *cornelius;  // instance of Cornelius to calculate the hypersurface
+ GaussSmear *smear;     // a Gaussian smearing kernel
+ bool bAbsorption;      // flag to absorb energy/momentum from jets
  Cell *cell;            // 3D hydro grid, packed in 1D array
  Cell *cell0;           // reference to cell containing all zero quantities
  int nx, ny, nz;        // dimensions of the grid
@@ -28,7 +31,7 @@ private:
 public:
  Fluid(EoS *_eos, EoS *_eosH, TransportCoeff *_trcoeff, int _nx, int _ny,
        int _nz, double _minx, double _maxx, double _miny, double _maxy,
-       double _minz, double _maxz, double dt, double eCrit);
+       double _minz, double _maxz, double dt, double eCrit, int nSmear);
  ~Fluid();
  void initOutput(char *dir, int maxstep, double tau0, int cmpr2dOut);
  int output_xy_spacing;

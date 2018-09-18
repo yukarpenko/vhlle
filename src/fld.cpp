@@ -28,6 +28,7 @@
 #include "eos.h"
 #include "trancoeff.h"
 #include "cornelius.h"
+#include "smearingKernel.h"
 
 #define OUTPI
 
@@ -52,7 +53,7 @@ void Fluid::getCMFvariables(Cell *c, double tau, double &e, double &nb,
 
 Fluid::Fluid(EoS *_eos, EoS *_eosH, TransportCoeff *_trcoeff, int _nx, int _ny,
              int _nz, double _minx, double _maxx, double _miny, double _maxy,
-             double _minz, double _maxz, double _dt, double eCrit) {
+             double _minz, double _maxz, double _dt, double eCrit, int nSmear) {
  eos = _eos;
  eosH = _eosH;
  trcoeff = _trcoeff;
@@ -100,6 +101,17 @@ Fluid::Fluid(EoS *_eos, EoS *_eosH, TransportCoeff *_trcoeff, int _nx, int _ny,
  ecrit = eCrit;
  vEff = 0.;
  EtotSurf = 0.0;
+ bAbsorption = true; // default: absorb energy/momentum from jets
+ if(nSmear>=0)
+  smear = new GaussSmear(nSmear);
+ else
+  bAbsorption = false; // absorption is off if nSmear<0 !
+ // print out the smearing kernel
+ //for(int i=-nSmear; i<=nSmear; i++){
+ //for(int j=-nSmear; j<=nSmear; j++)
+  //cout << setw(14) << smear->get(i,j);
+ //cout << endl;
+ //}
 }
 
 Fluid::~Fluid() {
@@ -479,10 +491,10 @@ void Fluid::absorbPmu(double tau, double x, double y, double eta, double E,
 // melts a parton at position x, y, eta into the corresponding (+nearby)
 // fluid cell
 {
+ if(!bAbsorption) return;
  if(x<minx || x>maxx || y<miny || y>maxy || eta<minz || eta>maxz){
   return;
  }
- cout << "FLabsorb" << setw(14) << tau << setw(14) << x << setw(14) << y << setw(14) << eta << endl << "--------" << setw(14) << E << setw(14) << px << setw(14) << py << setw(14) << pz << endl;
  const int ix = (int)((x-minx)/dx);
  const int iy = (int)((y-miny)/dy);
  const int iz = (int)((eta-minz)/dz);
@@ -492,12 +504,26 @@ void Fluid::absorbPmu(double tau, double x, double y, double eta, double E,
  //double wx [2] = {1.-xm/dx, xm/dx};
  //double wy [2] = {1.-ym/dy, ym/dy};
  //double wz [2] = {1.-zm/dz, zm/dz};
- Cell* c =getCell(ix, iy, iz);
  const double invVol = 1./(tau*getDx()*getDy()*getDz());
- c->addFlux((E*cosh(eta)-pz*sinh(eta))*invVol, px*invVol, py*invVol,
-  (-E*sinh(eta)+pz*cosh(eta))*invVol, 0., 0., 0.);
- c->updateByFlux();
- c->clearFlux();
+ double dPmu [4] = {(E*cosh(eta)-pz*sinh(eta))*invVol, px*invVol, py*invVol,
+   (-E*sinh(eta)+pz*cosh(eta))*invVol};
+ if(dPmu[0]!=dPmu[0]) {
+  cout << "Fluid::absorbPmu: dE=nan\n";
+ }
+ // smear the energy and momentum over +- N cells in x and y
+ for(int ism=-smear->getN(); ism<=smear->getN(); ism++)
+ for(int jsm=-smear->getN(); jsm<=smear->getN(); jsm++) {
+  Cell* c = getCell(ix+ism, iy+jsm, iz);
+  double _Q [7];
+  c->getQ(_Q);
+  if(_Q[0]<1e-5)  // don't absorb energy/momentum into low-density fluid
+   return;
+  //cout << "FLabsorb" << setw(14) << tau << setw(14) << x << setw(14) << y << setw(14) << eta << endl << "--------" << setw(14) << E << setw(14) << px << setw(14) << py << setw(14) << pz << endl;
+  c->addFlux(dPmu[0]*smear->get(ism,jsm), dPmu[1]*smear->get(ism,jsm),
+   dPmu[2]*smear->get(ism,jsm), dPmu[3]*smear->get(ism,jsm), 0., 0., 0.);
+  c->updateByFlux();
+  c->clearFlux();
+ }
 }
 
 // unput: geom. rapidity + velocities in Bjorken frame, --> output: velocities
@@ -553,7 +579,7 @@ void Fluid::outputSurface(double tau) {
     Nb2 += tau * nb * (cosh_int - tanh(vz) * sinh_int) /
            sqrt(1. - vx * vx - vy * vy - tanh(vz) * tanh(vz));
     //---- inf check
-    if (isinf(E)) {
+    if (std::isinf(E)) {
      cout << "EEinf" << setw(14) << e << setw(14) << p << setw(14) << vx
           << setw(14) << vy << setw(14) << vz << endl;
      exit(1);
@@ -789,7 +815,7 @@ void Fluid::outputCorona(double tau) {
     Nb2 += tau * nb * (cosh_int - tanh(vz) * sinh_int) /
            sqrt(1. - vx * vx - vy * vy - tanh(vz) * tanh(vz));
     //---- inf check
-    if (isinf(E)) {
+    if (std::isinf(E)) {
      cout << "EEinf" << setw(14) << e << setw(14) << p << setw(14) << vx
           << setw(14) << vy << setw(14) << vz << endl;
      exit(1);

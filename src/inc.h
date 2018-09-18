@@ -21,6 +21,3 @@ const double C_PI = 3.14159265358979312;
 
 const double gevtofm = 5.067728853;
 
-#ifndef _DEBUG
-//#define UI
-#endif

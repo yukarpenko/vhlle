@@ -50,7 +50,7 @@ double xmin, xmax, ymin, ymax, etamin, etamax, tau0, tauMax, dtau;
 char outputDir[255];
 char icInputFile[255];
 double etaS, zetaS, eCrit;
-int icModel,
+int icModel, nSmear = 1,
     glauberVariable =
         1;  // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
 double epsilon0, Rgt, Rgz, impactPar, s0ScaleFactor;
@@ -81,6 +81,8 @@ void readParameters(char *parFile) {
    nz = atoi(parValue);
   else if (strcmp(parName, "icModel") == 0)
    icModel = atoi(parValue);
+  else if (strcmp(parName, "jetELsmear") == 0)
+   nSmear = atoi(parValue);
   else if (strcmp(parName, "glauberVar") == 0)
    glauberVariable = atoi(parValue);
   else if (strcmp(parName, "xmin") == 0)
@@ -122,6 +124,7 @@ void readParameters(char *parFile) {
   else
    cout << "UUU " << sline.str() << endl;
  }
+ fin.close();
 }
 
 void printParameters() {
@@ -150,6 +153,7 @@ void printParameters() {
  cout << "Rgt = " << Rgt << "  Rgz = " << Rgz << endl;
  cout << "impactPar = " << impactPar << endl;
  cout << "s0ScaleFactor = " << s0ScaleFactor << endl;
+ cout << "jetELsmear = " << nSmear << endl;
  cout << "======= end parameters =======\n";
 }
 
@@ -162,6 +166,36 @@ void printParameters() {
 // int icModel, NPART, glauberVariable=1 ;
 // double epsilon0, alpha, impactPar, s0ScaleFactor ;
 
+void readIniPartons(const char* file, vector<Jet*> &jets)
+{
+ ifstream fin(file);
+ if (!fin.is_open()) {
+  cout << "cannot open initial partons file " << file << endl;
+  exit(1);
+ }
+ int count=0;
+ while (fin.good()) {  // reading the initial partons, line by line
+  string line;
+  getline(fin, line);
+  istringstream sline(line);
+  int i, type;
+  double px, py, pz, E, Q2, x, y, z, t;
+  sline >> type >> px >> py >> pz >> E >> Q2 >> x >> y >> z >> t; // new input format!
+  Q2 = sqrt(Q2);
+  if(Q2!=Q2) Q2 = 0.;
+  double eta = 0.5*log((t+z)/(t-z));
+  if(eta!=eta) {
+   //cout << "etanan" << setw(14) << t << setw(14) << z << endl;
+   eta = 0.;
+  }
+  if(Q2>2.0) {// skip low-Q partons, qsuch() won't work anyways
+   // default/min: 0.6; test 22.0;
+   jets.push_back(new Jet(type, px, py, pz, E, Q2, x, y, eta, tau0));
+   count++;
+  }
+ }
+}
+
 int main(int argc, char **argv) {
  // pointers to all the main objects
  EoS *eos;
@@ -173,13 +207,18 @@ int main(int argc, char **argv) {
  time(&start);
 
  // read parameters from file
- char *parFile;
+ char *parFile, *jetParFile, *iniPartonsFile;
  if (argc == 1) {
   cout << "NO PARAMETERS, exiting\n";
   cout << "usage: ./hlle_visc <input file> <optional params>\n";
   exit(1);
- } else {
+ } else if (argc==3){
   parFile = argv[1];
+  //jetParFile = argv[2];
+  iniPartonsFile = argv[2];
+ } else {
+  cout << "wrong parameter list, exiting\n" ;
+  exit(1);
  }
  readParameters(parFile);
  printParameters();
@@ -201,7 +240,7 @@ int main(int argc, char **argv) {
  trcoeff = new TransportCoeff(etaS, zetaS, eos);
 
  f = new Fluid(eos, eosH, trcoeff, nx, ny, nz, xmin, xmax, ymin, ymax, etamin,
-               etamax, dtau, eCrit);
+               etamax, dtau, eCrit, nSmear);
  cout << "fluid allocation done\n";
 
  // initilal conditions
@@ -241,23 +280,32 @@ int main(int argc, char **argv) {
  start = 0;
  time(&start);
  // h->setNSvalues() ; // initialize viscous terms
+ f->initOutput(outputDir, maxstep, tau0, 2);
+ //f->outputCorona(tau0);
  // Jet init
  vector<Jet*> jets;
- JetParameters* jparams = new JetParameters("jparams");
+ JetParameters* jparams = new JetParameters(parFile);
  srand(438468301);
  init_tables(438468301);
  jets.clear(); // clear the whole parton vector
  jets.reserve(100);
  // a sample jet
  double E = 30.;
- double pt = 10.;
+ double pt = 0.;
  double Q = sqrt(E*E-pt*pt)-0.01; // change the qmax in const.h accordingly!
  int type = 1;
- double Qa=qsuch(Q,type,E,pt); // pz=0, pplus=E
- jets.push_back(new Jet(type, pt, 0., 0., E, Qa, -5.0, 0.0, 0.0, tau0));
+ //double Qa=qsuch(Q,type,E,pt); // pz=0, pplus=E
+ //cout << "Qa = " << Qa << endl;
+ //jets.push_back(new Jet(type, pt, 0., 0., E, Qa, -5.0, 0.0, 0.0, tau0));
+ readIniPartons(iniPartonsFile, jets);
+ string sOutputDir(outputDir);
+ ofstream fjetiniout ((sOutputDir+"/jets_initial").c_str());
+ for(uint i=0; i<jets.size(); i++) {
+  jets[i]->output(i, fjetiniout);
+ }
+ fjetiniout.close();
 
- f->initOutput(outputDir, maxstep, tau0, 2);
- //f->outputCorona(tau0);
+ ofstream fjetTimeStep((sOutputDir+"/jetTimeSteps").c_str());
 
  for (int istep = 0; istep < maxstep; istep++) {
   // decrease timestep automatically, but use fixed dtau for output
@@ -280,18 +328,24 @@ int main(int argc, char **argv) {
     continue;
    }
    jets[i]->makeStep(f, jparams, t, t+dtau);
+   jets[i]->outputTimestep(t+dtau, i, fjetTimeStep);
    i++;
   };
   f->outputGnuplot(h->getTau());
   //f->outputSurface(h->getTau());
+  cout << "tau=" << t << "  done\n";
  }
+ fjetTimeStep.close();
 
  // printing final jets
- ofstream fjetout ("jets_final");
+ ofstream fjetout ((sOutputDir+"/jets_final").c_str());
+ ofstream fjettot ((sOutputDir+"/jet_totals").c_str());
  for(uint i=0; i<jets.size(); i++) {
   jets[i]->output(i, fjetout);
+  jets[i]->outputTotal(i, fjettot);
  }
  fjetout.close();
+ fjettot.close();
 
  end = 0;
  time(&end);
