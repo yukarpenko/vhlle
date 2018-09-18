@@ -339,9 +339,11 @@ int main(int argc, char **argv) {
 
  // printing final jets
  ofstream fjetout ((sOutputDir+"/jets_final").c_str());
+ ofstream fjetoutGF ((sOutputDir+"/jets_final_GF").c_str());
  ofstream fjettot ((sOutputDir+"/jet_totals").c_str());
  for(uint i=0; i<jets.size(); i++) {
   jets[i]->output(i, fjetout);
+  jets[i]->outputGlobalFrame(i, fjetoutGF);
   jets[i]->outputTotal(i, fjettot);
  }
  fjetout.close();
