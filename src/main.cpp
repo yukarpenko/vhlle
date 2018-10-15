@@ -188,7 +188,7 @@ void readIniPartons(const char* file, vector<Jet*> &jets)
    //cout << "etanan" << setw(14) << t << setw(14) << z << endl;
    eta = 0.;
   }
-  if(Q2>2.0) {// skip low-Q partons, qsuch() won't work anyways
+  if(Q2>10.0) {// skip low-Q partons, qsuch() won't work anyways
    // default/min: 0.6; test 22.0;
    jets.push_back(new Jet(type, px, py, pz, E, Q2, x, y, eta, tau0));
    count++;
@@ -332,7 +332,7 @@ int main(int argc, char **argv) {
    i++;
   };
   f->outputGnuplot(h->getTau());
-  //f->outputSurface(h->getTau());
+  f->outputSurface(h->getTau());
   cout << "tau=" << t << "  done\n";
  }
  fjetTimeStep.close();
