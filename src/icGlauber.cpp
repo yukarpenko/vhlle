@@ -33,10 +33,12 @@ ICGlauber::ICGlauber(double e, double impactPar, double _tau0) {
 ICGlauber::~ICGlauber(void) {}
 
 double ICGlauber::eProfile(double x, double y) {
- prms[0] = sqrt((x + b / 2.0) * (x + b / 2.0) + y * y);
- const double tpp = iff->Integral(-3.0 * Ra, 3.0 * Ra, prms, 1.0e-9);
- prms[0] = sqrt((x - b / 2.0) * (x - b / 2.0) + y * y);
- const double tmm = iff->Integral(-3.0 * Ra, 3.0 * Ra, prms, 1.0e-9);
+ //prms[0] = sqrt((x + b / 2.0) * (x + b / 2.0) + y * y);
+ iff->SetParameters(sqrt((x + b / 2.0) * (x + b / 2.0) + y * y), 0.);
+ const double tpp = iff->Integral(-3.0 * Ra, 3.0 * Ra, 1.0e-9);
+ //prms[0] = sqrt((x - b / 2.0) * (x - b / 2.0) + y * y);
+ iff->SetParameters(sqrt((x - b / 2.0) * (x - b / 2.0) + y * y), 0.);
+ const double tmm = iff->Integral(-3.0 * Ra, 3.0 * Ra, 1.0e-9);
  return epsilon *
         pow(1. / rho0 * (tpp * (1.0 - pow((1.0 - sigma * tmm / A), A)) +
                          tmm * (1.0 - pow((1.0 - sigma * tpp / A), A))),
@@ -90,13 +92,14 @@ void ICGlauber::setIC(Fluid *f, EoS *eos) {
  }
  delete ff;
  cout << "a = " << A / intgr2 << endl;
- prms[1] = A / intgr2;
- prms[2] = Ra;
- prms[3] = dlt;
+ //prms[1] = A / intgr2;
+ //prms[2] = Ra;
+ //prms[3] = dlt;
  iff = new TF1("WoodSaxonDF", this, &ICGlauber::WoodSaxon, -3.0 * Ra, 3.0 * Ra,
                4, "IC", "WoodSaxon");
- prms[0] = 0.0;
- const double tpp = iff->Integral(-3.0 * Ra, 3.0 * Ra, prms, 1.0e-9);
+ //prms[0] = 0.0;
+ iff->SetParameters(0.0, A / intgr2, Ra, dlt);
+ const double tpp = iff->Integral(-3.0 * Ra, 3.0 * Ra, 1.0e-9);
  rho0 = 2.0 * tpp * (1.0 - pow((1.0 - sigma * tpp / A), A));
 
  findRPhi();  // fill in R(phi) table
@@ -147,11 +150,12 @@ double ICGlauber::Thickness(double *x, double *p) {
  TF1 *iff = 0;
  iff = new TF1("WoodSaxonDF", this, &ICGlauber::WoodSaxon, -3.0 * p[0],
                3.0 * p[0], 4, "IC", "WoodSaxon");
- prms[0] = sqrt(x[0] * x[0] + x[1] * x[1]);  //
- prms[1] = 1.0;  // normalization parameter which must be found.
- prms[2] = p[0];
- prms[3] = p[1];
- intgrl = iff->Integral(-3.0 * p[0], 3.0 * p[0], prms, 1.0e-9);
+ //prms[0] = sqrt(x[0] * x[0] + x[1] * x[1]);  //
+ //prms[1] = 1.0;  // normalization parameter which must be found.
+ //prms[2] = p[0];
+ //prms[3] = p[1];
+ iff->SetParameters(sqrt(x[0] * x[0] + x[1] * x[1]), 1.0, p[0], p[1]);
+ intgrl = iff->Integral(-3.0 * p[0], 3.0 * p[0], 1.0e-9);
  if (iff) delete iff;
  return intgrl;
 }
