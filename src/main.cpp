@@ -54,6 +54,9 @@ int icModel, nSmear = 1,
     glauberVariable =
         1;  // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
 double epsilon0, Rgt, Rgz, impactPar, s0ScaleFactor;
+// ##### jet-related parameters
+int jetOversampleFactor;
+double jetMinPt;
 
 void readParameters(char *parFile) {
  char parName[255], parValue[255];
@@ -119,6 +122,11 @@ void readParameters(char *parFile) {
    impactPar = atof(parValue);
   else if (strcmp(parName, "s0ScaleFactor") == 0)
    s0ScaleFactor = atof(parValue);
+  // ### JET-related parameters
+  else if (strcmp(parName, "oversampleFactor") == 0)
+   jetOversampleFactor = atoi(parValue);
+  else if (strcmp(parName, "jetMinPt") == 0)
+   jetMinPt = atof(parValue);
   else if (parName[0] == '!')
    cout << "CCC " << sline.str() << endl;
   else
@@ -154,6 +162,8 @@ void printParameters() {
  cout << "impactPar = " << impactPar << endl;
  cout << "s0ScaleFactor = " << s0ScaleFactor << endl;
  cout << "jetELsmear = " << nSmear << endl;
+ cout << "jetOversampleFactor = " << jetOversampleFactor << endl;
+ cout << "jetMinPt = " << jetMinPt << endl;
  cout << "======= end parameters =======\n";
 }
 
@@ -188,9 +198,11 @@ void readIniPartons(const char* file, vector<Jet*> &jets)
    //cout << "etanan" << setw(14) << t << setw(14) << z << endl;
    eta = 0.;
   }
-  if(Q2>2.0) {// skip low-Q partons, qsuch() won't work anyways
+  if(Q2>0.6 and px*px+py*py>jetMinPt*jetMinPt) {
+   // skip low-Q partons, qsuch() won't work
    // default/min: 0.6; test 22.0;
-   jets.push_back(new Jet(type, px, py, pz, E, Q2, x, y, eta, tau0));
+   for(int i=0; i<jetOversampleFactor; i++)
+    jets.push_back(new Jet(type, px, py, pz, E, Q2, x, y, eta, tau0));
    count++;
   }
  }
