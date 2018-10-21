@@ -191,7 +191,7 @@ void readIniPartons(const char* file, vector<Jet*> &jets)
   int i, type;
   double px, py, pz, E, Q2, x, y, z, t;
   sline >> type >> px >> py >> pz >> E >> Q2 >> x >> y >> z >> t; // new input format!
-  Q2 = sqrt(Q2);
+  Q2 = sqrt(px*px+py*py);  // input Q2 from EPOS ignored
   if(Q2!=Q2) Q2 = 0.;
   double eta = 0.5*log((t+z)/(t-z));
   if(eta!=eta) {
