@@ -123,7 +123,7 @@ void readParameters(char *parFile) {
   else if (strcmp(parName, "s0ScaleFactor") == 0)
    s0ScaleFactor = atof(parValue);
   // ### JET-related parameters
-  else if (strcmp(parName, "oversampleFactor") == 0)
+  else if (strcmp(parName, "jetOversampleFactor") == 0)
    jetOversampleFactor = atoi(parValue);
   else if (strcmp(parName, "jetMinPt") == 0)
    jetMinPt = atof(parValue);
@@ -217,6 +217,9 @@ int main(int argc, char **argv) {
  time_t start = 0, end;
 
  time(&start);
+ // setting default values for some parameters
+ jetOversampleFactor = 1;
+ jetMinPt = 10.0;
 
  // read parameters from file
  char *parFile, *jetParFile, *iniPartonsFile;
