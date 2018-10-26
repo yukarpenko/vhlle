@@ -304,14 +304,6 @@ int main(int argc, char **argv) {
  init_tables(438468301);
  jets.clear(); // clear the whole parton vector
  jets.reserve(100);
- // a sample jet
- double E = 30.;
- double pt = 0.;
- double Q = sqrt(E*E-pt*pt)-0.01; // change the qmax in const.h accordingly!
- int type = 1;
- //double Qa=qsuch(Q,type,E,pt); // pz=0, pplus=E
- //cout << "Qa = " << Qa << endl;
- //jets.push_back(new Jet(type, pt, 0., 0., E, Qa, -5.0, 0.0, 0.0, tau0));
  readIniPartons(iniPartonsFile, jets);
  string sOutputDir(outputDir);
  ofstream fjetiniout ((sOutputDir+"/jets_initial").c_str());
