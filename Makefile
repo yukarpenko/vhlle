@@ -14,7 +14,7 @@ vpath %.cpp src JT
 objdir     = obj
 
 SRC        = cll.cpp eos.cpp eo3.cpp eo1.cpp eoChiral.cpp eoHadron.cpp eoAZH.cpp trancoeff.cpp fld.cpp hdo.cpp s95p.cpp icurqmd.cpp ic.cpp ickw.cpp icPartUrqmd.cpp main.cpp rmn.cpp cornelius.cpp \
-             icGlauber.cpp icGubser.cpp icGlissando.cpp \
+             icGlauber.cpp icGubser.cpp icGlissando.cpp icEpos.cpp \
              params.cpp integral.cpp W.cpp S.cpp cascade.cpp smearingKernel.cpp
 OBJS       = $(patsubst %.cpp,$(objdir)/%.o,$(SRC)) 
               

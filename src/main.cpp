@@ -30,6 +30,7 @@
 #include "icGlauber.h"
 #include "icGubser.h"
 #include "icGlissando.h"
+#include "icEpos.h"
 #include "eos.h"
 #include "eo3.h"
 #include "eo1.h"
@@ -290,6 +291,10 @@ int main(int argc, char **argv) {
    IcGlissando *ic = new IcGlissando(f, icInputFile, tau0, argv[2]);
    ic->setIC(f, eos);
    delete ic;
+  }else if(icModel==6){ // EPOS IS
+   icEpos::loadIC("ic/epos/hydro_grid_params", "ic/epos/initial_state_table");
+   icEpos::setIC(f, eos);
+   icEpos::deleteIC();
  } else {
   cout << "icModel = " << icModel << " not implemented\n";
  }
@@ -300,6 +305,10 @@ int main(int argc, char **argv) {
  float diff = difftime(tinit, start);
  cout << "Init time = " << diff << " [sec]" << endl;
 
+ if(icModel==6) { // take tau0 and dt explicitly from EPOS IS output
+  tau0 = icEpos::tau0;
+  //dtau = icEpos::dt;
+ }
  // hydro init
  h = new Hydro(f, eos, trcoeff, tau0, dtau);
  int maxstep = ceil((tauMax - tau0) / dtau);
