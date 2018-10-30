@@ -55,6 +55,7 @@ int icModel, nSmear = 1,
         1;  // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
 double epsilon0, Rgt, Rgz, impactPar, s0ScaleFactor;
 // ##### jet-related parameters
+int eventNo; // enumerates the initial/input configuration
 int jetOversampleFactor;
 double jetMinPt;
 
@@ -137,6 +138,7 @@ void readParameters(char *parFile) {
 
 void printParameters() {
  cout << "====== parameters ======\n";
+ cout << "event #" << eventNo << endl;
  cout << "outputDir = " << outputDir << endl;
  cout << "eosType = " << eosType << endl;
  cout << "nx = " << nx << endl;
@@ -178,34 +180,42 @@ void printParameters() {
 
 void readIniPartons(const char* file, vector<Jet*> &jets)
 {
+ int count;
+ for(int ios=0; ios<jetOversampleFactor; ios++){
  ifstream fin(file);
  if (!fin.is_open()) {
   cout << "cannot open initial partons file " << file << endl;
   exit(1);
  }
- int count=0;
+ count=0;
  while (fin.good()) {  // reading the initial partons, line by line
   string line;
   getline(fin, line);
   istringstream sline(line);
-  int i, type;
+  int type;
   double px, py, pz, E, Q2, x, y, z, t;
   sline >> type >> px >> py >> pz >> E >> Q2 >> x >> y >> z >> t; // new input format!
   Q2 = sqrt(px*px+py*py);  // input Q2 from EPOS ignored
+  //Q2 = sqrt(Q2);
   if(Q2!=Q2) Q2 = 0.;
   double eta = 0.5*log((t+z)/(t-z));
   if(eta!=eta) {
    //cout << "etanan" << setw(14) << t << setw(14) << z << endl;
    eta = 0.;
   }
-  if(Q2>0.6 and px*px+py*py>jetMinPt*jetMinPt) {
+  // ONLY QUARK JETS!
+  if(Q2>0.6 and px*px+py*py>jetMinPt*jetMinPt and abs(type)!=9) {
    // skip low-Q partons, qsuch() won't work
    // default/min: 0.6; test 22.0;
-   for(int i=0; i<jetOversampleFactor; i++)
-    jets.push_back(new Jet(type, px, py, pz, E, Q2, x, y, eta, tau0));
+   // Event numbering: last 3 digits enumerate the oversampled jet evolution,
+   // the upper digits enumerate initial state / hydro configuration.
+   jets.push_back(new Jet(1000*eventNo+ios, count, type, px, py, pz, E, Q2, x, y, eta, tau0));
    count++;
   }
- }
+ } // file read loop
+ fin.close();
+ } // oversample loop
+ cout << count << " jet partons read in.\n";
 }
 
 int main(int argc, char **argv) {
@@ -225,12 +235,13 @@ int main(int argc, char **argv) {
  char *parFile, *jetParFile, *iniPartonsFile;
  if (argc == 1) {
   cout << "NO PARAMETERS, exiting\n";
-  cout << "usage: ./hlle_visc <input file> <optional params>\n";
+  cout << "usage: ./hlle_visc <input file> <jet_input> <eventId>\n";
   exit(1);
- } else if (argc==3){
+ } else if (argc==4){
   parFile = argv[1];
   //jetParFile = argv[2];
   iniPartonsFile = argv[2];
+  eventNo = atoi(argv[3]);
  } else {
   cout << "wrong parameter list, exiting\n" ;
   exit(1);
@@ -308,11 +319,13 @@ int main(int argc, char **argv) {
  string sOutputDir(outputDir);
  ofstream fjetiniout ((sOutputDir+"/jets_initial").c_str());
  for(uint i=0; i<jets.size(); i++) {
-  jets[i]->output(i, fjetiniout);
+  jets[i]->output(fjetiniout);
  }
  fjetiniout.close();
 
- ofstream fjetTimeStep((sOutputDir+"/jetTimeSteps").c_str());
+ // disable jet timestep-wise output: consumes too much space
+ //ofstream fjetTimeStep((sOutputDir+"/jetTimeSteps").c_str());
+ ofstream fjetInterm((sOutputDir+"/jetInermediate").c_str());
 
  for (int istep = 0; istep < maxstep; istep++) {
   // decrease timestep automatically, but use fixed dtau for output
@@ -334,26 +347,42 @@ int main(int argc, char **argv) {
     jets.erase(it);
     continue;
    }
-   jets[i]->makeStep(f, jparams, t, t+dtau);
-   jets[i]->outputTimestep(t+dtau, i, fjetTimeStep);
+   jets[i]->makeStep(f, jparams, t, t+dtau, fjetInterm);
+   // jets[i]->outputTimestep(t+dtau, i, fjetTimeStep);
    i++;
   };
   f->outputGnuplot(h->getTau());
   //f->outputSurface(h->getTau());
   cout << "tau=" << t << "  done\n";
  }
- fjetTimeStep.close();
+ //fjetTimeStep.close();
+ cout << "finalizing jet branchings...\n";
+ for(double tauF=tauMax; tauF<100.; tauF+=1.0) {
+  uint i=0;
+  while(i<jets.size()) {
+   if(jets[i]->nprts()==0){
+    vector<Jet*>::iterator it = jets.begin() + i ;
+    jets.erase(it);
+    continue;
+   }
+   jets[i]->makeStep(f, jparams, tauF, tauF+1.0, fjetInterm);
+   i++;
+  };
+ }
+ cout << "done.\n";
+ fjetInterm.close();
 
  // printing final jets
  ofstream fjetout ((sOutputDir+"/jets_final").c_str());
  ofstream fjetoutGF ((sOutputDir+"/jets_final_GF").c_str());
  ofstream fjettot ((sOutputDir+"/jet_totals").c_str());
  for(uint i=0; i<jets.size(); i++) {
-  jets[i]->output(i, fjetout);
-  jets[i]->outputGlobalFrame(i, fjetoutGF);
-  jets[i]->outputTotal(i, fjettot);
+  jets[i]->output(fjetout);
+  jets[i]->outputGlobalFrame(fjetoutGF);
+  jets[i]->outputTotal(fjettot);
  }
  fjetout.close();
+ fjetoutGF.close();
  fjettot.close();
 
  end = 0;
