@@ -337,7 +337,7 @@ int main(int argc, char **argv) {
 
  // disable jet timestep-wise output: consumes too much space
  //ofstream fjetTimeStep((sOutputDir+"/jetTimeSteps").c_str());
- ofstream fjetInterm((sOutputDir+"/jetInermediate").c_str());
+ ofstream fjetInterm((sOutputDir+"/jets_intermediate_GF").c_str());
 
  for (int istep = 0; istep < maxstep; istep++) {
   // decrease timestep automatically, but use fixed dtau for output
@@ -390,7 +390,7 @@ int main(int argc, char **argv) {
  ofstream fjettot ((sOutputDir+"/jet_totals").c_str());
  for(uint i=0; i<jets.size(); i++) {
   jets[i]->output(fjetout);
-  jets[i]->outputGlobalFrame(fjetoutGF);
+  jets[i]->outputGF_indlist(fjetoutGF);
   jets[i]->outputTotal(fjettot);
  }
  fjetout.close();
