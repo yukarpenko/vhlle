@@ -49,7 +49,8 @@
 int nx, ny, nz, eosType;
 double xmin, xmax, ymin, ymax, etamin, etamax, tau0, tauMax, dtau;
 char outputDir[255];
-char icInputFile[255];
+char icInputFile[255], icGridParams[255], iniHardPartons[255];
+
 double etaS, zetaS, eCrit;
 int icModel, nSmear = 1,
     glauberVariable =
@@ -78,6 +79,10 @@ void readParameters(char *parFile) {
    eosType = atoi(parValue);
   else if (strcmp(parName, "icInputFile") == 0)
    strcpy(icInputFile, parValue);
+  else if (strcmp(parName, "icGridParams") == 0)
+   strcpy(icGridParams, parValue);
+  else if (strcmp(parName, "iniHardPartons") == 0)
+   strcpy(iniHardPartons, parValue);
   else if (strcmp(parName, "nx") == 0)
    nx = atoi(parValue);
   else if (strcmp(parName, "ny") == 0)
@@ -148,6 +153,9 @@ void printParameters() {
  cout << "icModel = " << icModel << endl;
  cout << "glauberVar = " << glauberVariable << "   ! 0=epsilon,1=entropy"
       << endl;
+ cout << "icInputFile = " << icInputFile << endl;
+ cout << "icGridParams = " << icGridParams << endl;
+ cout << "iniHardPartons = " << iniHardPartons << endl;
  cout << "xmin = " << xmin << endl;
  cout << "xmax = " << xmax << endl;
  cout << "ymin = " << ymin << endl;
@@ -233,18 +241,13 @@ int main(int argc, char **argv) {
  jetMinPt = 10.0;
 
  // read parameters from file
- char *parFile, *jetParFile, *iniPartonsFile;
- if (argc == 1) {
-  cout << "NO PARAMETERS, exiting\n";
-  cout << "usage: ./hlle_visc <input file> <jet_input> <eventId>\n";
-  exit(1);
- } else if (argc==4){
+ char *parFile;
+ if (argc==3) {
   parFile = argv[1];
-  //jetParFile = argv[2];
-  iniPartonsFile = argv[2];
-  eventNo = atoi(argv[3]);
+  //jetParFile = argv[1];
+  eventNo = atoi(argv[2]);
  } else {
-  cout << "wrong parameter list, exiting\n" ;
+  cout << "usage: ./hlle_visc <input file> <eventId>\n";
   exit(1);
  }
  readParameters(parFile);
@@ -292,7 +295,7 @@ int main(int argc, char **argv) {
    ic->setIC(f, eos);
    delete ic;
   }else if(icModel==6){ // EPOS IS
-   icEpos::loadIC("ic/epos/hydro_grid_params", "ic/epos/initial_state_table");
+   icEpos::loadIC(icGridParams, icInputFile);
    icEpos::setIC(f, eos);
    icEpos::deleteIC();
  } else {
@@ -324,7 +327,7 @@ int main(int argc, char **argv) {
  init_tables(438468301);
  jets.clear(); // clear the whole parton vector
  jets.reserve(100);
- readIniPartons(iniPartonsFile, jets);
+ readIniPartons(iniHardPartons, jets);
  string sOutputDir(outputDir);
  ofstream fjetiniout ((sOutputDir+"/jets_initial").c_str());
  for(uint i=0; i<jets.size(); i++) {
