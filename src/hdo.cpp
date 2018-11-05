@@ -574,7 +574,7 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
   for (int j = 0; j < 4; j++) {
    if (pi[i][j] != 0. && fabs(1.0 - pi[j][i] / pi[i][j]) > 1e-10)
     cout << "non-diag: " << pi[i][j] << "  " << pi[j][i] << endl;
-   if (isinf(pi[i][j]) || isnan(pi[i][j])) {
+   if (std::isinf(pi[i][j]) || std::isnan(pi[i][j])) {
     cout << "hydro:NSquant: inf/nan i " << i << " j " << j << endl;
     exit(1);
    }

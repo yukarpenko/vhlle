@@ -488,7 +488,7 @@ void Fluid::outputSurface(double tau) {
     Nb2 += tau * nb * (cosh_int - tanh(vz) * sinh_int) /
            sqrt(1. - vx * vx - vy * vy - tanh(vz) * tanh(vz));
     //---- inf check
-    if (isinf(E)) {
+    if (std::isinf(E)) {
      cout << "EEinf" << setw(14) << e << setw(14) << p << setw(14) << vx
           << setw(14) << vy << setw(14) << vz << endl;
      exit(1);
@@ -724,7 +724,7 @@ void Fluid::outputCorona(double tau) {
     Nb2 += tau * nb * (cosh_int - tanh(vz) * sinh_int) /
            sqrt(1. - vx * vx - vy * vy - tanh(vz) * tanh(vz));
     //---- inf check
-    if (isinf(E)) {
+    if (std::isinf(E)) {
      cout << "EEinf" << setw(14) << e << setw(14) << p << setw(14) << vx
           << setw(14) << vy << setw(14) << vz << endl;
      exit(1);
