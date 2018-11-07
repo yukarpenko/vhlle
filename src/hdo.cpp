@@ -1,18 +1,17 @@
 /******************************************************************************
 *                                                                             *
 *            vHLLE : a 3D viscous hydrodynamic code                           *
-*            version 1.1,            October 2014                            *
 *            by Iurii Karpenko                                                *
 *  contact:  yu.karpenko@gmail.com                                            *
 *  For the detailed description please refer to:                              *
-*  http://arxiv.org/abs/1312.4160                                             *
+*  Comput. Phys. Commun. 185 (2014), 3016   arXiv:1312.4160                   *
 *                                                                             *
 *  This code can be freely used and redistributed, provided that this         *
 *  copyright appear in all the copies. If you decide to make modifications    *
 *  to the code, please contact the authors, especially if you plan to publish *
 * the results obtained with such modified code. Any publication of results    *
 * obtained using this code must include the reference to                      *
-* arXiv:1312.4160 [nucl-th] or the published version of it, when available.   *
+* arXiv:1312.4160 [nucl-th] or the published version of it.                   *
 *                                                                             *
 *******************************************************************************/
 
@@ -391,8 +390,10 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
  Cell *c = f->getCell(ix, iy, iz);
  double dx = f->getDx(), dy = f->getDy(), dz = f->getDz();
  // check if the cell is next to vacuum from +-x, +-y side:
- if (c->getNext(X_)->getMaxM() <= 0.9 || c->getNext(Y_)->getMaxM() <= 0.9 ||
-     c->getPrev(X_)->getMaxM() <= 0.9 || c->getPrev(Y_)->getMaxM() <= 0.9 ||
+ if (f->getCell(ix + 1, iy, iz)->getMaxM() <= 0.9 ||
+     f->getCell(ix, iy + 1, iz)->getMaxM() <= 0.9 ||
+     f->getCell(ix - 1, iy, iz)->getMaxM() <= 0.9 ||
+     f->getCell(ix, iy - 1, iz)->getMaxM() <= 0.9 ||
      f->getCell(ix + 1, iy + 1, iz)->getMaxM() <= 0.9 ||
      f->getCell(ix + 1, iy - 1, iz)->getMaxM() <= 0.9 ||
      f->getCell(ix - 1, iy + 1, iz)->getMaxM() <= 0.9 ||

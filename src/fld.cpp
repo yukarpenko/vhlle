@@ -1,18 +1,17 @@
 /******************************************************************************
 *                                                                             *
 *            vHLLE : a 3D viscous hydrodynamic code                           *
-*            version 1.1,            October 2014                            *
 *            by Iurii Karpenko                                                *
 *  contact:  yu.karpenko@gmail.com                                            *
 *  For the detailed description please refer to:                              *
-*  http://arxiv.org/abs/1312.4160                                             *
+*  Comput. Phys. Commun. 185 (2014), 3016   arXiv:1312.4160                   *
 *                                                                             *
 *  This code can be freely used and redistributed, provided that this         *
 *  copyright appear in all the copies. If you decide to make modifications    *
 *  to the code, please contact the authors, especially if you plan to publish *
 * the results obtained with such modified code. Any publication of results    *
 * obtained using this code must include the reference to                      *
-* arXiv:1312.4160 [nucl-th] or the published version of it, when available.   *
+* arXiv:1312.4160 [nucl-th] or the published version of it.                   *
 *                                                                             *
 *******************************************************************************/
 
@@ -35,6 +34,11 @@
 #define SWAP_EOS
 
 using namespace std;
+
+namespace output{  // a namespace containing all the output streams
+  ofstream fkw, fkw_dim, fxvisc, fyvisc, fdiagvisc, fx,
+     fy, fdiag, fz, faniz, f2d, ffreeze;
+}
 
 // returns the velocities in cartesian coordinates, fireball rest frame.
 // Y=longitudinal rapidity of fluid
@@ -107,10 +111,7 @@ Fluid::~Fluid() {
  delete cell0;
 }
 
-void Fluid::initOutput(char *dir, int maxstep, double tau0, int cmpr2dOut) {
- //    directory = dir ;
- compress2dOut = cmpr2dOut;
- cout << "maxstep=" << maxstep << endl;
+void Fluid::initOutput(const char *dir, double tau0) {
  char command[255];
  sprintf(command, "mkdir -p %s", dir);
  int return_mkdir = system(command);
@@ -135,33 +136,21 @@ void Fluid::initOutput(char *dir, int maxstep, double tau0, int cmpr2dOut) {
  out2d.append("/out2D.dat");
  string outfreeze = dir;
  outfreeze.append("/freezeout.dat");
- foutx.open(outx.c_str());
- fouty.open(outy.c_str());
- foutz.open(outz.c_str());
- foutdiag.open(outdiag.c_str());
- fout2d.open(out2d.c_str());
- foutxvisc.open(outxvisc.c_str());
- foutyvisc.open(outyvisc.c_str());
- foutdiagvisc.open(outdiagvisc.c_str());
- fout_aniz.open(outaniz.c_str());
- ffreeze.open(outfreeze.c_str());
+ output::fx.open(outx.c_str());
+ output::fy.open(outy.c_str());
+ output::fz.open(outz.c_str());
+ output::fdiag.open(outdiag.c_str());
+ output::f2d.open(out2d.c_str());
+ output::fxvisc.open(outxvisc.c_str());
+ output::fyvisc.open(outyvisc.c_str());
+ output::fdiagvisc.open(outdiagvisc.c_str());
+ output::faniz.open(outaniz.c_str());
+ output::ffreeze.open(outfreeze.c_str());
  //################################################################
  // important remark. for correct diagonal output, nx=ny must hold.
  //################################################################
- foutxvisc << maxstep + 1 << "  " << getNX() << endl;
- foutyvisc << maxstep + 1 << "  " << getNY() << endl;
- foutdiagvisc << maxstep + 1 << "  " << getNX() << endl;
- foutx << "# " << maxstep + 1 << "  " << getNX() << endl;
- fouty << "# " << maxstep + 1 << "  " << getNY() << endl;
- foutdiag << "# " << maxstep + 1 << "  " << getNX() << endl;
- foutz << "# " << maxstep + 1 << "  " << getNZ() << endl;
- fout2d << " " << maxstep + 1 << "  " << (getNX() - 5) + 1 << "  "
-        << (getNY() - 5) + 1 << endl;
- fout2d << tau0 << "  " << tau0 + 0.05 * maxstep << "  " << getX(2) << "  "
-        << getX(getNX() - 3) << "  " << getY(2) << "  " << getY(getNY() - 3)
-        << endl;
  outputGnuplot(tau0);
- fout_aniz << "#  tau  <<v_T>>  e_p  e'_p  (to compare with SongHeinz)\n";
+ output::faniz << "#  tau  <<v_T>>  e_p  e'_p  (to compare with SongHeinz)\n";
 }
 
 void Fluid::correctImagCells(void) {
@@ -363,18 +352,18 @@ void Fluid::outputGnuplot(double tau) {
   Cell *c = getCell(ix, ny / 2, nz / 2);
   getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
   eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
-  foutx << setw(14) << tau << setw(14) << x << setw(14) << vx << setw(14) << vy
+  output::fx << setw(14) << tau << setw(14) << x << setw(14) << vx << setw(14) << vy
         << setw(14) << e << setw(14) << nb << setw(14) << t << setw(14) << mub;
-  foutx << setw(14) << c->getpi(0, 0) << setw(14) << c->getpi(0, 1) << setw(14)
+  output::fx << setw(14) << c->getpi(0, 0) << setw(14) << c->getpi(0, 1) << setw(14)
         << c->getpi(0, 2);
-  foutx << setw(14) << c->getpi(0, 3) << setw(14) << c->getpi(1, 1) << setw(14)
+  output::fx << setw(14) << c->getpi(0, 3) << setw(14) << c->getpi(1, 1) << setw(14)
         << c->getpi(1, 2);
-  foutx << setw(14) << c->getpi(1, 3) << setw(14) << c->getpi(2, 2) << setw(14)
+  output::fx << setw(14) << c->getpi(1, 3) << setw(14) << c->getpi(2, 2) << setw(14)
         << c->getpi(2, 3);
-  foutx << setw(14) << c->getpi(3, 3) << setw(14) << c->getPi() << setw(14)
+  output::fx << setw(14) << c->getpi(3, 3) << setw(14) << c->getPi() << setw(14)
         << c->getViscCorrCutFlag() << endl;
  }
- foutx << endl;
+ output::fx << endl;
 
  // Y direction
  for (int iy = 0; iy < ny; iy++) {
@@ -382,18 +371,18 @@ void Fluid::outputGnuplot(double tau) {
   Cell *c = getCell(nx / 2, iy, nz / 2);
   getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
   eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
-  fouty << setw(14) << tau << setw(14) << y << setw(14) << vy << setw(14) << vx
+  output::fy << setw(14) << tau << setw(14) << y << setw(14) << vy << setw(14) << vx
         << setw(14) << e << setw(14) << nb << setw(14) << t << setw(14) << mub;
-  fouty << setw(14) << c->getpi(0, 0) << setw(14) << c->getpi(0, 1) << setw(14)
+  output::fy << setw(14) << c->getpi(0, 0) << setw(14) << c->getpi(0, 1) << setw(14)
         << c->getpi(0, 2);
-  fouty << setw(14) << c->getpi(0, 3) << setw(14) << c->getpi(1, 1) << setw(14)
+  output::fy << setw(14) << c->getpi(0, 3) << setw(14) << c->getpi(1, 1) << setw(14)
         << c->getpi(1, 2);
-  fouty << setw(14) << c->getpi(1, 3) << setw(14) << c->getpi(2, 2) << setw(14)
+  output::fy << setw(14) << c->getpi(1, 3) << setw(14) << c->getpi(2, 2) << setw(14)
         << c->getpi(2, 3);
-  fouty << setw(14) << c->getpi(3, 3) << setw(14) << c->getPi() << setw(14)
+  output::fy << setw(14) << c->getpi(3, 3) << setw(14) << c->getPi() << setw(14)
         << c->getViscCorrCutFlag() << endl;
  }
- fouty << endl;
+ output::fy << endl;
 
  // diagonal
  for (int ix = 0; ix < nx; ix++) {
@@ -401,19 +390,19 @@ void Fluid::outputGnuplot(double tau) {
   Cell *c = getCell(ix, ix, nz / 2);
   getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
   eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
-  foutdiag << setw(14) << tau << setw(14) << sqrt(2.) * x << setw(14) << vx
+  output::fdiag << setw(14) << tau << setw(14) << sqrt(2.) * x << setw(14) << vx
            << setw(14) << vy << setw(14) << e << setw(14) << nb << setw(14) << t
            << setw(14) << mub << endl;
-  foutdiag << setw(14) << c->getpi(0, 0) << setw(14) << c->getpi(0, 1)
+  output::fdiag << setw(14) << c->getpi(0, 0) << setw(14) << c->getpi(0, 1)
            << setw(14) << c->getpi(0, 2);
-  foutdiag << setw(14) << c->getpi(0, 3) << setw(14) << c->getpi(1, 1)
+  output::fdiag << setw(14) << c->getpi(0, 3) << setw(14) << c->getpi(1, 1)
            << setw(14) << c->getpi(1, 2);
-  foutdiag << setw(14) << c->getpi(1, 3) << setw(14) << c->getpi(2, 2)
+  output::fdiag << setw(14) << c->getpi(1, 3) << setw(14) << c->getpi(2, 2)
            << setw(14) << c->getpi(2, 3);
-  foutdiag << setw(14) << c->getpi(3, 3) << setw(14) << c->getPi() << setw(14)
+  output::fdiag << setw(14) << c->getpi(3, 3) << setw(14) << c->getPi() << setw(14)
            << c->getViscCorrCutFlag() << endl;
  }
- foutdiag << endl;
+ output::fdiag << endl;
 
  // Z direction
  for (int iz = 0; iz < nz; iz++) {
@@ -421,18 +410,18 @@ void Fluid::outputGnuplot(double tau) {
   Cell *c = getCell(nx / 2, ny / 2, iz);
   getCMFvariables(getCell(nx / 2, ny / 2, iz), tau, e, nb, nq, ns, vx, vy, vz);
   eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
-  foutz << setw(14) << tau << setw(14) << z << setw(14) << vz << setw(14) << vx
+  output::fz << setw(14) << tau << setw(14) << z << setw(14) << vz << setw(14) << vx
         << setw(14) << e << setw(14) << nb << setw(14) << t << setw(14) << mub;
-  foutz << setw(14) << c->getpi(0, 0) << setw(14) << c->getpi(0, 1) << setw(14)
+  output::fz << setw(14) << c->getpi(0, 0) << setw(14) << c->getpi(0, 1) << setw(14)
         << c->getpi(0, 2);
-  foutz << setw(14) << c->getpi(0, 3) << setw(14) << c->getpi(1, 1) << setw(14)
+  output::fz << setw(14) << c->getpi(0, 3) << setw(14) << c->getpi(1, 1) << setw(14)
         << c->getpi(1, 2);
-  foutz << setw(14) << c->getpi(1, 3) << setw(14) << c->getpi(2, 2) << setw(14)
+  output::fz << setw(14) << c->getpi(1, 3) << setw(14) << c->getpi(2, 2) << setw(14)
         << c->getpi(2, 3);
-  foutz << setw(14) << c->getpi(3, 3) << setw(14) << c->getPi() << setw(14)
+  output::fz << setw(14) << c->getpi(3, 3) << setw(14) << c->getPi() << setw(14)
         << c->getViscCorrCutFlag() << endl;
  }
- foutz << endl;
+ output::fz << endl;
 }
 
 // unput: geom. rapidity + velocities in Bjorken frame, --> output: velocities
@@ -469,7 +458,7 @@ void Fluid::outputSurface(double tau) {
 #ifdef SWAP_EOS
  swap(eos, eosH);
 #endif
- fout2d << endl;
+ output::f2d << endl;
  for (int ix = 2; ix < nx - 2; ix++)
   for (int iy = 2; iy < ny - 2; iy++)
    for (int iz = 2; iz < nz - 2; iz++) {
@@ -553,8 +542,8 @@ void Fluid::outputSurface(double tau) {
     const int Nsegm = cornelius->get_Nelements();
     for (int isegm = 0; isegm < Nsegm; isegm++) {
      nelements++;
-     ffreeze.precision(15);
-     ffreeze << setw(24) << tau + cornelius->get_centroid_elem(isegm, 0)
+     output::ffreeze.precision(15);
+     output::ffreeze << setw(24) << tau + cornelius->get_centroid_elem(isegm, 0)
              << setw(24) << getX(ix) + cornelius->get_centroid_elem(isegm, 1)
              << setw(24) << getY(iy) + cornelius->get_centroid_elem(isegm, 2)
              << setw(24) << getZ(iz) + cornelius->get_centroid_elem(isegm, 3);
@@ -625,9 +614,9 @@ void Fluid::outputSurface(double tau) {
      for (int ii = 0; ii < 4; ii++)
       dVEff += dsigma[ii] * uC[ii];  // normalize for Delta eta=1
      vEff += dVEff;
-     for (int ii = 0; ii < 4; ii++) ffreeze << setw(24) << dsigma[ii];
-     for (int ii = 0; ii < 4; ii++) ffreeze << setw(24) << uC[ii];
-     ffreeze << setw(24) << TC << setw(24) << mubC << setw(24) << muqC
+     for (int ii = 0; ii < 4; ii++) output::ffreeze << setw(24) << dsigma[ii];
+     for (int ii = 0; ii < 4; ii++) output::ffreeze << setw(24) << uC[ii];
+     output::ffreeze << setw(24) << TC << setw(24) << mubC << setw(24) << muqC
              << setw(24) << musC;
 #ifdef OUTPI
      double picart[10];
@@ -651,10 +640,10 @@ void Fluid::outputSurface(double tau) {
      /*pi33*/ picart[index44(3, 3)] = sh * sh * piC[index44(0, 0)] +
                                       ch * ch * piC[index44(3, 3)] +
                                       2. * sh * ch * piC[index44(0, 3)];
-     for (int ii = 0; ii < 10; ii++) ffreeze << setw(24) << picart[ii];
-     ffreeze << setw(24) << PiC << endl;
+     for (int ii = 0; ii < 10; ii++) output::ffreeze << setw(24) << picart[ii];
+     output::ffreeze << setw(24) << PiC << endl;
 #else
-     ffreeze << setw(24) << dVEff << endl;
+     output::ffreeze << setw(24) << dVEff << endl;
 #endif
      double dEsurfVisc = 0.;
      for (int i = 0; i < 4; i++)
@@ -670,7 +659,7 @@ void Fluid::outputSurface(double tau) {
  S = S * dx * dy * dz;
  Nb1 *= dx * dy * dz;
  Nb2 *= dx * dy * dz;
- fout_aniz << setw(12) << tau << setw(14) << vt_num / vt_den << setw(14)
+ output::faniz << setw(12) << tau << setw(14) << vt_num / vt_den << setw(14)
            << vxvy_num / vxvy_den << setw(14) << pi0x_num / pi0x_den << endl;
  cout << setw(10) << tau << setw(13) << E << setw(13) << Efull << setw(13)
       << nbSurf << setw(13) << S << setw(10) << nelements << setw(10) << nsusp
@@ -705,7 +694,7 @@ void Fluid::outputCorona(double tau) {
 #ifdef SWAP_EOS
  swap(eos, eosH);
 #endif
- fout2d << endl;
+ output::f2d << endl;
  for (int ix = 2; ix < nx - 2; ix++)
   for (int iy = 2; iy < ny - 2; iy++)
    for (int iz = 2; iz < nz - 2; iz++) {
@@ -783,8 +772,8 @@ void Fluid::outputCorona(double tau) {
       }
     if (isCorona && !isTail) {
      nelements++;
-     ffreeze.precision(15);
-     ffreeze << setw(24) << tau << setw(24) << getX(ix) + 0.5 * dx << setw(24)
+     output::ffreeze.precision(15);
+     output::ffreeze << setw(24) << tau << setw(24) << getX(ix) + 0.5 * dx << setw(24)
              << getY(iy) + 0.5 * dy << setw(24) << getZ(iz) + 0.5 * dz;
      // ---- interpolation procedure
      double vxC = 0., vyC = 0., vzC = 0., TC = 0., mubC = 0., muqC = 0.,
@@ -838,9 +827,9 @@ void Fluid::outputCorona(double tau) {
      for (int ii = 0; ii < 4; ii++)
       dVEff += dsigma[ii] * uC[ii];  // normalize for Delta eta=1
      vEff += dVEff;
-     for (int ii = 0; ii < 4; ii++) ffreeze << setw(24) << dsigma[ii];
-     for (int ii = 0; ii < 4; ii++) ffreeze << setw(24) << uC[ii];
-     ffreeze << setw(24) << TC << setw(24) << mubC << setw(24) << muqC
+     for (int ii = 0; ii < 4; ii++) output::ffreeze << setw(24) << dsigma[ii];
+     for (int ii = 0; ii < 4; ii++) output::ffreeze << setw(24) << uC[ii];
+     output::ffreeze << setw(24) << TC << setw(24) << mubC << setw(24) << muqC
              << setw(24) << musC;
 #ifdef OUTPI
      double picart[10];
@@ -864,10 +853,10 @@ void Fluid::outputCorona(double tau) {
      /*pi33*/ picart[index44(3, 3)] = sh * sh * piC[index44(0, 0)] +
                                       ch * ch * piC[index44(3, 3)] +
                                       2. * sh * ch * piC[index44(0, 3)];
-     for (int ii = 0; ii < 10; ii++) ffreeze << setw(24) << picart[ii];
-     ffreeze << setw(24) << PiC << endl;
+     for (int ii = 0; ii < 10; ii++) output::ffreeze << setw(24) << picart[ii];
+     output::ffreeze << setw(24) << PiC << endl;
 #else
-     ffreeze << setw(24) << dVEff << endl;
+     output::ffreeze << setw(24) << dVEff << endl;
 #endif
      double dEsurfVisc = 0.;
      for (int i = 0; i < 4; i++)
@@ -882,7 +871,7 @@ void Fluid::outputCorona(double tau) {
  S = S * dx * dy * dz;
  Nb1 *= dx * dy * dz;
  Nb2 *= dx * dy * dz;
- fout_aniz << setw(12) << tau << setw(14) << vt_num / vt_den << setw(14)
+ output::faniz << setw(12) << tau << setw(14) << vt_num / vt_den << setw(14)
            << vxvy_num / vxvy_den << setw(14) << pi0x_num / pi0x_den << endl;
  cout << setw(10) << "tau" << setw(13) << "E" << setw(13) << "Efull" << setw(13)
       << "Nb" << setw(13) << "Sfull" << setw(10) << "elements" << setw(10)

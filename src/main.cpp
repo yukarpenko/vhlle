@@ -1,18 +1,17 @@
 /******************************************************************************
 *                                                                             *
 *            vHLLE : a 3D viscous hydrodynamic code                           *
-*            version 1.1,            October 2014                            *
 *            by Iurii Karpenko                                                *
 *  contact:  yu.karpenko@gmail.com                                            *
 *  For the detailed description please refer to:                              *
-*  http://arxiv.org/abs/1312.4160                                             *
+*  Comput. Phys. Commun. 185 (2014), 3016   arXiv:1312.4160                   *
 *                                                                             *
 *  This code can be freely used and redistributed, provided that this         *
 *  copyright appear in all the copies. If you decide to make modifications    *
 *  to the code, please contact the authors, especially if you plan to publish *
 * the results obtained with such modified code. Any publication of results    *
 * obtained using this code must include the reference to                      *
-* arXiv:1312.4160 [nucl-th] or the published version of it, when available.   *
+* arXiv:1312.4160 [nucl-th] or the published version of it.                   *
 *                                                                             *
 *******************************************************************************/
 
@@ -42,7 +41,7 @@ using namespace std;
 
 // program parameters, to be read from file
 int nx, ny, nz, eosType;
-double xmin, xmax, ymin, ymax, etamin, etamax, tau0, tauMax, dtau;
+double xmin, xmax, ymin, ymax, etamin, etamax, tau0, tauMax, tauResize, dtau;
 char outputDir[255];
 char icInputFile[255];
 double etaS, zetaS, eCrit;
@@ -50,6 +49,10 @@ int icModel,
     glauberVariable =
         1;  // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
 double epsilon0, Rgt, Rgz, impactPar, s0ScaleFactor;
+
+void setDefaultParameters() {
+ tauResize = 4.0;
+}
 
 void readParameters(char *parFile) {
  char parName[255], parValue[255];
@@ -95,6 +98,8 @@ void readParameters(char *parFile) {
    tau0 = atof(parValue);
   else if (strcmp(parName, "tauMax") == 0)
    tauMax = atof(parValue);
+  else if (strcmp(parName, "tauGridResize") == 0)
+   tauResize = atof(parValue);
   else if (strcmp(parName, "dtau") == 0)
    dtau = atof(parValue);
   else if (strcmp(parName, "e_crit") == 0)
@@ -138,6 +143,7 @@ void printParameters() {
  cout << "etamax = " << etamax << endl;
  cout << "tau0 = " << tau0 << endl;
  cout << "tauMax = " << tauMax << endl;
+ cout << "tauGridResize = " << tauResize << endl;
  cout << "dtau = " << dtau << endl;
  cout << "e_crit = " << eCrit << endl;
  cout << "eta/s = " << etaS << endl;
@@ -147,6 +153,31 @@ void printParameters() {
  cout << "impactPar = " << impactPar << endl;
  cout << "s0ScaleFactor = " << s0ScaleFactor << endl;
  cout << "======= end parameters =======\n";
+}
+
+
+Fluid* expandGrid2x(Hydro* h, EoS* eos, EoS* eosH, TransportCoeff *trcoeff) {
+ Fluid* f = h->getFluid();
+ if(f->getX(0) + f->getX(f->getNX()-1)>0.001
+  || f->getY(0) + f->getY(f->getNY()-1)>0.001) {
+   cout << "this grid expansion works only with symmetric min/max ranges\n";
+   return f;
+ }
+ // creating a new fluid, twice the transverse size of the current one
+ Fluid* fnew = new Fluid(eos, eosH, trcoeff, f->getNX(), f->getNY(), f->getNZ(),
+   2.0*f->getX(0), 2.0*f->getX(f->getNX()-1), 2.0*f->getY(0), 2.0*f->getY(f->getNY()-1),
+   f->getZ(0), f->getZ(f->getNZ()-1), 2.0*h->getDtau(), f->geteCrit());
+ // filling the new fluid
+ for(int ix=0; ix<f->getNX(); ix++)
+  for(int iy=0; iy<f->getNY(); iy++)
+   for(int iz=0; iz<f->getNZ(); iz++) {
+    fnew->getCell(ix, iy, iz)->importVars(f->getCell(2*(ix - f->getNX()/2) + f->getNX()/2,
+      2*(iy - f->getNY()/2) + f->getNY()/2, iz));
+   }
+ h->setFluid(fnew);  // now Hydro object operates on the new fluid
+ h->setDtau(2.0*h->getDtau());
+ delete f;
+ return fnew;
 }
 
 // program parameters, to be read from file
@@ -177,6 +208,7 @@ int main(int argc, char **argv) {
  } else {
   parFile = argv[1];
  }
+ setDefaultParameters();
  readParameters(parFile);
  printParameters();
 
@@ -233,28 +265,38 @@ int main(int argc, char **argv) {
 
  // hydro init
  h = new Hydro(f, eos, trcoeff, tau0, dtau);
- int maxstep = ceil((tauMax - tau0) / dtau);
  start = 0;
  time(&start);
  // h->setNSvalues() ; // initialize viscous terms
 
- f->initOutput(outputDir, maxstep, tau0, 2);
+ f->initOutput(outputDir, tau0);
  f->outputCorona(tau0);
 
- for (int istep = 0; istep < maxstep; istep++) {
-  // decrease timestep automatically, but use fixed dtau for output
+ bool resized = false; // flag if the grid has been resized
+ do {
+  // small tau: decrease timestep by makins substeps, in order
+  // to avoid instabilities in eta direction (signal velocity ~1/tau)
   int nSubSteps = 1;
   while (dtau / nSubSteps >
-         1.0 * (tau0 + dtau * istep) * (etamax - etamin) / (nz - 1))
+         1.0 * h->getTau() * (etamax - etamin) / (nz - 1)) {
    nSubSteps *= 2;  // 0.02 in "old" coordinates
-  h->setDtau(dtau / nSubSteps);
-  // cout<<"dtau = "<<dtau / nSubSteps<<endl;
-  for (int j = 0; j < nSubSteps; j++) {
-   h->performStep();
   }
+  if(nSubSteps>1) {
+   h->setDtau(h->getDtau() / nSubSteps);
+   for (int j = 0; j < nSubSteps; j++)
+    h->performStep();
+   h->setDtau(h->getDtau() * nSubSteps);
+   cout << "timestep reduced by " << nSubSteps << endl;
+  } else
+   h->performStep();
   f->outputGnuplot(h->getTau());
   f->outputSurface(h->getTau());
- }
+  if(h->getTau()>=tauResize and resized==false) {
+   cout << "grid resize\n";
+   f = expandGrid2x(h, eos, eosH, trcoeff);
+   resized = true;
+  }
+ } while(h->getTau()<tauMax+0.0001);
 
  end = 0;
  time(&end);

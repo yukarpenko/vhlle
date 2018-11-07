@@ -18,6 +18,9 @@ public:
  Hydro(Fluid *_f, EoS *_eos, TransportCoeff *_trcoeff, double _t0, double _dt);
  ~Hydro();
  void setDtau(double deltaTau);  // change the timestep
+ double getDtau() { return dt; }  // return current value of timestep
+ void setFluid(Fluid *_f) { f = _f; }
+ Fluid* getFluid() { return f; }
 
  // HLLE (ideal)flux between two neighbouring cells in a given direction
  // mode: PREDICT = used in predictor step; calculates fluxes for dt/2

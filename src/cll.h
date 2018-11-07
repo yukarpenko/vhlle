@@ -1,18 +1,17 @@
 /******************************************************************************
 *                                                                             *
 *            vHLLE : a 3D viscous hydrodynamic code                           *
-*            version 1.0,            November 2013                            *
 *            by Iurii Karpenko                                                *
 *  contact:  yu.karpenko@gmail.com                                            *
 *  For the detailed description please refer to:                              *
-*  http://arxiv.org/abs/1312.4160                                             *
+*  Comput. Phys. Commun. 185 (2014), 3016   arXiv:1312.4160                   *
 *                                                                             *
 *  This code can be freely used and redistributed, provided that this         *
 *  copyright appear in all the copies. If you decide to make modifications    *
 *  to the code, please contact the authors, especially if you plan to publish *
 * the results obtained with such modified code. Any publication of results    *
 * obtained using this code must include the reference to                      *
-* arXiv:1312.4160 [nucl-th] or the published version of it, when available.   *
+* arXiv:1312.4160 [nucl-th] or the published version of it.                   *
 *                                                                             *
 *******************************************************************************/
 
@@ -123,6 +122,10 @@ public:
  inline void saveQprev(void) {
   for (int i = 0; i < 7; i++) Qprev[i] = Q[i];
  }
+
+ // imports Q, Qh, Qprev, Pi, pi, m, viscCorrCut from cell c
+ void importVars(Cell* c);
+
  inline void setNext(int i, Cell *c) { next[i - 1] = c; }
  inline void setPrev(int i, Cell *c) { prev[i - 1] = c; }
  inline Cell *getNext(int i) { return next[i - 1]; }

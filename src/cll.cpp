@@ -51,6 +51,22 @@ Cell::Cell() {
  setAllM(0.);
 }
 
+void Cell::importVars(Cell* c) {
+ c->getQ(Q);
+ c->getQh(Qh);
+ c->getQprev(Qprev); // not necessary but for consistency
+ Pi = c->getPi();
+ PiH = c->getPiH();
+ for(int i=0; i<4; i++)
+ for(int j=0; j<4; j++) {
+  pi[index44(i, j)] = c->getpi(i, j);
+  piH[index44(i, j)] = c->getpiH(i, j); // not necessary either
+ }
+ for(int i=X_; i<=Z_; i++)
+  m[i-1] = c->getM(i);
+ viscCorrCut = c->getViscCorrCutFlag();
+}
+
 void Cell::updateByFlux() {
  for (int i = 0; i < 7; i++) Q[i] += flux[i];
 }
