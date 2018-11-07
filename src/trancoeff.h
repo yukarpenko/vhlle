@@ -21,6 +21,7 @@ public:
    double &deltapipi, double &taupipi, double &lambdapiPi, double &phi7) {
   deltapipi = 4./3.;  taupipi = 10./7.;  lambdapiPi = 6./5.;
   phi7 = 9./70./eos->p(e, nb, nq, ns);
+  if(std::isinf(phi7)) phi7=0.0;
  }
  void getOtherBulk(double e, double nb, double nq, double ns, 
    double &delPiPi, double &lamPipi) {

@@ -611,7 +611,7 @@ void Hydro::setNSvalues() {
 
 void Hydro::ISformal() {
  double e, p, nb, nq, ns, vx, vy, vz, T, mub, muq, mus;
- double piNS[4][4], PiNS, dmu[4][4], du, pi[4][4], piH[4][4], Pi, PiH;
+ double piNS[4][4], sigNS[4][4], PiNS, dmu[4][4], du, pi[4][4], piH[4][4], Pi, PiH;
  const double gmumu[4] = {1., -1., -1., -1.};
 
  // loop #1 (relaxation+source terms)
@@ -650,6 +650,13 @@ void Hydro::ISformal() {
      trcoeff->getEta(e, T, etaS, zetaS);
      const double s = eos->s(e, nb, nq, ns);
      const double eta = etaS * s;
+     // auxiliary variable sigmaNS = piNS / (2*eta), 
+     // mainly to protect against division by zero in the eta=0 case.
+     for(int i=0; i<4; i++)
+     for(int j=0; j<4; j++) {
+      sigNS[i][j] = 0.5 * piNS[i][j] / eta;
+      if(eta<=0.0) sigNS[i][j] = 0.0;
+     }
      //############# get relaxation times
      double taupi, tauPi;
      trcoeff->getTau(e, T, taupi, tauPi);
@@ -695,15 +702,15 @@ void Hydro::ISformal() {
       for (int j = 0; j <= i; j++) {
        // now transversality and cross terms
        c->addpiH0(i, j, (- deltapipi * c->getpi(i, j) * du +
-         lambdapiPi * c->getPi() * piNS[i][j] * 0.5 / eta) / gamma * 0.5 * dt);
+         lambdapiPi * c->getPi() * sigNS[i][j]) / gamma * 0.5 * dt);
        for (int k = 0; k < 4; k++) {
         // parts of terms with one internal summation index
-        c->addpiH0(i, j, (phi7 / taupi * c->getpi(i,k) * c->getpi(j,k) * gmumu[k] - taupipi * 0.5 * (c->getpi(i,k) * piNS[j][k] * gmumu[k] + c->getpi(j,k) * piNS[i][k] * gmumu[k]) * 0.5 / eta ) / gamma * 0.5 * dt);
+        c->addpiH0(i, j, (phi7 / taupi * c->getpi(i,k) * c->getpi(j,k) * gmumu[k] - taupipi * 0.5 * (c->getpi(i,k) * sigNS[j][k] * gmumu[k] + c->getpi(j,k) * sigNS[i][k] * gmumu[k])) / gamma * 0.5 * dt);
         // parts of terms with two internal summation indexes
         for (int l = 0; l < 4; l++){
          c->addpiH0(i, j, (-c->getpi(i, k) * u[j] - c->getpi(j, k) * u[i]) * u[l] * dmu[l][k] * gmumu[k] / gamma * 0.5 * dt
-          - 1. / 3. * Delta[index44(i,j)] * c->getpi(k, l) * ( phi7/taupi * c->getpi(k, l) - taupipi * piNS[k][l] * 0.5 / eta) * gmumu[k] * gmumu[l] / gamma * 0.5 * dt);
-         c->addPiH0(lamPipi * c->getpi(k, l) * piNS[k][l] * 0.5 / eta / gamma * 0.5 * dt);
+          - 1. / 3. * Delta[index44(i,j)] * c->getpi(k, l) * ( phi7/taupi * c->getpi(k, l) - taupipi * sigNS[k][l]) * gmumu[k] * gmumu[l] / gamma * 0.5 * dt);
+         c->addPiH0(lamPipi * c->getpi(k, l) * sigNS[k][l] / gamma * 0.5 * dt);
         }
        }
       }
@@ -741,14 +748,14 @@ void Hydro::ISformal() {
       for (int j = 0; j <= i; j++) {
        // now transversality and cross terms
        c->addpi0(i, j, (- deltapipi * c->getpiH0(i, j) * du +
-         lambdapiPi * c->getPiH0() * piNS[i][j] * 0.5 / eta) / gamma * dt);
+         lambdapiPi * c->getPiH0() * sigNS[i][j]) / gamma * dt);
        for (int k = 0; k < 4; k++) {
         // parts of terms with one internal summation index
-        c->addpi0(i, j, (phi7 / taupi * c->getpi(i,k) * c->getpiH0(j,k) * gmumu[k] - taupipi * 0.5 * (c->getpiH0(i,k) * piNS[j][k] * gmumu[k] + c->getpiH0(j,k) * piNS[i][k] * gmumu[k]) * 0.5 / eta ) / gamma * dt);
+        c->addpi0(i, j, (phi7 / taupi * c->getpi(i,k) * c->getpiH0(j,k) * gmumu[k] - taupipi * 0.5 * (c->getpiH0(i,k) * sigNS[j][k] * gmumu[k] + c->getpiH0(j,k) * sigNS[i][k] * gmumu[k])) / gamma * dt);
         for (int l = 0; l < 4; l++){
          c->addpi0(i, j, ((-c->getpiH0(i, k) * u[j] - c->getpiH0(j, k) * u[i]) * u[l] * dmu[l][k] * gmumu[k]
-          - 1. / 3. * Delta[index44(i,j)] * c->getpiH0(k, l) * ( phi7/taupi * c->getpiH0(k, l) - taupipi * piNS[k][l] * 0.5 / eta) * gmumu[k] * gmumu[l]) / gamma * dt);
-         c->addPi0(lamPipi * c->getpiH0(k, l) * piNS[k][l] * 0.5 / eta / gamma * dt);
+          - 1. / 3. * Delta[index44(i,j)] * c->getpiH0(k, l) * ( phi7/taupi * c->getpiH0(k, l) - taupipi * sigNS[k][l]) * gmumu[k] * gmumu[l]) / gamma * dt);
+         c->addPi0(lamPipi * c->getpiH0(k, l) * sigNS[k][l] / gamma * dt);
         }
        }
       }
