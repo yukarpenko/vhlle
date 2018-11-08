@@ -1,4 +1,3 @@
-#include <iosfwd>
 #include "cll.h"
 
 class EoS;
@@ -24,8 +23,6 @@ private:
  double dx, dy, dz, dt;  // physical sizes of the hydro cell and timestep
  double ecrit;
  double vEff, EtotSurf;  // cumulative effective volume and
- std::ofstream foutkw, foutkw_dim, foutxvisc, foutyvisc, foutdiagvisc, foutx,
-     fouty, foutdiag, foutz, fout_aniz, fout2d, ffreeze;
  int compress2dOut;
 
 public:
@@ -33,7 +30,7 @@ public:
        int _nz, double _minx, double _maxx, double _miny, double _maxy,
        double _minz, double _maxz, double dt, double eCrit, int nSmear);
  ~Fluid();
- void initOutput(char *dir, int maxstep, double tau0, int cmpr2dOut);
+ void initOutput(const char *dir, double tau0);
  int output_xy_spacing;
  int output_eta_points;
  int output_tau_spacing;
@@ -50,6 +47,7 @@ public:
  inline double getX(int ix) { return minx + ix * dx; }
  inline double getY(int iy) { return miny + iy * dy; }
  inline double getZ(int iz) { return minz + iz * dz; }
+ inline double geteCrit() { return ecrit; }
 
  void getCMFvariables(Cell *c, double tau, double &e, double &nb, double &nq,
                       double &ns, double &vx, double &vy, double &Y);
