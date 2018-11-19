@@ -33,11 +33,11 @@ ICGlauber::ICGlauber(double e, double impactPar, double _tau0) {
 ICGlauber::~ICGlauber(void) {}
 
 double ICGlauber::eProfile(double x, double y) {
- //prms[0] = sqrt((x + b / 2.0) * (x + b / 2.0) + y * y);
- iff->SetParameters(sqrt((x + b / 2.0) * (x + b / 2.0) + y * y), 0.);
+ prms[0] = sqrt((x + b / 2.0) * (x + b / 2.0) + y * y);
+ iff->SetParameters(prms);
  const double tpp = iff->Integral(-3.0 * Ra, 3.0 * Ra, 1.0e-9);
- //prms[0] = sqrt((x - b / 2.0) * (x - b / 2.0) + y * y);
- iff->SetParameters(sqrt((x - b / 2.0) * (x - b / 2.0) + y * y), 0.);
+ prms[0] = sqrt((x - b / 2.0) * (x - b / 2.0) + y * y);
+ iff->SetParameters(prms);
  const double tmm = iff->Integral(-3.0 * Ra, 3.0 * Ra, 1.0e-9);
  return epsilon *
         pow(1. / rho0 * (tpp * (1.0 - pow((1.0 - sigma * tmm / A), A)) +
@@ -92,9 +92,9 @@ void ICGlauber::setIC(Fluid *f, EoS *eos) {
  }
  delete ff;
  cout << "a = " << A / intgr2 << endl;
- //prms[1] = A / intgr2;
- //prms[2] = Ra;
- //prms[3] = dlt;
+ prms[1] = A / intgr2;
+ prms[2] = Ra;
+ prms[3] = dlt;
  iff = new TF1("WoodSaxonDF", this, &ICGlauber::WoodSaxon, -3.0 * Ra, 3.0 * Ra,
                4, "IC", "WoodSaxon");
  //prms[0] = 0.0;
