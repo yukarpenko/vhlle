@@ -108,9 +108,11 @@ void transformPV(EoS *eos, double Q[7], double &e, double &p, double &nb,
    vh = v;
   else
    vl = v;
-  if (nb != nb)
+  if (nb != nb) {
    cout << "transformCV:nbInf " << i << "  " << e << "  " << nb << "  " << nq
         << "  " << ns << "  " << p << "  " << v << endl;
+   exit(32);
+  }
   if (debugRiemann)
    cout << "step " << i << "  " << e << "  " << nb << "  " << nq << "  " << ns
         << "  " << p << "  " << vx << "  " << vy << "  " << vz << endl;
