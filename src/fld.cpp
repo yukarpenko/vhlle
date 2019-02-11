@@ -478,6 +478,13 @@ void Fluid::getLocalQuant(double tau, double x, double y, double eta, double& T,
   vy += wx[i]*wy[j]*wz[k]*_vy;
   vz += wx[i]*wy[j]*wz[k]*_vz;
  }
+ double v2 = vx*vx + vy*vy + vz*vz;
+ if(v2 > 0.81) { // to prevent v>1 resulting from an interpolation error
+  double v = sqrt(v2);
+  vx = 0.9 * vx / v;
+  vy = 0.9 * vy / v;
+  vz = 0.9 * vz / v;
+ }
 }
 
 void Fluid::absorbPmu(double tau, double x, double y, double eta, double E,
