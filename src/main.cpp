@@ -407,6 +407,7 @@ int main(int argc, char **argv) {
   }
  } while(h->getTau()<tauMax+0.0001);
  cout << "finalizing jet branchings...\n";
+ jparams->nullifyTransportCoeff();
  for(double tauF=tauMax; tauF<100.; tauF+=1.0) {
   uint i=0;
   while(i<jets.size()) {
