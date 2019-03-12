@@ -427,14 +427,17 @@ int main(int argc, char **argv) {
  ofstream fjetout ((sOutputDir+"/jets_final").c_str());
  ofstream fjetoutGF ((sOutputDir+"/jets_final_GF").c_str());
  ofstream fjettot ((sOutputDir+"/jet_totals").c_str());
+ ofstream fjetBothFr ((sOutputDir+"/jets_both_frames").c_str());
  for(uint i=0; i<jets.size(); i++) {
   jets[i]->output(fjetout);
   jets[i]->outputGlobalFrameColour(fjetoutGF);
   jets[i]->outputTotal(fjettot);
+  jets[i]->outputBothFrames(fjetBothFr);
  }
  fjetout.close();
  fjetoutGF.close();
  fjettot.close();
+ fjetBothFr.close();
 
  end = 0;
  time(&end);
