@@ -57,7 +57,7 @@ int icModel, nSmear = 1,
 double epsilon0, Rgt, Rgz, impactPar, s0ScaleFactor;
 // ##### jet-related parameters
 int eventNo; // enumerates the initial/input configuration
-int jetOversampleFactor;
+int jetOversampleFactor, nJetSubSteps;
 double jetMinPt;
 
 void setDefaultParameters() {
@@ -137,6 +137,8 @@ void readParameters(char *parFile) {
   // ### JET-related parameters
   else if (strcmp(parName, "jetOversampleFactor") == 0)
    jetOversampleFactor = atoi(parValue);
+  else if (strcmp(parName, "nJetSubSteps") == 0)
+   nJetSubSteps = atoi(parValue);
   else if (strcmp(parName, "jetMinPt") == 0)
    jetMinPt = atof(parValue);
   else if (parName[0] == '!')
@@ -180,6 +182,7 @@ void printParameters() {
  cout << "s0ScaleFactor = " << s0ScaleFactor << endl;
  cout << "jetELsmear = " << nSmear << endl;
  cout << "jetOversampleFactor = " << jetOversampleFactor << endl;
+ cout << "nJetSubSteps = " << nJetSubSteps << endl;
  cout << "jetMinPt = " << jetMinPt << endl;
  cout << "======= end parameters =======\n";
 }
@@ -270,6 +273,7 @@ int main(int argc, char **argv) {
  // setting default values for some parameters
  jetOversampleFactor = 1;
  jetMinPt = 10.0;
+ nJetSubSteps = 2;
 
  // read parameters from file
  char *parFile;
@@ -394,7 +398,11 @@ int main(int argc, char **argv) {
     jets.erase(it);
     continue;
    }
-   jets[i]->makeStep(f, jparams, h->getTau()-h->getDtau(), h->getTau(), fjetInterm);
+   for(int ijst=0; ijst<nJetSubSteps; ijst++) {
+    const double jt0 = h->getTau()-h->getDtau();
+    const double jdt = h->getDtau() / nJetSubSteps;
+    jets[i]->makeStep(f, jparams, jt0+ijst*jdt, jt0+(ijst+1)*jdt, fjetInterm);
+   }
    // jets[i]->outputTimestep(t+dtau, i, fjetTimeStep);
    i++;
   };
