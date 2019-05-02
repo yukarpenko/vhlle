@@ -73,4 +73,5 @@ public:
  double& vx, double& vy, double& vz);
  void absorbPmu(double tau, double x, double y, double eta, double E,
  double px, double py, double pz);
+ void setDt(double _dt) { dt = _dt; }  // TODO: re-set Cornelius with updated dt!
 };
