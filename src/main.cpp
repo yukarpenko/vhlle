@@ -346,8 +346,6 @@ int main(int argc, char **argv) {
 
  if(icModel==6) { // take tau0 and dt explicitly from EPOS IS output
   tau0 = icEpos::tau0;
-  dtau = icEpos::dt;
-  f->setDt(dtau);
  }
  // hydro init
  h = new Hydro(f, eos, trcoeff, tau0, dtau);

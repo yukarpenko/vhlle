@@ -27,6 +27,7 @@ void loadIC(const char* fnParams, const char* fnGrid) {
  fParams >> tau0 >> dt >> NX >> xmin >> xmax
    >> NY >> ymin >> ymax >> NZ >> zmin >> zmax;
  cout << "icEpos: NX " << NX << " NY " << NY << " NZ " << NZ << endl;
+ cout << "icEpos: tau0 " << tau0 << " dt " << dt << endl;
  // reading the grid
  ifstream fGrid(fnGrid);
  if (!fGrid.good()) {
