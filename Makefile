@@ -1,3 +1,9 @@
+# hs == hadron sampler (particlization)
+# jt == parton cascade
+OBJ = obj/
+hDir = src/
+jtDir = JT/
+hsDir = HS/
 
 ROOTCFLAGS   := $(shell root-config --cflags)
 ROOTLIBS     := $(shell root-config --libs)
@@ -10,26 +16,44 @@ LDFLAGS       = -O3 -march=native
 CXXFLAGS     += $(ROOTCFLAGS)
 LIBS          = $(ROOTLIBS) $(SYSLIBS)
 
-vpath %.cpp src JT
-objdir     = obj
+#vpath %.cpp src JT
+#objdir     = obj
 
-SRC        = cll.cpp eos.cpp eo3.cpp eo1.cpp eoChiral.cpp eoHadron.cpp eoAZH.cpp trancoeff.cpp fld.cpp hdo.cpp s95p.cpp icurqmd.cpp ic.cpp ickw.cpp icPartUrqmd.cpp main.cpp rmn.cpp cornelius.cpp \
-             icGlauber.cpp icGubser.cpp icGlissando.cpp icEpos.cpp \
-             params.cpp integral.cpp W.cpp S.cpp cascade.cpp smearingKernel.cpp
-OBJS       = $(patsubst %.cpp,$(objdir)/%.o,$(SRC)) 
-              
-TARGET	   = hlle_visc
+hydro_src = $(hDir)cll.cpp $(hDir)eos.cpp $(hDir)eo3.cpp $(hDir)eo1.cpp \
+       $(hDir)eoChiral.cpp $(hDir)eoHadron.cpp $(hDir)eoAZH.cpp $(hDir)trancoeff.cpp \
+       $(hDir)fld.cpp $(hDir)hdo.cpp $(hDir)s95p.cpp $(hDir)icurqmd.cpp $(hDir)ic.cpp \
+       $(hDir)ickw.cpp $(hDir)icPartUrqmd.cpp $(hDir)main.cpp $(hDir)rmn.cpp \
+       $(hDir)cornelius.cpp $(hDir)icGlauber.cpp $(hDir)icGubser.cpp \
+       $(hDir)icGlissando.cpp $(hDir)icEpos.cpp $(hDir)smearingKernel.cpp
+jt_src = $(jtDir)params.cpp $(jtDir)integral.cpp $(jtDir)W.cpp $(jtDir)S.cpp \
+         $(jtDir)cascade.cpp
+hs_src = $(hsDir)cascade.cpp  $(hsDir)DecayChannel.cpp  $(hsDir)particle.cpp \
+         $(hsDir)tree.cpp  $(hsDir)DatabasePDG2.cpp  $(hsDir)gen.cpp \
+         $(hsDir)params.cpp  $(hsDir)ParticlePDG2.cpp  $(hsDir)UKUtility.cpp
+
+V : dirs  hlle_visc
 #------------------------------------------------------------------------------
-$(TARGET):       $(OBJS)
+hlle_visc:  $(hydro_src:%.cpp=$(OBJ)%.o) $(jt_src:%.cpp=$(OBJ)%.o) $(hs_src:%.cpp=$(OBJ)%.o)
 		$(LD)  $(LDFLAGS) $^ -o $@ $(LIBS)
 		@echo "$@ done"
+$(hydro_src:%.cpp=$(OBJ)%.o) : $(OBJ)%.o : ./%.cpp
+	$(CXX) $(CXXFLAGS)  -c $< -o $@
+$(jt_src:%.cpp=$(OBJ)%.o) : $(OBJ)%.o : ./%.cpp
+	$(CXX) $(CXXFLAGS)  -c $< -o $@
+$(hs_src:%.cpp=$(OBJ)%.o) : $(OBJ)%.o : ./%.cpp
+	$(CXX) $(CXXFLAGS)  -c $< -o $@
+dirs:
+	@if [ ! -d $(OBJ)  ]  ;then                       \
+	set -x; mkdir $(OBJ); set +x;                  \
+	fi
+	@if [ ! -d $(OBJ)$(hDir)  ]  ;then                       \
+	set -x; mkdir  $(OBJ)$(hDir); set +x;                  \
+	fi
+	@if [ ! -d $(OBJ)$(jtDir)  ]  ;then                       \
+	set -x; mkdir  $(OBJ)$(jtDir); set +x;                  \
+	fi
+	@if [ ! -d $(OBJ)$(hsDir)  ]  ;then                       \
+	set -x; mkdir  $(OBJ)$(hsDir); set +x;                  \
+	fi
 clean:
-		@rm -f $(OBJS) $(TARGET)
-
-$(OBJS): | $(objdir)
-
-$(objdir):
-	@mkdir -p $(objdir)
-	
-obj/%.o : %.cpp
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+		@rm -f $(OBJ)$(hDir)/*.o $(OBJ)$(jtDir)/*.o $(OBJ)$(hsDir)/*.o hlle_visc
