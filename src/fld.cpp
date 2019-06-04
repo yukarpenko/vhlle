@@ -28,6 +28,7 @@
 #include "trancoeff.h"
 #include "cornelius.h"
 #include "smearingKernel.h"
+#include "../HS/gen.h"
 
 #define OUTPI
 
@@ -157,7 +158,7 @@ void Fluid::initOutput(const char *dir, double tau0) {
  output::fyvisc.open(outyvisc.c_str());
  output::fdiagvisc.open(outdiagvisc.c_str());
  output::faniz.open(outaniz.c_str());
- output::ffreeze.open(outfreeze.c_str());
+ //output::ffreeze.open(outfreeze.c_str());
  //################################################################
  // important remark. for correct diagonal output, nx=ny must hold.
  //################################################################
@@ -565,6 +566,7 @@ void Fluid::outputSurface(double tau) {
  for (int ix = 2; ix < nx - 2; ix++)
   for (int iy = 2; iy < ny - 2; iy++)
    for (int iz = 2; iz < nz - 2; iz++) {
+    gen::element elem;  // surface element structure hadron sampling is working with
     Cell *c = getCell(ix, iy, iz);
     getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
     c->getQ(Q);
@@ -645,11 +647,15 @@ void Fluid::outputSurface(double tau) {
     const int Nsegm = cornelius->get_Nelements();
     for (int isegm = 0; isegm < Nsegm; isegm++) {
      nelements++;
-     output::ffreeze.precision(15);
-     output::ffreeze << setw(24) << tau + cornelius->get_centroid_elem(isegm, 0)
-             << setw(24) << getX(ix) + cornelius->get_centroid_elem(isegm, 1)
-             << setw(24) << getY(iy) + cornelius->get_centroid_elem(isegm, 2)
-             << setw(24) << getZ(iz) + cornelius->get_centroid_elem(isegm, 3);
+     //output::ffreeze.precision(15);
+     //output::ffreeze << setw(24) << tau + cornelius->get_centroid_elem(isegm, 0)
+     //        << setw(24) << getX(ix) + cornelius->get_centroid_elem(isegm, 1)
+     //        << setw(24) << getY(iy) + cornelius->get_centroid_elem(isegm, 2)
+     //        << setw(24) << getZ(iz) + cornelius->get_centroid_elem(isegm, 3);
+     elem.tau = tau + cornelius->get_centroid_elem(isegm, 0);
+     elem.x = getX(ix) + cornelius->get_centroid_elem(isegm, 1);
+     elem.y = getY(iy) + cornelius->get_centroid_elem(isegm, 2);
+     elem.eta = getZ(iz) + cornelius->get_centroid_elem(isegm, 3);
      // ---- interpolation procedure
      double vxC = 0., vyC = 0., vzC = 0., TC = 0., mubC = 0., muqC = 0.,
             musC = 0., piC[10], PiC = 0., nbC = 0.,
@@ -717,10 +723,18 @@ void Fluid::outputSurface(double tau) {
      for (int ii = 0; ii < 4; ii++)
       dVEff += dsigma[ii] * uC[ii];  // normalize for Delta eta=1
      vEff += dVEff;
-     for (int ii = 0; ii < 4; ii++) output::ffreeze << setw(24) << dsigma[ii];
-     for (int ii = 0; ii < 4; ii++) output::ffreeze << setw(24) << uC[ii];
-     output::ffreeze << setw(24) << TC << setw(24) << mubC << setw(24) << muqC
-             << setw(24) << musC;
+     for (int ii = 0; ii < 4; ii++) {
+      //output::ffreeze << setw(24) << dsigma[ii];
+      //output::ffreeze << setw(24) << uC[ii];
+      elem.dsigma[ii] = dsigma[ii];
+      elem.u[ii] = uC[ii];
+     }
+     //output::ffreeze << setw(24) << TC << setw(24) << mubC << setw(24) << muqC
+     //        << setw(24) << musC;
+     elem.T = TC;
+     elem.mub = mubC;
+     elem.muq = muqC;
+     elem.mus = musC;
 #ifdef OUTPI
      double picart[10];
      /*pi00*/ picart[index44(0, 0)] = ch * ch * piC[index44(0, 0)] +
@@ -743,11 +757,16 @@ void Fluid::outputSurface(double tau) {
      /*pi33*/ picart[index44(3, 3)] = sh * sh * piC[index44(0, 0)] +
                                       ch * ch * piC[index44(3, 3)] +
                                       2. * sh * ch * piC[index44(0, 3)];
-     for (int ii = 0; ii < 10; ii++) output::ffreeze << setw(24) << picart[ii];
-     output::ffreeze << setw(24) << PiC << endl;
+     for (int ii = 0; ii < 10; ii++) {
+      //output::ffreeze << setw(24) << picart[ii];
+      elem.pi[ii] = picart[ii];
+     }
+     //output::ffreeze << setw(24) << PiC << endl;
+     elem.Pi = PiC;
 #else
-     output::ffreeze << setw(24) << dVEff << endl;
+     //output::ffreeze << setw(24) << dVEff << endl;
 #endif
+     gen::addElement(elem);
      double dEsurfVisc = 0.;
      for (int i = 0; i < 4; i++)
       dEsurfVisc += picart[index44(0, i)] * dsigma[i];
@@ -756,7 +775,7 @@ void Fluid::outputSurface(double tau) {
     }
     // if(cornelius->get_Nelements()>1) cout << "oops, Nelements>1\n" ;
     //----- end Cornelius
-   }
+   } // end loop over fluid cells
  E = E * dx * dy * dz;
  Efull = Efull * dx * dy * dz;
  S = S * dx * dy * dz;
@@ -782,7 +801,7 @@ void Fluid::outputSurface(double tau) {
 #ifdef SWAP_EOS
  swap(eos, eosH);
 #endif
- if (nelements == 0) exit(0);
+ //if (nelements == 0) exit(0);
 }
 
 void Fluid::outputCorona(double tau) {
@@ -875,9 +894,9 @@ void Fluid::outputCorona(double tau) {
       }
     if (isCorona && !isTail) {
      nelements++;
-     output::ffreeze.precision(15);
-     output::ffreeze << setw(24) << tau << setw(24) << getX(ix) + 0.5 * dx << setw(24)
-             << getY(iy) + 0.5 * dy << setw(24) << getZ(iz) + 0.5 * dz;
+     //output::ffreeze.precision(15);
+     //output::ffreeze << setw(24) << tau << setw(24) << getX(ix) + 0.5 * dx << setw(24)
+     //        << getY(iy) + 0.5 * dy << setw(24) << getZ(iz) + 0.5 * dz;
      // ---- interpolation procedure
      double vxC = 0., vyC = 0., vzC = 0., TC = 0., mubC = 0., muqC = 0.,
             musC = 0., piC[10], PiC = 0., nbC = 0.,
@@ -930,10 +949,10 @@ void Fluid::outputCorona(double tau) {
      for (int ii = 0; ii < 4; ii++)
       dVEff += dsigma[ii] * uC[ii];  // normalize for Delta eta=1
      vEff += dVEff;
-     for (int ii = 0; ii < 4; ii++) output::ffreeze << setw(24) << dsigma[ii];
-     for (int ii = 0; ii < 4; ii++) output::ffreeze << setw(24) << uC[ii];
-     output::ffreeze << setw(24) << TC << setw(24) << mubC << setw(24) << muqC
-             << setw(24) << musC;
+     //for (int ii = 0; ii < 4; ii++) output::ffreeze << setw(24) << dsigma[ii];
+     //for (int ii = 0; ii < 4; ii++) output::ffreeze << setw(24) << uC[ii];
+     //output::ffreeze << setw(24) << TC << setw(24) << mubC << setw(24) << muqC
+     //        << setw(24) << musC;
 #ifdef OUTPI
      double picart[10];
      /*pi00*/ picart[index44(0, 0)] = ch * ch * piC[index44(0, 0)] +
@@ -956,10 +975,10 @@ void Fluid::outputCorona(double tau) {
      /*pi33*/ picart[index44(3, 3)] = sh * sh * piC[index44(0, 0)] +
                                       ch * ch * piC[index44(3, 3)] +
                                       2. * sh * ch * piC[index44(0, 3)];
-     for (int ii = 0; ii < 10; ii++) output::ffreeze << setw(24) << picart[ii];
-     output::ffreeze << setw(24) << PiC << endl;
+     //for (int ii = 0; ii < 10; ii++) output::ffreeze << setw(24) << picart[ii];
+     //output::ffreeze << setw(24) << PiC << endl;
 #else
-     output::ffreeze << setw(24) << dVEff << endl;
+     //output::ffreeze << setw(24) << dVEff << endl;
 #endif
      double dEsurfVisc = 0.;
      for (int i = 0; i < 4; i++)

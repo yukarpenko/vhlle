@@ -41,6 +41,8 @@
 #include "const.h"
 #include "params.h"
 #include "cascade.h"
+#include "../HS/gen.h"
+#include "../HS/params.h"
 
 using namespace std;
 
@@ -368,6 +370,9 @@ int main(int argc, char **argv) {
   jets[i]->output(fjetiniout);
  }
  fjetiniout.close();
+ // hadron sampler (particlization) init
+ HSparams::readParams(parFile);
+ gen::init();
 
  // disable jet timestep-wise output: consumes too much space
  //ofstream fjetTimeStep((sOutputDir+"/jetTimeSteps").c_str());
@@ -406,7 +411,7 @@ int main(int argc, char **argv) {
    i++;
   };
   f->outputGnuplot(h->getTau());
-  //f->outputSurface(h->getTau());
+  f->outputSurface(h->getTau());
   if(h->getTau()>=tauResize and resized==false) {
    cout << "grid resize\n";
    f = expandGrid2x(h, eos, eosH, trcoeff);
@@ -429,6 +434,9 @@ int main(int argc, char **argv) {
  }
  cout << "done.\n";
  fjetInterm.close();
+ // sampling final state medium hadrons
+ gen::generate();
+ gen::writeEvents();
 
  // printing final jets
  ofstream fjetout ((sOutputDir+"/jets_final").c_str());
