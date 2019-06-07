@@ -21,6 +21,7 @@
 #include <cstring>
 #include <ctime>
 #include <sstream>
+#include <TFile.h>
 #include "fld.h"
 #include "hdo.h"
 #include "ic.h"
@@ -38,11 +39,18 @@
 #include "eoHadron.h"
 #include "trancoeff.h"
 //--- parton cascade modules
-#include "const.h"
-#include "params.h"
-#include "cascade.h"
+#include "../JT/const.h"
+#include "../JT/params.h"
+#include "../JT/cascade.h"
+//--- hadron sampling
 #include "../HS/gen.h"
+#include "../HS/cascade.h"
+#include "../HS/particle.h"
 #include "../HS/params.h"
+#include "../HS/tree.h"
+//--- PYTHIA
+#include "Pythia8/Pythia.h"
+#include "../JT/interfacePythia.h"
 
 using namespace std;
 
@@ -373,6 +381,8 @@ int main(int argc, char **argv) {
  // hadron sampler (particlization) init
  HSparams::readParams(parFile);
  gen::init();
+ // interface to PYTHIA
+ InterfacePythia pyInt;
 
  // disable jet timestep-wise output: consumes too much space
  //ofstream fjetTimeStep((sOutputDir+"/jetTimeSteps").c_str());
@@ -434,9 +444,34 @@ int main(int argc, char **argv) {
  }
  cout << "done.\n";
  fjetInterm.close();
+
  // sampling final state medium hadrons
  gen::generate();
- gen::writeEvents();
+ // decaying resonances and filling ROOT trees
+ TFile *outputFile = new TFile("output.root", "RECREATE"); 
+ outputFile->cd();
+ MyTree *treeIni = new MyTree("treeini") ;
+ MyTree *treeFin = new MyTree("treefin") ;
+ // Cooper-Frye oversampling loop
+ for(int iev=0; iev<HSparams::NEVENTS; iev++){
+  treeIni->clear();
+  treeFin->clear();
+  treeIni->addMediumHadrons(iev);
+  gen::urqmd(iev);   // it only does resonance decays
+  treeFin->addMediumHadrons(iev);
+  vector<gen::Particle> jetPartons, jetHadrons;
+  jetPartons.clear();
+  jetHadrons.clear();
+  for(uint i=0; i<jets.size(); i++) {
+   pyInt.do1JetHadronization(*(jets[i]), jetPartons, jetHadrons);
+   treeFin->addJetParticles(jetPartons);   // assuming jetOversampling==1
+   treeFin->addJetParticles(jetHadrons);
+  }
+  treeIni->fillTree();
+  treeFin->fillTree();
+ } // end events loop
+ outputFile->Write() ;
+ outputFile->Close() ;
 
  // printing final jets
  ofstream fjetout ((sOutputDir+"/jets_final").c_str());

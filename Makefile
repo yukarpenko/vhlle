@@ -9,12 +9,12 @@ ROOTCFLAGS   := $(shell root-config --cflags)
 ROOTLIBS     := $(shell root-config --libs)
 
 CXX           = g++
-CXXFLAGS      = -std=c++11 -Wall -fPIC -O3 -march=native -Isrc/ -IJT/
+CXXFLAGS      = -std=c++11 -Wall -fPIC -O3 -march=native -Isrc/ -IJT/ -I../pythia8235/include/
 LD            = g++
 LDFLAGS       = -O3 -march=native
 
 CXXFLAGS     += $(ROOTCFLAGS)
-LIBS          = $(ROOTLIBS) $(SYSLIBS)
+LIBS          = $(ROOTLIBS) $(SYSLIBS) ../pythia8235/lib/libpythia8.a -ldl
 
 #vpath %.cpp src JT
 #objdir     = obj
@@ -26,7 +26,7 @@ hydro_src = $(hDir)cll.cpp $(hDir)eos.cpp $(hDir)eo3.cpp $(hDir)eo1.cpp \
        $(hDir)cornelius.cpp $(hDir)icGlauber.cpp $(hDir)icGubser.cpp \
        $(hDir)icGlissando.cpp $(hDir)icEpos.cpp $(hDir)smearingKernel.cpp
 jt_src = $(jtDir)params.cpp $(jtDir)integral.cpp $(jtDir)W.cpp $(jtDir)S.cpp \
-         $(jtDir)cascade.cpp
+         $(jtDir)cascade.cpp $(jtDir)interfacePythia.cpp
 hs_src = $(hsDir)cascade.cpp  $(hsDir)DecayChannel.cpp  $(hsDir)particle.cpp \
          $(hsDir)tree.cpp  $(hsDir)DatabasePDG2.cpp  $(hsDir)gen.cpp \
          $(hsDir)params.cpp  $(hsDir)ParticlePDG2.cpp  $(hsDir)UKUtility.cpp
