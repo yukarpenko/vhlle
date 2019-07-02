@@ -70,12 +70,13 @@ double epsilon0, Rgt, Rgz, impactPar, s0ScaleFactor;
 // ##### jet-related parameters
 int eventNo; // enumerates the initial/input configuration
 int jetOversampleFactor, nJetSubSteps;
-double jetMinPt;
+double jetMinPt, ptTrigger;
 
 extern TRandom3 *rnd;
 
 void setDefaultParameters() {
  tauResize = 4.0;
+ ptTrigger = 10.0;
 }
 
 void readParameters(char *parFile) {
@@ -155,6 +156,8 @@ void readParameters(char *parFile) {
    nJetSubSteps = atoi(parValue);
   else if (strcmp(parName, "jetMinPt") == 0)
    jetMinPt = atof(parValue);
+  else if (strcmp(parName, "ptTrigger") == 0)
+   ptTrigger = atof(parValue);
   else if (parName[0] == '!')
    cout << "CCC " << sline.str() << endl;
   else
@@ -198,6 +201,7 @@ void printParameters() {
  cout << "jetOversampleFactor = " << jetOversampleFactor << endl;
  cout << "nJetSubSteps = " << nJetSubSteps << endl;
  cout << "jetMinPt = " << jetMinPt << endl;
+ cout << "ptTrigger = " << ptTrigger << endl;
  cout << "======= end parameters =======\n";
 }
 
@@ -240,10 +244,14 @@ namespace IniPartons {
 vector<double> xo, yo, etao, rapo; // original list of parton coordinates
 vector<int> typeo; // original list of parton types
 vector<std::pair<double, int>> ptOrder; // pt-index map
+bool discardOrigPartons; // flag to discard the original partons
+                         // if they don't match the pT trigger criterion
 
 void readIniPartons(const char* file, vector<Jet*> &jets, vector<vector<Jet*> > &jetEvents)
 {
  jetEvents.resize(jetOversampleFactor);
+ discardOrigPartons = false;
+ double ptMax = 0.0;
  ifstream fin(file);
  if (!fin.is_open()) {
   cout << "cannot open initial partons file " << file << endl;
@@ -279,6 +287,7 @@ void readIniPartons(const char* file, vector<Jet*> &jets, vector<vector<Jet*> > 
    Jet* _jet = new Jet(1000*eventNo+ios, count, type, px, py, pz, E, Q2, x, y, eta, tau0);
    jets.push_back(_jet);
    jetEvents[ios].push_back(_jet);
+   ptMax = std::max(ptMax, Q2);
    // --- filling the coordinate arrays for the oversampling procedure
    xo.push_back(x);
    yo.push_back(y);
@@ -295,6 +304,9 @@ void readIniPartons(const char* file, vector<Jet*> &jets, vector<vector<Jet*> > 
  } // file read loop
  fin.close();
  cout << count << " jet partons read in.\n";
+ // if the original hard partons from EPOS don't meet the pT trigger condition,
+ // set the flag to discard them and replace with another oversampled distribution.
+ if(ptMax<ptTrigger) discardOrigPartons = true;
  // pT sorting
  std::sort(ptOrder.begin(), ptOrder.end());
  for(int i=0; i<ptOrder.size(); i++) {
@@ -305,18 +317,31 @@ void readIniPartons(const char* file, vector<Jet*> &jets, vector<vector<Jet*> > 
 
 void oversampleIniPartons(vector<Jet*> &jets, vector<vector<Jet*> > &jetEvents)
 {
- for(int ios=1; ios<jetOversampleFactor; ios++) { // oversampling loop, STARTING FROM 1
+ int startOS;
+ if(discardOrigPartons) {
+  // if the flag is set, clear the jet vectors to discard the original partons
+  jets.clear();
+  jetEvents.clear();
+  jetEvents.resize(jetOversampleFactor);
+  startOS = 0;
+ } else {
+  startOS = 1;
+ }
+ for(int ios=startOS; ios<jetOversampleFactor; ios++) { // oversampling loop, STARTING FROM 1
   cout << "oversampling event " << ios << endl;
   vector<double> ptPool;
+  double ptMax = 0.0;
+  do {
   ptPool.clear();
-  for(int i=0; i<ptOrder.size(); i++) {
-   double _pt = jetMinPt/pow(1.0 - rnd->Rndm(), 1.0/(5.3-1.0)); // 5.3 is the power law
-   ptPool.push_back(_pt);
-   cout << "pt_pool:" << setw(14) << _pt << endl;
-  }
+   for(int i=0; i<ptOrder.size(); i++) {
+    double _pt = jetMinPt/pow(1.0 - rnd->Rndm(), 1.0/(5.3-1.0)); // 5.3 is the power law
+    ptPool.push_back(_pt);
+    ptMax = std::max(ptMax, _pt);
+   }
+  } while(ptMax<ptTrigger);
   std::sort(ptPool.begin(), ptPool.end());
+  cout << "oversampled_pt_max:" << setw(14) << ptPool[ptPool.size()-1] << endl;
   for(int i=0; i<ptPool.size(); i++) {
-   cout << "pt_sort:" << setw(14) << ptPool[i] << endl;
    const double _phi = 2.0*M_PI*rnd->Rndm();
    const double _px = ptPool[i]*cos(_phi);
    const double _py = ptPool[i]*sin(_phi);
