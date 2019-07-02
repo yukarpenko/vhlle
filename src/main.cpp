@@ -51,6 +51,8 @@
 //--- PYTHIA
 #include "Pythia8/Pythia.h"
 #include "../JT/interfacePythia.h"
+//--- ROOT
+#include <TRandom3.h>
 
 using namespace std;
 
@@ -69,6 +71,8 @@ double epsilon0, Rgt, Rgz, impactPar, s0ScaleFactor;
 int eventNo; // enumerates the initial/input configuration
 int jetOversampleFactor, nJetSubSteps;
 double jetMinPt;
+
+extern TRandom3 *rnd;
 
 void setDefaultParameters() {
  tauResize = 4.0;
@@ -231,16 +235,27 @@ Fluid* expandGrid2x(Hydro* h, EoS* eos, EoS* eosH, TransportCoeff *trcoeff) {
 // int icModel, NPART, glauberVariable=1 ;
 // double epsilon0, alpha, impactPar, s0ScaleFactor ;
 
-void readIniPartons(const char* file, vector<Jet*> &jets)
+namespace IniPartons {
+
+vector<double> xo, yo, etao, rapo; // original list of parton coordinates
+vector<int> typeo; // original list of parton types
+vector<std::pair<double, int>> ptOrder; // pt-index map
+
+void readIniPartons(const char* file, vector<Jet*> &jets, vector<vector<Jet*> > &jetEvents)
 {
- int count;
- for(int ios=0; ios<jetOversampleFactor; ios++){
+ jetEvents.resize(jetOversampleFactor);
  ifstream fin(file);
  if (!fin.is_open()) {
   cout << "cannot open initial partons file " << file << endl;
   exit(1);
  }
- count=0;
+ int count=0;
+ xo.clear();
+ yo.clear();
+ etao.clear();
+ rapo.clear();
+ typeo.clear();
+ ptOrder.clear();
  while (fin.good()) {  // reading the initial partons, line by line
   string line;
   getline(fin, line);
@@ -259,17 +274,69 @@ void readIniPartons(const char* file, vector<Jet*> &jets)
   // ONLY QUARK JETS!
   if(Q2>0.6 and px*px+py*py>jetMinPt*jetMinPt and abs(type)!=9) {
    // skip low-Q partons, qsuch() won't work
-   // default/min: 0.6; test 22.0;
-   // Event numbering: last 3 digits enumerate the oversampled jet evolution,
-   // the upper digits enumerate initial state / hydro configuration.
-   jets.push_back(new Jet(1000*eventNo+ios, count, type, px, py, pz, E, Q2, x, y, eta, tau0));
+   // --- adding the original jet partons
+   const int ios = 0; // later, in the oversamplig loop, ios starts from 1.
+   Jet* _jet = new Jet(1000*eventNo+ios, count, type, px, py, pz, E, Q2, x, y, eta, tau0);
+   jets.push_back(_jet);
+   jetEvents[ios].push_back(_jet);
+   // --- filling the coordinate arrays for the oversampling procedure
+   xo.push_back(x);
+   yo.push_back(y);
+   etao.push_back(eta);
+   double rap = 0.5*log((E+pz)/(E-pz));
+   if(rap!=rap) rap = 20.0;
+   rapo.push_back(rap);
+   typeo.push_back(type);
+   std::pair<double, int> _pair (Q2, count);
+   ptOrder.push_back(_pair);
+   cout << "orig_pt" << setw(14) << Q2 << setw(14) << x << setw(14) << y <<endl;
    count++;
   }
  } // file read loop
  fin.close();
- } // oversample loop
  cout << count << " jet partons read in.\n";
+ // pT sorting
+ std::sort(ptOrder.begin(), ptOrder.end());
+ for(int i=0; i<ptOrder.size(); i++) {
+  cout << "sorted " << setw(14) << ptOrder[i].first << setw(14) << xo[ptOrder[i].second]
+     << setw(14) << yo[ptOrder[i].second] << endl;
+ }
 }
+
+void oversampleIniPartons(vector<Jet*> &jets, vector<vector<Jet*> > &jetEvents)
+{
+ for(int ios=1; ios<jetOversampleFactor; ios++) { // oversampling loop, STARTING FROM 1
+  cout << "oversampling event " << ios << endl;
+  vector<double> ptPool;
+  ptPool.clear();
+  for(int i=0; i<ptOrder.size(); i++) {
+   double _pt = jetMinPt/pow(1.0 - rnd->Rndm(), 1.0/(5.3-1.0)); // 5.3 is the power law
+   ptPool.push_back(_pt);
+   cout << "pt_pool:" << setw(14) << _pt << endl;
+  }
+  std::sort(ptPool.begin(), ptPool.end());
+  for(int i=0; i<ptPool.size(); i++) {
+   cout << "pt_sort:" << setw(14) << ptPool[i] << endl;
+   const double _phi = 2.0*M_PI*rnd->Rndm();
+   const double _px = ptPool[i]*cos(_phi);
+   const double _py = ptPool[i]*sin(_phi);
+   const double _pz = ptPool[i]*sinh(rapo[ptOrder[i].second]);
+   const double _E = ptPool[i]*cosh(rapo[ptOrder[i].second]);
+   if(i==ptPool.size()-1) {
+    cout << setw(14) << xo[ptOrder[i].second] << setw(14) << yo[ptOrder[i].second] << endl;
+   }
+   // Event numbering: last 3 digits enumerate the oversampled jet evolution,
+   // the upper digits enumerate initial state / hydro configuration.
+   Jet* _jet = new Jet(1000*eventNo+ios, i, typeo[ptOrder[i].second],
+    _px, _py, _pz, _E, ptPool[i], xo[ptOrder[i].second], yo[ptOrder[i].second],
+    etao[ptOrder[i].second], tau0);
+   jets.push_back(_jet);
+   jetEvents[ios].push_back(_jet);
+  }
+ } // oversampling loop
+}
+
+} // end namespace IniPartons
 
 int main(int argc, char **argv) {
  // pointers to all the main objects
@@ -365,13 +432,15 @@ int main(int argc, char **argv) {
  f->initOutput(outputDir, tau0);
  //f->outputCorona(tau0);
  // Jet init
- vector<Jet*> jets;
+ vector<Jet*> jets; // all jets in a plain vector
+ vector<vector<Jet*> > jetEvents; // jets separated into jet events
  JetParameters* jparams = new JetParameters(parFile);
  srand(438468301);
  init_tables(438468301);
  jets.clear(); // clear the whole parton vector
  jets.reserve(100);
- readIniPartons(iniHardPartons, jets);
+ IniPartons::readIniPartons(iniHardPartons, jets, jetEvents);
+ IniPartons::oversampleIniPartons(jets, jetEvents);
  string sOutputDir(outputDir);
  ofstream fjetiniout ((sOutputDir+"/jets_initial").c_str());
  for(uint i=0; i<jets.size(); i++) {
@@ -380,6 +449,7 @@ int main(int argc, char **argv) {
  fjetiniout.close();
  // hadron sampler (particlization) init
  HSparams::readParams(parFile);
+ HSparams::NEVENTS = jetOversampleFactor;
  gen::init();
  // interface to PYTHIA
  InterfacePythia pyInt;
@@ -388,7 +458,7 @@ int main(int argc, char **argv) {
  //ofstream fjetTimeStep((sOutputDir+"/jetTimeSteps").c_str());
  ofstream fjetInterm((sOutputDir+"/jets_intermediate_GF").c_str());
 
- bool resized = false; // flag if the grid has been resized
+ bool resized = false; // flag if the hydro grid has been resized
  do {
   // small tau: decrease timestep by makins substeps, in order
   // to avoid instabilities in eta direction (signal velocity ~1/tau)
@@ -450,25 +520,22 @@ int main(int argc, char **argv) {
  // decaying resonances and filling ROOT trees
  TFile *outputFile = new TFile("output.root", "RECREATE"); 
  outputFile->cd();
- MyTree *treeIni = new MyTree("treeini") ;
- MyTree *treeFin = new MyTree("treefin") ;
+ MyTree *tree = new MyTree("tree") ;
  // Cooper-Frye oversampling loop
  for(int iev=0; iev<HSparams::NEVENTS; iev++){
-  treeIni->clear();
-  treeFin->clear();
-  treeIni->addMediumHadrons(iev);
+  tree->clear();
+  tree->addMediumHadrons(iev);
   gen::urqmd(iev);   // it only does resonance decays
-  treeFin->addMediumHadrons(iev);
+  tree->addMediumHadrons(iev);
   vector<gen::Particle> jetPartons, jetHadrons;
   jetPartons.clear();
   jetHadrons.clear();
-  for(uint i=0; i<jets.size(); i++) {
-   pyInt.do1JetHadronization(*(jets[i]), jetPartons, jetHadrons);
-   treeFin->addJetParticles(jetPartons);   // assuming jetOversampling==1
-   treeFin->addJetParticles(jetHadrons);
+  for(uint i=0; i<jetEvents[iev].size(); i++) {
+   pyInt.do1JetHadronization(*(jetEvents[iev][i]), jetPartons, jetHadrons);
+   tree->addJetParticles(jetPartons);   // assuming jetOversampling==1
+   tree->addJetParticles(jetHadrons);
   }
-  treeIni->fillTree();
-  treeFin->fillTree();
+  tree->fillTree();
  } // end events loop
  outputFile->Write() ;
  outputFile->Close() ;
