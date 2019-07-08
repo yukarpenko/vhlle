@@ -21,6 +21,7 @@
 #include <cstring>
 #include <ctime>
 #include <sstream>
+#include <cstdlib>
 #include <TFile.h>
 #include "fld.h"
 #include "hdo.h"
@@ -460,8 +461,13 @@ int main(int argc, char **argv) {
  vector<Jet*> jets; // all jets in a plain vector
  vector<vector<Jet*> > jetEvents; // jets separated into jet events
  JetParameters* jparams = new JetParameters(parFile);
- srand(438468301);
- init_tables(438468301);
+ int rseed = 438468301;
+ if(const char* env_p = std::getenv("RSEED")) {
+  rseed = atoi(env_p);
+ }
+ srand(rseed);
+ cout << "vhlle: random seed is " << rseed << endl;
+ init_tables(rseed);
  jets.clear(); // clear the whole parton vector
  jets.reserve(100);
  IniPartons::readIniPartons(iniHardPartons, jets, jetEvents);
