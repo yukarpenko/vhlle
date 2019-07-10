@@ -471,6 +471,10 @@ int main(int argc, char **argv) {
  jets.clear(); // clear the whole parton vector
  jets.reserve(100);
  IniPartons::readIniPartons(iniHardPartons, jets, jetEvents);
+ if(IniPartons::ptOrder.size()==0) {
+  cout << "No initial hard partons to oversample. Stopping.\n";
+  return 0;
+ }
  IniPartons::oversampleIniPartons(jets, jetEvents);
  string sOutputDir(outputDir);
  ofstream fjetiniout ((sOutputDir+"/jets_initial").c_str());
