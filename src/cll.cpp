@@ -68,13 +68,15 @@ void Cell::importVars(Cell* c) {
 }
 
 void Cell::updateByFlux() {
+ if(Q[0]+flux[0]<0.)
+  return;
  for (int i = 0; i < 7; i++) Q[i] += flux[i];
 }
 
 void Cell::updateByViscFlux() {
  if(fabs(flux[0]) <= 0.5*Q[0]) {
   for (int i = 0; i < 7; i++) Q[i] += flux[i];
- } else {
+ } else if (flux[0]!=0.){
   double fac;
   fac = fabs(0.5*Q[0]/flux[0]);
   for (int i = 0; i < 7; i++) Q[i] += fac*flux[i];
