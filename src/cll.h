@@ -18,8 +18,11 @@
 #pragma once
 #include <iosfwd>
 #include <algorithm>
+#include <cmath>
 #include "inc.h"
 class EoS;
+
+//#define NAN_DEBUG
 
 // returns an index of pi^{mu nu} mu,nu component in a plain 1D array
 int index44(const int &i, const int &j);
@@ -190,6 +193,11 @@ public:
  // update the cumulative fluxes through the cell
  inline void addFlux(double Ft, double Fx, double Fy, double Fz, double Fnb,
                      double Fnq, double Fns) {
+  #ifdef NAN_DEBUG
+  if(std::isinf(Ft) or std::isnan(Ft)) {
+   std::cout << "Cell::addFlux inf/nan\n";
+  }
+  #endif
   flux[T_] += Ft;
   flux[X_] += Fx;
   flux[Y_] += Fy;
