@@ -622,8 +622,9 @@ void Fluid::outputSurface(double tau) {
       dEsurfVisc += piC[index44(0, i)] * cornelius->get_normal_elem(0, i) * invTauCorr[i];
      // now technically EtotSurf is a flow of P^\tau through the hypersurface,
      // so it doesn't have a clear interpretation as energy flow.
-     EtotSurf += (eC + pC) * uC[0] * dVEff
-      - pC * tauC * cornelius->get_normal_elem(0, 0) + dEsurfVisc;
+     EtotSurf += (eC + pC) * (uC[0]*cosh(etaC) + uC[3]*sinh(etaC)) * dVEff
+      - pC * tauC * (cornelius->get_normal_elem(0, 0)*cosh(etaC) -
+       cornelius->get_normal_elem(0, 3)*sinh(etaC)/tauC) + dEsurfVisc;
      nbSurf += nbC * dVEff;
     }
     // if(cornelius->get_Nelements()>1) cout << "oops, Nelements>1\n" ;
@@ -638,7 +639,7 @@ void Fluid::outputSurface(double tau) {
            << vxvy_num / vxvy_den << setw(14) << pi0x_num / pi0x_den << endl;
  cout << setw(10) << tau << setw(13) << E << setw(13) << Efull << setw(13)
       << nbSurf << setw(13) << S << setw(10) << nelements << setw(10) << nsusp
-      << setw(13) << (float)(nCoreCutCells) / (float)(nCoreCells) << endl;
+      << setw(13) << EtotSurf << endl;
  //-- Cornelius: all done, let's free memory
  for (int i1 = 0; i1 < 2; i1++) {
   for (int i2 = 0; i2 < 2; i2++) {
@@ -829,7 +830,7 @@ void Fluid::outputCorona(double tau) {
            << vxvy_num / vxvy_den << setw(14) << pi0x_num / pi0x_den << endl;
  cout << setw(10) << "tau" << setw(13) << "E" << setw(13) << "Efull" << setw(13)
       << "Nb" << setw(13) << "Sfull" << setw(10) << "elements" << setw(10)
-      << "susp." << setw(13) << "\%cut" << endl;
+      << "susp." << setw(13) << "E_surf" << endl;
  cout << setw(10) << tau << setw(13) << E << setw(13) << Efull << setw(13)
       << nbSurf << setw(13) << S << endl;
 #ifdef SWAP_EOS
