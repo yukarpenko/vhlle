@@ -138,9 +138,9 @@ IcPartUrqmd::~IcPartUrqmd() {
 
 void IcPartUrqmd::makeSmoothTable(int npart) {
  for (int ip = 0; ip < npart; ip++) {  // particle loop
-  int ixc = (int)((X[ip] - xmin) / dx);
-  int iyc = (int)((Y[ip] - ymin) / dy);
-  int izc = (int)((Eta[ip] - zmin) / dz);
+  int ixc = (int)round((X[ip] - xmin) / dx);
+  int iyc = (int)round((Y[ip] - ymin) / dy);
+  int izc = (int)round((Eta[ip] - zmin) / dz);
   // finding the norm
   double norm_gauss = 0.0;
   const double gammaz = cosh(Rap[ip] - Eta[ip]);
