@@ -35,6 +35,7 @@
 #include "eoChiral.h"
 #include "eoAZH.h"
 #include "eoHadron.h"
+#include "eoSmash.h"
 #include "trancoeff.h"
 
 using namespace std;
@@ -223,7 +224,8 @@ int main(int argc, char **argv) {
   cout << "eosType != 0,1,2\n";
   return 0;
  }
- EoS *eosH = new EoSHadron("eos/eosHadronLog.dat");
+ //EoS *eosH = new EoSHadron("eos/eosHadronLog.dat");
+ EoS *eosH = new EoSSmash("eos/hadgas_eos.dat", 101, 101);
 
  // transport coefficients
  trcoeff = new TransportCoeff(etaS, zetaS, eos);
