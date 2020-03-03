@@ -768,7 +768,7 @@ void Fluid::outputCorona(double tau) {
      double _ns = 0.0;
      transformPV(eos, QC, eC, pC, nbC, nqC, _ns, vxC, vyC, vzC);
      eos->eos(eC, nbC, nqC, _ns, TC, mubC, muqC, musC, pC);
-     if (TC > 0.4 || fabs(mubC) > 0.85) {
+     if (TC > 0.4 || fabs(mubC) > 0.99) {
       cout << "#### Error (surface): high T/mu_b ####\n";
      }
      for (int jx = 0; jx < 2; jx++)
