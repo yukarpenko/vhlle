@@ -99,6 +99,7 @@ void EoSSmash::eos(double e, double nb, double nq, double ns, double& T,
    mub += we[je] * wn[jn] * mubtab[ie + je][in + jn];
    mus += we[je] * wn[jn] * mustab[ie + je][in + jn];
   }
+  muq = 0.;
  if (p < 0.0) p = 0.0;
 }
 
