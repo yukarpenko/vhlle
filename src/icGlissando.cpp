@@ -35,21 +35,42 @@ IcGlissando::IcGlissando(Fluid* f, const char* filename, double _tau0, const cha
  if(strcmp(setup,"LHC276")==0) {
   eta0 = 2.3; // midrapidity plateau
   sigEta = 1.4; // diffuseness of rapidity profile
-  ybeam = 7.98; // beam rapidity, for 200 GeV RHIC
+  ybeam = 7.98; // beam rapidity
   alphaMix = 0.15; // WN/binary mixing
   Rg = 0.4; // Gaussian smearing in transverse dir
-  sNorm = 0.96; // normalization of initial entropy profile
+  //sNorm = 0.96; // normalization of initial entropy profile
   A = 0.0 ; /// 3.6e-5; // initial shear flow
   cout << "IcGlissando: setup for 2.76 TeV LHC\n";
  } else if(strcmp(setup,"RHIC200")==0) {
   eta0 = 1.5; // midrapidity plateau
   sigEta = 1.4; // diffuseness of rapidity profile
-  ybeam = 5.36; // beam rapidity, for 200 GeV RHIC
+  ybeam = 5.36; // beam rapidity
   alphaMix = 0.125; // WN/binary mixing
   Rg = 0.4; // Gaussian smearing in transverse dir
-  sNorm = 0.56; // normalization of initial entropy profile
+  //sNorm = 0.56; // normalization of initial entropy profile
   A = 0.0 ; // 5e-4; // initial shear flow
   cout << "IcGlissando: setup for 200 GeV RHIC\n";
+ } else if(strcmp(setup,"LHC5020")==0) {
+  eta0 = 2.3; // midrapidity plateau
+  sigEta = 1.4; // diffuseness of rapidity profile
+  ybeam = 8.585; // beam rapidity
+  alphaMix = 0.15; // WN/binary mixing
+  Rg = 0.4; // Gaussian smearing in transverse dir
+  //sNorm = 1.096; // normalization of initial entropy profile
+  A = 0.0 ; // 5e-4; // initial shear flow
+  cout << "IcGlissando: setup for 5.02 TeV LHC\n";
+ } else if(strcmp(setup,"RHIC27")==0) {
+  sNN = 27;
+  eta0 = 1.0; // midrapidity plateau
+  sigEta = 1.0; // diffuseness of rapidity profile
+  ybeam = 3.36; // beam rapidity
+  alphaMix = 0.123; // 0.125 WN/binary mixing
+  Rg = 0.4; // Gaussian smearing in transverse dir
+  //sNorm = 0.7904; // normalization of initial entropy profile
+  A = 0.0 ; // 5e-4; // initial shear flow
+  nsigma = 0.6;
+  neta0 = 1.4;
+  cout << "IcGlissando: setup for 27 GeV RHIC\n";
  } else {
   cout << "IcGlissando: optional parameter LHC276 or RHIC200 is expected\n";
   exit(0);
@@ -68,6 +89,16 @@ IcGlissando::IcGlissando(Fluid* f, const char* filename, double _tau0, const cha
    }
   }
  }
+ nrho = new double**[nx];
+ for (int ix = 0; ix < nx; ix++) {
+  nrho[ix] = new double*[ny];
+  for (int iy = 0; iy < ny; iy++) {
+   nrho[ix][iy] = new double[nz];
+   for (int iz = 0; iz < nz; iz++) {
+    nrho[ix][iy][iz] = 0.0;
+   }
+  }
+ }
  // ---- read the events
  nevents = 0;
  ifstream fin(filename);
@@ -75,7 +106,7 @@ IcGlissando::IcGlissando(Fluid* f, const char* filename, double _tau0, const cha
   cout << "I/O error with " << filename << endl;
   exit(1);
  }
- int np = 0;  // particle counter
+ int np = 0, np_tot=0;  // particle counter
  string line;
  istringstream instream;
  while (!fin.eof()) {
@@ -94,6 +125,7 @@ IcGlissando::IcGlissando(Fluid* f, const char* filename, double _tau0, const cha
     //cout << flush;
    }
    makeSmoothTable(np);
+   np_tot += np;
    np = 0;
    nevents++;
    //if(nevents>2) return ;
@@ -102,16 +134,35 @@ IcGlissando::IcGlissando(Fluid* f, const char* filename, double _tau0, const cha
  }
  if (nevents > 1)
   cout << "IcGlissando: loaded " << nevents << "  initial UrQMD events\n";
+
+ // autocalculation of sNorm and nNorm
+ sNorm = 1.0;
+ double old_sNorm = 0.0;
+ do {
+   old_sNorm = sNorm;
+   sNorm = pow(setNormalization(np_tot), 0.75)*old_sNorm;
+ } while (abs(sNorm-old_sNorm) > 0.0001);
+ cout << "sNorm set to " << sNorm << endl;
+ double old_nNorm = 0.0;
+ nNorm = 1.0;
+ do {
+   old_nNorm = nNorm;
+   nNorm = setBaryonNorm(np_tot)*old_nNorm;
+ } while (abs(nNorm-old_nNorm) > 0.0001);
+ cout << "nNorm set to " << nNorm << endl;
 }
 
 IcGlissando::~IcGlissando() {
  for (int ix = 0; ix < nx; ix++) {
   for (int iy = 0; iy < ny; iy++) {
    delete[] rho[ix][iy];
+   delete[] nrho[ix][iy];
   }
   delete[] rho[ix];
+  delete[] nrho[ix];
  }
  delete[] rho;
+ delete[] nrho;
 }
 
 void IcGlissando::makeSmoothTable(int npart) {
@@ -135,12 +186,18 @@ void IcGlissando::makeSmoothTable(int npart) {
      for (int iz = 0; iz < nz; iz++) {
       // longidudinal profile here
       const double eta = zmin + iz * dz;
-      const double tilt = C[ip]>0 ? 1. + eta/ybeam : 1. - eta/ybeam;
+      const double etaM = 1.5; // default value in Glissando 2
+      double tilt = C[ip]>0 ? 0.5*(etaM + eta)/etaM : 0.5*(etaM - eta)/etaM;
+      tilt = std::max(0.0, tilt);
+      tilt = std::min(1.0, tilt);
+      double baryonGaussian = C[ip]>0 ? exp(-pow(eta - neta0, 2)/(2. * nsigma * nsigma)) : exp(-pow(eta + neta0, 2)/(2. * nsigma * nsigma)) ;
+      baryonGaussian /= nsigma*sqrt(2*C_PI);
       double fEta = 0.;
       if(fabs(eta)<eta0) fEta = 1.0;
       else if (fabs(eta)<ybeam) fEta = exp(-0.5*pow((fabs(eta)-eta0)/sigEta,2));
       rho[ix][iy][iz] += trSmear * fEta * tilt
        * ((1.0 - alphaMix) + abs(C[ip])*alphaMix);
+      nrho[ix][iy][iz] += trSmear * ((1.0 - alphaMix) + abs(C[ip])*alphaMix) * baryonGaussian;
      } // Z(eta) loop
     }
  }  // end particle loop
@@ -151,20 +208,23 @@ void IcGlissando::setIC(Fluid* f, EoS* eos) {
  double Jy0 = 0.0, Jint1 = 0.0, Jint3 = 0.0, Xcm = 0.0, Ycm = 0.0, Zcm = 0.0;
  double E_midrap = 0.0, Jy0_midrap = 0.0;  // same quantity at midrapidity
  double Tcm = 0.0;
- double e, p;
+ double e, p, nb;
+ double total_energy = 0.0;
  for (int ix = 0; ix < nx; ix++)
   for (int iy = 0; iy < ny; iy++)
    for (int iz = 0; iz < nz; iz++) {
     e = s95p::s95p_e(sNorm * rho[ix][iy][iz] / nevents / dx / dy);
+    nb = nNorm * nrho[ix][iy][iz] / nevents / dx / dy / dz;
     p = eos->p(e, 0., 0., 0.);
     Cell* c = f->getCell(ix, iy, iz);
     const double ueta = tanh(A*f->getX(ix))*sinh(ybeam-fabs(f->getZ(iz)));
     double u[4] = {sqrt(1.0+ueta*ueta), 0., 0., ueta};
-    c->setPrimVar(eos, tau0, e, 0., 0., 0., 0., 0., u[3]/u[0]);
+    c->setPrimVar(eos, tau0, e, nb, 0.4*nb, 0., 0., 0., u[3]/u[0]);
     if (e > 0.) c->setAllM(1.);
     double eta = zmin + iz * dz;
     double coshEta = cosh(eta);
     double sinhEta = sinh(eta);
+    total_energy += tau0*e*dx*dy*dz*coshEta;
     double u0lab = u[0] * coshEta + u[3] * sinhEta;
     double uzlab = u[0] * sinhEta + u[3] * coshEta;
     double dE = tau0 * ((e + p) * u[0] * u0lab - p * coshEta) * dx * dy * dz;
@@ -173,7 +233,7 @@ void IcGlissando::setIC(Fluid* f, EoS* eos) {
     Pz += tau0 * ((e + p) * u[0] * uzlab - p * sinhEta) * dx * dy * dz;
     Px += tau0 * (e + p) * u[1] * u[0] * dx * dy * dz;
     Py += tau0 * (e + p) * u[2] * u[0] * dx * dy * dz;
-    Nb += 0.;
+    Nb += nb*tau0*dx*dy*dz;
     S += tau0 * eos->s(e, 0., 0., 0.) * u[0] * dx * dy * dz;
     // angular momentum calculation
     const double t = tau0 * coshEta;
@@ -211,4 +271,40 @@ void IcGlissando::setIC(Fluid* f, EoS* eos) {
  cout << "1/tau*dE/dy_ini: : " << E_midrap/(3.0*dz*tau0) << endl;
  cout << "1/tau*dJ/dy_ini: " << Jy0_midrap/(3.0*dz*tau0) << endl;
  //exit(1);
+}
+
+double IcGlissando::setNormalization(int npart) {
+ double E = 0.0, Px = 0.0, Py = 0.0, Pz = 0.0, Nb = 0.0, S = 0.0;
+ double Jy0 = 0.0, Jint1 = 0.0, Jint3 = 0.0, Xcm = 0.0, Ycm = 0.0, Zcm = 0.0;
+ double E_midrap = 0.0, Jy0_midrap = 0.0;  // same quantity at midrapidity
+ double Tcm = 0.0;
+ double e, p;
+ double total_energy = 0.0;
+ for (int ix = 0; ix < nx; ix++)
+  for (int iy = 0; iy < ny; iy++)
+   for (int iz = 0; iz < nz; iz++) {
+    e = s95p::s95p_e(sNorm * rho[ix][iy][iz] / nevents / dx / dy);
+    double eta = zmin + iz * dz;
+    double coshEta = cosh(eta);
+    total_energy += tau0*e*dx*dy*dz*coshEta;
+   }
+ //cout << sNorm << " " << npart*0.5*sNN << " " << total_energy << endl;
+ return npart*0.5*sNN/total_energy;
+}
+
+double IcGlissando::setBaryonNorm(int npart) {
+ double E = 0.0, Px = 0.0, Py = 0.0, Pz = 0.0, Nb = 0.0, S = 0.0;
+ double Jy0 = 0.0, Jint1 = 0.0, Jint3 = 0.0, Xcm = 0.0, Ycm = 0.0, Zcm = 0.0;
+ double E_midrap = 0.0, Jy0_midrap = 0.0;  // same quantity at midrapidity
+ double Tcm = 0.0;
+ double e, p, nb;
+ double total_energy = 0.0;
+ for (int ix = 0; ix < nx; ix++)
+  for (int iy = 0; iy < ny; iy++)
+   for (int iz = 0; iz < nz; iz++) {
+    nb = nNorm * nrho[ix][iy][iz] / nevents / dx / dy / dz;
+    Nb += nb*tau0*dx*dy*dz;
+   }
+ //cout << nNorm << " " << npart << " " << Nb << endl;
+ return npart/Nb;
 }
