@@ -61,15 +61,15 @@ IcGlissando::IcGlissando(Fluid* f, const char* filename, double _tau0, const cha
   cout << "IcGlissando: setup for 5.02 TeV LHC\n";
  } else if(strcmp(setup,"RHIC27")==0) {
   sNN = 27;
-  eta0 = 1.0; // midrapidity plateau
-  sigEta = 1.0; // diffuseness of rapidity profile
+  //eta0 = 1.0; // midrapidity plateau
+  //sigEta = 1.0; // diffuseness of rapidity profile
   ybeam = 3.36; // beam rapidity
   alphaMix = 0.123; // 0.125 WN/binary mixing
   Rg = 0.4; // Gaussian smearing in transverse dir
   //sNorm = 0.7904; // normalization of initial entropy profile
   A = 0.0 ; // 5e-4; // initial shear flow
-  nsigma = 0.6;
-  neta0 = 1.4;
+  //nsigma = 0.6;
+  //neta0 = 1.4;
   cout << "IcGlissando: setup for 27 GeV RHIC\n";
  } else {
   cout << "IcGlissando: optional parameter LHC276 or RHIC200 is expected\n";
@@ -173,6 +173,10 @@ void IcGlissando::makeSmoothTable(int npart) {
   neta0 = 1.625 - 0.5826*cent;
   nsigma = 0.775 - 0.1942*cent;
  }
+ cout << "eta0 = " << eta0 << endl;
+ cout << "sigEta = " << sigEta << endl;
+ cout << "neta0 = " << neta0 << endl;
+ cout << "nsigma = " << nsigma << endl;
  for (int ip = 0; ip < npart; ip++) {  // particle loop
   int ixc = (int)((X[ip] - xmin) / dx);
   int iyc = (int)((Y[ip] - ymin) / dy);
