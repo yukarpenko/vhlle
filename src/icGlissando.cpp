@@ -167,7 +167,7 @@ IcGlissando::~IcGlissando() {
 
 void IcGlissando::makeSmoothTable(int npart) {
  if (sNN == 27) {
-  double cent = npart/(2*197); // our measure of centrality
+  double cent = (double)npart/(2.*197.); // our measure of centrality
   eta0 = 1.225 - 0.5826*cent;
   sigEta = 1.075 - 0.1942*cent;
   neta0 = 1.625 - 0.5826*cent;
