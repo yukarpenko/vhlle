@@ -33,8 +33,10 @@ IcGlissando::IcGlissando(Fluid* f, const char* filename, double _tau0, const cha
  tau0 = _tau0;
  
  if(strcmp(setup,"LHC276")==0) {
+  sNN = 2760;
   eta0 = 2.3; // midrapidity plateau
   sigEta = 1.4; // diffuseness of rapidity profile
+  etaM = 4;
   ybeam = 7.98; // beam rapidity
   alphaMix = 0.15; // WN/binary mixing
   Rg = 0.4; // Gaussian smearing in transverse dir
@@ -42,34 +44,43 @@ IcGlissando::IcGlissando(Fluid* f, const char* filename, double _tau0, const cha
   A = 0.0 ; /// 3.6e-5; // initial shear flow
   cout << "IcGlissando: setup for 2.76 TeV LHC\n";
  } else if(strcmp(setup,"RHIC200")==0) {
+  sNN = 200;
   eta0 = 1.5; // midrapidity plateau
   sigEta = 1.4; // diffuseness of rapidity profile
+  etaM = 3.36;
   ybeam = 5.36; // beam rapidity
-  alphaMix = 0.125; // WN/binary mixing
+  alphaMix = 0.145; // WN/binary mixing
   Rg = 0.4; // Gaussian smearing in transverse dir
   //sNorm = 0.56; // normalization of initial entropy profile
   A = 0.0 ; // 5e-4; // initial shear flow
+  nsigma = 0.6;
+  neta0 = 1.4;
   cout << "IcGlissando: setup for 200 GeV RHIC\n";
  } else if(strcmp(setup,"LHC5020")==0) {
+  sNN = 5020;
   eta0 = 2.3; // midrapidity plateau
   sigEta = 1.4; // diffuseness of rapidity profile
+  etaM = 4.5;
   ybeam = 8.585; // beam rapidity
   alphaMix = 0.15; // WN/binary mixing
   Rg = 0.4; // Gaussian smearing in transverse dir
-  //sNorm = 1.096; // normalization of initial entropy profile
   A = 0.0 ; // 5e-4; // initial shear flow
   cout << "IcGlissando: setup for 5.02 TeV LHC\n";
+ } else if(strcmp(setup,"RHIC62")==0) {
+  sNN = 62.4;
+  etaM = 1.8;
+  ybeam = 4.2;
+  alphaMix = 0.132;
+  Rg = 0.4;
+  A = 0.0;
+  cout << "IcGlissando: setup for 62.4 GeV RHIC\n";
  } else if(strcmp(setup,"RHIC27")==0) {
   sNN = 27;
-  //eta0 = 1.0; // midrapidity plateau
-  //sigEta = 1.0; // diffuseness of rapidity profile
+  etaM = 1.0;
   ybeam = 3.36; // beam rapidity
   alphaMix = 0.123; // 0.125 WN/binary mixing
   Rg = 0.4; // Gaussian smearing in transverse dir
-  //sNorm = 0.7904; // normalization of initial entropy profile
   A = 0.0 ; // 5e-4; // initial shear flow
-  //nsigma = 0.6;
-  //neta0 = 1.4;
   cout << "IcGlissando: setup for 27 GeV RHIC\n";
  } else {
   cout << "IcGlissando: optional parameter LHC276 or RHIC200 is expected\n";
@@ -144,12 +155,14 @@ IcGlissando::IcGlissando(Fluid* f, const char* filename, double _tau0, const cha
  } while (abs(sNorm-old_sNorm) > 0.0001);
  cout << "sNorm set to " << sNorm << endl;
  double old_nNorm = 0.0;
- nNorm = 1.0;
- do {
-   old_nNorm = nNorm;
-   nNorm = setBaryonNorm(np_tot)*old_nNorm;
- } while (abs(nNorm-old_nNorm) > 0.0001);
- cout << "nNorm set to " << nNorm << endl;
+ if (sNN < 100) {
+  nNorm = 1.0;
+  do {
+    old_nNorm = nNorm;
+    nNorm = setBaryonNorm(np_tot)*old_nNorm;
+  } while (abs(nNorm-old_nNorm) > 0.0001);
+  cout << "nNorm set to " << nNorm << endl;
+ }
 }
 
 IcGlissando::~IcGlissando() {
@@ -197,18 +210,22 @@ void IcGlissando::makeSmoothTable(int npart) {
      for (int iz = 0; iz < nz; iz++) {
       // longidudinal profile here
       const double eta = zmin + iz * dz;
-      const double etaM = 1.5; // default value in Glissando 2
       double tilt = C[ip]>0 ? 0.5*(etaM + eta)/etaM : 0.5*(etaM - eta)/etaM;
       tilt = std::max(0.0, tilt);
       tilt = std::min(1.0, tilt);
-      double baryonGaussian = C[ip]>0 ? exp(-pow(eta - neta0, 2)/(2. * nsigma * nsigma)) : exp(-pow(eta + neta0, 2)/(2. * nsigma * nsigma)) ;
-      baryonGaussian /= nsigma*sqrt(2*C_PI);
+      double baryonGaussian;
+      if (sNN < 100) {
+       baryonGaussian = C[ip]>0 ? exp(-pow(eta - neta0, 2)/(2. * nsigma * nsigma)) : exp(-pow(eta + neta0, 2)/(2. * nsigma * nsigma)) ;
+       baryonGaussian /= nsigma*sqrt(2*C_PI);
+      }
       double fEta = 0.;
       if(fabs(eta)<eta0) fEta = 1.0;
       else if (fabs(eta)<ybeam) fEta = exp(-0.5*pow((fabs(eta)-eta0)/sigEta,2));
       rho[ix][iy][iz] += trSmear * fEta * tilt
        * ((1.0 - alphaMix) + abs(C[ip])*alphaMix);
-      nrho[ix][iy][iz] += trSmear * ((1.0 - alphaMix) + abs(C[ip])*alphaMix) * baryonGaussian;
+      if (sNN < 100) {
+       nrho[ix][iy][iz] += trSmear * ((1.0 - alphaMix) + abs(C[ip])*alphaMix) * baryonGaussian;
+      }
      } // Z(eta) loop
     }
  }  // end particle loop
@@ -225,7 +242,11 @@ void IcGlissando::setIC(Fluid* f, EoS* eos) {
   for (int iy = 0; iy < ny; iy++)
    for (int iz = 0; iz < nz; iz++) {
     e = s95p::s95p_e(sNorm * rho[ix][iy][iz] / nevents / dx / dy);
-    nb = nNorm * nrho[ix][iy][iz] / nevents / dx / dy / dz;
+    if (sNN < 100) {
+      nb = nNorm * nrho[ix][iy][iz] / nevents / dx / dy / dz;
+    } else {
+      nb = 0.;
+    }
     p = eos->p(e, 0., 0., 0.);
     Cell* c = f->getCell(ix, iy, iz);
     const double ueta = tanh(A*f->getX(ix))*sinh(ybeam-fabs(f->getZ(iz)));
@@ -285,11 +306,7 @@ void IcGlissando::setIC(Fluid* f, EoS* eos) {
 }
 
 double IcGlissando::setNormalization(int npart) {
- double E = 0.0, Px = 0.0, Py = 0.0, Pz = 0.0, Nb = 0.0, S = 0.0;
- double Jy0 = 0.0, Jint1 = 0.0, Jint3 = 0.0, Xcm = 0.0, Ycm = 0.0, Zcm = 0.0;
- double E_midrap = 0.0, Jy0_midrap = 0.0;  // same quantity at midrapidity
- double Tcm = 0.0;
- double e, p;
+ double e;
  double total_energy = 0.0;
  for (int ix = 0; ix < nx; ix++)
   for (int iy = 0; iy < ny; iy++)
@@ -299,23 +316,17 @@ double IcGlissando::setNormalization(int npart) {
     double coshEta = cosh(eta);
     total_energy += tau0*e*dx*dy*dz*coshEta;
    }
- //cout << sNorm << " " << npart*0.5*sNN << " " << total_energy << endl;
  return npart*0.5*sNN/total_energy;
 }
 
 double IcGlissando::setBaryonNorm(int npart) {
- double E = 0.0, Px = 0.0, Py = 0.0, Pz = 0.0, Nb = 0.0, S = 0.0;
- double Jy0 = 0.0, Jint1 = 0.0, Jint3 = 0.0, Xcm = 0.0, Ycm = 0.0, Zcm = 0.0;
- double E_midrap = 0.0, Jy0_midrap = 0.0;  // same quantity at midrapidity
- double Tcm = 0.0;
- double e, p, nb;
- double total_energy = 0.0;
+ double Nb = 0.0;
+ double nb;
  for (int ix = 0; ix < nx; ix++)
   for (int iy = 0; iy < ny; iy++)
    for (int iz = 0; iz < nz; iz++) {
     nb = nNorm * nrho[ix][iy][iz] / nevents / dx / dy / dz;
     Nb += nb*tau0*dx*dy*dz;
    }
- //cout << nNorm << " " << npart << " " << Nb << endl;
  return npart/Nb;
 }

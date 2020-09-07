@@ -14,6 +14,7 @@ private:
  double sNN; // energy
  double nsigma; // width of gaussian for baryon density
  double neta0; // mean of gaussian for baryon density
+ double etaM;
  double A; // initial shear flow constant
  int nx, ny, nz, nevents;
  double xmin, xmax, ymin, ymax, zmin, zmax;
