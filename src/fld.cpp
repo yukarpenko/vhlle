@@ -438,7 +438,8 @@ void Fluid::outputSurface(double tau) {
  double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz, Q[7];
  double E = 0., Efull = 0., S = 0., Px = 0., vt_num = 0., vt_den = 0.,
         vxvy_num = 0., vxvy_den = 0., pi0x_num = 0., pi0x_den = 0.,
-        txxyy_num = 0., txxyy_den = 0., Nb1 = 0., Nb2 = 0.;
+        txxyy_num = 0., txxyy_den = 0., Nb1 = 0., Nb2 = 0.,
+        eps_p = 0. ;
  double eta = 0;
  int nelements = 0, nsusp = 0;  // all surface emenents and suspicious ones
  int nCoreCells = 0,
@@ -506,15 +507,17 @@ void Fluid::outputSurface(double tau) {
           sqrt(1. - vx * vx - vy * vy - tanh(vz) * tanh(vz));
     }
     Px += tau * (e + p) * vx / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz));
-    vt_num += e / sqrt(1. - vx * vx - vy * vy) * sqrt(vx * vx + vy * vy);
-    vt_den += e / sqrt(1. - vx * vx - vy * vy);
-    vxvy_num += e * (fabs(vx) - fabs(vy));
-    vxvy_den += e;
-    txxyy_num += (e + p) / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz)) *
+    if (iz > nz/2-3 and iz < nz/2+3) {
+      vxvy_num += e * (fabs(vx) - fabs(vy));
+      vxvy_den += e;
+      vt_den += e / sqrt(1. - vx * vx - vy * vy);
+      vt_num += e / sqrt(1. - vx * vx - vy * vy) * sqrt(vx * vx + vy * vy);
+      txxyy_num += (e + p) / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz)) *
                  (vx * vx - vy * vy);
-    txxyy_den += (e + p) / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz)) *
+      txxyy_den += (e + p) / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz)) *
                      (vx * vx + vy * vy) +
                  2. * p;
+    }
     pi0x_num += e / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz)) *
                 fabs(c->getpi(0, 1));
     pi0x_den += e / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz));
@@ -659,11 +662,13 @@ void Fluid::outputSurface(double tau) {
  S = S * dx * dy * dz;
  Nb1 *= dx * dy * dz;
  Nb2 *= dx * dy * dz;
+ eps_p = txxyy_num / txxyy_den ;
  output::faniz << setw(12) << tau << setw(14) << vt_num / vt_den << setw(14)
            << vxvy_num / vxvy_den << setw(14) << pi0x_num / pi0x_den << endl;
  cout << setw(10) << tau << setw(13) << E << setw(13) << Efull << setw(13)
       << nbSurf << setw(13) << S << setw(10) << nelements << setw(10) << nsusp
-      << setw(13) << (float)(nCoreCutCells) / (float)(nCoreCells) << endl;
+      << setw(13) << (float)(nCoreCutCells) / (float)(nCoreCells) << setw(13)
+      << eps_p << setw(13) << (double)vt_num/vt_den << setw(13) << (double)vxvy_num/vxvy_den << endl;
  //-- Cornelius: all done, let's free memory
  for (int i1 = 0; i1 < 2; i1++) {
   for (int i2 = 0; i2 < 2; i2++) {
