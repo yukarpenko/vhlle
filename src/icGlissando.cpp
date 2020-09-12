@@ -151,7 +151,7 @@ IcGlissando::IcGlissando(Fluid* f, const char* filename, double _tau0, const cha
  double old_sNorm = 0.0;
  do {
    old_sNorm = sNorm;
-   sNorm = pow(setNormalization(np_tot), 0.75)*old_sNorm;
+   sNorm = pow(setNormalization(np_tot/nevents), 0.75)*old_sNorm;
  } while (abs(sNorm-old_sNorm) > 0.0001);
  cout << "sNorm set to " << sNorm << endl;
  double old_nNorm = 0.0;
@@ -159,7 +159,7 @@ IcGlissando::IcGlissando(Fluid* f, const char* filename, double _tau0, const cha
   nNorm = 1.0;
   do {
     old_nNorm = nNorm;
-    nNorm = setBaryonNorm(np_tot)*old_nNorm;
+    nNorm = setBaryonNorm(np_tot/nevents)*old_nNorm;
   } while (abs(nNorm-old_nNorm) > 0.0001);
   cout << "nNorm set to " << nNorm << endl;
  }
