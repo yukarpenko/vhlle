@@ -183,6 +183,8 @@ void IcPartUrqmd::makeSmoothTable(int npart) {
       T00[ix][iy][iz] += weight * Mt[ip] * cosh(Rap[ip] - Eta[ip] + zdiff);
       T0x[ix][iy][iz] += weight * Px[ip];
       T0y[ix][iy][iz] += weight * Py[ip];
+      //T0x[ix][iy][iz] += 0.0 ;
+      //T0y[ix][iy][iz] += 0.0 ;
       T0z[ix][iy][iz] += weight * Mt[ip] * sinh(Rap[ip] - Eta[ip] + zdiff);
       // if(ix==50 && iy==50 && iz==17){ // debug output
       // foutd<<setw(14)<<Mt[ip]<<setw(14)<<Rap[ip]<<setw(14)<<Eta[ip]-zdiff<<setw(14)<<weight<<endl
@@ -236,6 +238,13 @@ void IcPartUrqmd::setIC(Fluid* f, EoS* eos) {
     Py += tau0 * (e + p) * u[2] * u[0] * dx * dy * dz;
     Nb += tau0 * nb * u[0] * dx * dy * dz;
     S += tau0 * eos->s(e, nb, nq, ns) * u[0] * dx * dy * dz;
+
+    if (iz == (int)nz/2 and iy == (int)ny/2) {
+      cout << "x " << xmin + ix * dx << "  " << vx << "  " << e << endl;
+    }
+    if (iz == (int)nz/2 and ix == (int)ny/2) {
+      cout << "y " << ymin + iy * dy << "  " << vy << "  " << e << endl;
+    }
    }
  cout << "hydrodynamic E = " << E << "  Pz = " << Pz << "  Nbar = " << Nb
       << endl
