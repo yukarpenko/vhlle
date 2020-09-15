@@ -42,8 +42,7 @@ using namespace std;
 // program parameters, to be read from file
 int nx, ny, nz, eosType;
 double xmin, xmax, ymin, ymax, etamin, etamax, tau0, tauMax, tauResize, dtau;
-char outputDir[255];
-char icInputFile[255];
+string collSystem, outputDir, isInputFile;
 double etaS, zetaS, eCrit;
 int icModel,
     glauberVariable =
@@ -61,17 +60,14 @@ void readParameters(char *parFile) {
   cout << "cannot open parameters file " << parFile << endl;
   exit(1);
  }
+ cout << "vhlle: reading parameters from " << parFile << endl;
  while (fin.good()) {
   string line;
   getline(fin, line);
   istringstream sline(line);
   sline >> parName >> parValue;
-  if (strcmp(parName, "outputDir") == 0)
-   strcpy(outputDir, parValue);
-  else if (strcmp(parName, "eosType") == 0)
+  if (strcmp(parName, "eosType") == 0)
    eosType = atoi(parValue);
-  else if (strcmp(parName, "icInputFile") == 0)
-   strcpy(icInputFile, parValue);
   else if (strcmp(parName, "nx") == 0)
    nx = atoi(parValue);
   else if (strcmp(parName, "ny") == 0)
@@ -155,6 +151,25 @@ void printParameters() {
  cout << "======= end parameters =======\n";
 }
 
+void readCommandLine(int argc, char** argv)
+{
+  if(argc==1){
+  cout << "no CL params - exiting.\n"; exit(1) ;
+ }
+ else{
+  for(int iarg=1; iarg<argc-1; iarg++){
+   if(strcmp(argv[iarg],"-system")==0) collSystem = argv[iarg+1];
+   if(strcmp(argv[iarg],"-params")==0) readParameters(argv[iarg+1]);
+   if(strcmp(argv[iarg],"-ISinput")==0) isInputFile = argv[iarg+1];
+   if(strcmp(argv[iarg],"-outputDir")==0) outputDir = argv[iarg+1];
+  }
+  cout << "vhlle: command line parameters are:\n";
+  cout << "collision system:  " << collSystem << endl;
+  cout << "ini.state input:  " << isInputFile << endl;
+  cout << "output directory:  " << outputDir << endl;
+ }
+}
+
 
 Fluid* expandGrid2x(Hydro* h, EoS* eos, EoS* eosH, TransportCoeff *trcoeff) {
  Fluid* f = h->getFluid();
@@ -200,16 +215,8 @@ int main(int argc, char **argv) {
  time(&start);
 
  // read parameters from file
- char *parFile;
- if (argc == 1) {
-  cout << "NO PARAMETERS, exiting\n";
-  cout << "usage: ./hlle_visc <input file> <optional params>\n";
-  exit(1);
- } else {
-  parFile = argv[1];
- }
+ readCommandLine(argc, argv);
  setDefaultParameters();
- readParameters(parFile);
  printParameters();
 
  // EoS
@@ -238,11 +245,11 @@ int main(int argc, char **argv) {
   ic->setIC(f, eos);
   delete ic;
  } else if (icModel == 2) {  // Glauber_table + parametrized rapidity dependence
-  IC *ic = new IC(icInputFile, s0ScaleFactor);
+  IC *ic = new IC(isInputFile.c_str(), s0ScaleFactor);
   ic->setIC(f, eos, tau0);
   delete ic;
  } else if (icModel == 3) {  // UrQMD IC
-  IcPartUrqmd *ic = new IcPartUrqmd(f, icInputFile, Rgt, Rgz, tau0);
+  IcPartUrqmd *ic = new IcPartUrqmd(f, isInputFile.c_str(), Rgt, Rgz, tau0);
   ic->setIC(f, eos);
   delete ic;
  } else if (icModel == 4) {  // analytical Gubser solution
@@ -250,7 +257,7 @@ int main(int argc, char **argv) {
   ic->setIC(f, eos, tau0);
   delete ic;
   }else if(icModel==5){ // IC from GLISSANDO + rapidity dependence
-   IcGlissando *ic = new IcGlissando(f, icInputFile, tau0, argv[2]);
+   IcGlissando *ic = new IcGlissando(f, isInputFile.c_str(), tau0, collSystem.c_str());
    ic->setIC(f, eos);
    delete ic;
  } else {
@@ -269,7 +276,7 @@ int main(int argc, char **argv) {
  time(&start);
  // h->setNSvalues() ; // initialize viscous terms
 
- f->initOutput(outputDir, tau0);
+ f->initOutput(outputDir.c_str(), tau0);
  f->outputCorona(tau0);
 
  bool resized = false; // flag if the grid has been resized

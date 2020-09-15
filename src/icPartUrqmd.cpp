@@ -13,7 +13,7 @@
 
 using namespace std;
 
-IcPartUrqmd::IcPartUrqmd(Fluid* f, char* filename, double _Rgt, double _Rgz,
+IcPartUrqmd::IcPartUrqmd(Fluid* f, const char* filename, double _Rgt, double _Rgz,
                          double _tau0) {
  nx = f->getNX();
  ny = f->getNY();

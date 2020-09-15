@@ -38,7 +38,7 @@ double s95p_e(double s) {
  return e;
 }
 
-void loadSongIC(char* filename, double factor) {
+void loadSongIC(const char* filename, double factor) {
  ifstream fin(filename);
  if (!fin) {
   cout << "cannot open " << filename << endl;
