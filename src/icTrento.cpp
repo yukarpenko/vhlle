@@ -31,7 +31,15 @@ IcTrento::IcTrento(Fluid* f, const char* filename, double _tau0, const char* set
  zmax = f->getZ(nz - 1);
 
  tau0 = _tau0;
- 
+
+ /* parameters of grid in Trento IC - these parameters correspond to Trento setting
+    --grid-max 12.1 --grid-step 0.2 */
+ xminG = -12.1;
+ xmaxG = 12.1;
+ yminG = -12.1;
+ ymaxG = 12.1;
+ n_grid = 121;
+
  if(strcmp(setup,"LHC276")==0) {
   sNN = 2760;
   eta0 = 2.3; // midrapidity plateau
@@ -101,7 +109,6 @@ IcTrento::IcTrento(Fluid* f, const char* filename, double _tau0, const char* set
   }
  }
 
- n_grid = nx;
  source = new double*[n_grid];
  for (int ix = 0; ix < n_grid; ix++) {
   source[ix] = new double[n_grid];
@@ -142,13 +149,9 @@ IcTrento::IcTrento(Fluid* f, const char* filename, double _tau0, const char* set
  for (int iy = 0; iy < n_grid; iy++) {
   for (int ix = 0; ix < n_grid; ix++) {
    fin >> source[ix][iy];
-   //cout << source[ix][iy] << endl;
   }
  }
- if (nevents % 1 == 0) {
-  cout << "event = " << nevents << "  np = " << np << "\n";
-   //cout << flush;
- }
+ cout << "np = " << np << "\n";
  makeSmoothTable(np);
 
  // autocalculation of sNorm and nNorm
@@ -183,6 +186,28 @@ IcTrento::~IcTrento() {
  delete[] nrho;
 }
 
+double IcTrento::interpolateGrid(double x, double y) {
+ const double dxG = (xmaxG - xminG) / (n_grid - 1);
+ const double dyG = (ymaxG - yminG) / (n_grid - 1);
+ int ix = (int)((x - xminG) / dxG);
+ int iy = (int)((y - yminG) / dyG);
+ if (ix < 0) ix = 0;
+ if (iy < 0) iy = 0;
+ if (ix > n_grid - 2) ix = n_grid - 2;
+ if (iy > n_grid - 2) iy = n_grid - 2;
+ const double xm = x - xminG - ix * dxG;
+ const double ym = y - yminG - iy * dyG;
+ double wx[2] = {1. - xm / dxG, xm / dxG};
+ double wy[2] = {1. - ym / dyG, ym / dyG};
+ double return_val = 0.;
+ for (int jx = 0; jx < 2; jx++)
+  for (int jy = 0; jy < 2; jy++) {
+   return_val += wx[jx] * wy[jy] * source[ix + jx][iy + jy];
+  }
+ return_val = std::max(return_val, 0.);
+ return return_val;
+}
+
 void IcTrento::makeSmoothTable(int npart) {
  if (sNN == 27) {
   double cent = (double)npart/(2.*197.); // our measure of centrality
@@ -200,12 +225,14 @@ void IcTrento::makeSmoothTable(int npart) {
   for (int iy = 0; iy < ny; iy++)
    for (int iz = 0; iz < nz; iz++) {
     // longidudinal profile here
+    const double x = xmin + ix * dx;
+    const double y = ymin + iy * dy;
     const double eta = zmin + iz * dz;
     double baryonGaussian;
     if (sNN < 100) {
      baryonGaussian = eta>0 ? exp(-pow(eta - neta0, 2)/(2. * nsigma * nsigma)) : exp(-pow(eta + neta0, 2)/(2. * nsigma * nsigma)) ;
      baryonGaussian /= nsigma*sqrt(2*C_PI);
-     nrho[ix][iy][iz] = source[ix][iy] * baryonGaussian;
+     nrho[ix][iy][iz] = interpolateGrid(x,y) * baryonGaussian;
     }
     double fEta = 0.;
     if(fabs(eta)<eta0) fEta = 1.0;

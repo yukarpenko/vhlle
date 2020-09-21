@@ -18,6 +18,7 @@ private:
  double A; // initial shear flow constant
  int nx, ny, nz, nevents;
  int n_grid;
+ double xminG, xmaxG, yminG, ymaxG; // grid sizes
  double xmin, xmax, ymin, ymax, zmin, zmax;
  double dx, dy, dz;
  double ***rho;
@@ -35,6 +36,7 @@ private:
 public:
  IcTrento(Fluid *f, const char *filename, double tau0, const char* setup);
  ~IcTrento();
+ double interpolateGrid(double x, double y);
  void setIC(Fluid *f, EoS *eos);
  double setNormalization(int npart);
  double setBaryonNorm(int npart);
