@@ -226,7 +226,7 @@ int main(int argc, char **argv) {
   return 0;
  }
  //EoS *eosH = new EoSHadron("eos/eosHadronLog.dat");
- EoS *eosH = new EoSSmash("eos/hadgas_eos.dat", 101, 101);
+ EoS *eosH = new EoSSmash("eos/hadgas_eos_SMASH.dat", 101, 101, 101);
 
  // transport coefficients
  trcoeff = new TransportCoeff(etaS, zetaS, eos);
