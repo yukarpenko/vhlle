@@ -576,7 +576,7 @@ void Fluid::outputSurface(double tau) {
      transformPV(eos, QC, eC, pC, nbC, nqC, _ns, vxC, vyC, vzC);
      eos->eos(eC, nbC, nqC, _ns, TC, mubC, muqC, musC, pC);
      if (TC > 0.4 || fabs(mubC) > 0.85) {
-      cout << "#### Error (surface): high T/mu_b ####\n";
+      cout << "#### Error (surface): high T/mu_b (T=" << TC << "/mu_b=" << mubC << ") ####\n";
      }
      if (eC > ecrit * 2.0 || eC < ecrit * 0.5) nsusp++;
      for (int jx = 0; jx < 2; jx++)
@@ -662,7 +662,8 @@ void Fluid::outputSurface(double tau) {
  output::faniz << setw(12) << tau << setw(14) << vt_num / vt_den << setw(14)
            << vxvy_num / vxvy_den << setw(14) << pi0x_num / pi0x_den << endl;
  cout << setw(10) << tau << setw(13) << E << setw(13) << Efull << setw(13)
-      << nbSurf << setw(13) << S << setw(10) << nelements << setw(10) << nsusp
+      << nbSurf << setw(13) << S << setw(13) << EtotSurf
+      << setw(10) << nelements << setw(10) << nsusp
       << setw(13) << (float)(nCoreCutCells) / (float)(nCoreCells) << endl;
  //-- Cornelius: all done, let's free memory
  for (int i1 = 0; i1 < 2; i1++) {
@@ -763,7 +764,7 @@ void Fluid::outputCorona(double tau) {
        cc->getPrimVar(eos, tau, e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
        cc->getQ(QCube[jx][jy][jz]);
        if (e > ecrit) isCorona = false;
-       if (e > 0.01) isTail = false;
+       if (e > 0.0001) isTail = false;
        // ---- get viscous tensor
        for (int ii = 0; ii < 4; ii++)
         for (int jj = 0; jj <= ii; jj++)
@@ -874,10 +875,10 @@ void Fluid::outputCorona(double tau) {
  output::faniz << setw(12) << tau << setw(14) << vt_num / vt_den << setw(14)
            << vxvy_num / vxvy_den << setw(14) << pi0x_num / pi0x_den << endl;
  cout << setw(10) << "tau" << setw(13) << "E" << setw(13) << "Efull" << setw(13)
-      << "Nb" << setw(13) << "Sfull" << setw(10) << "elements" << setw(10)
+      << "Nb" << setw(13) << "Sfull" << setw(13) << "EtotSurf" << setw(13) << "elements" << setw(10)
       << "susp." << setw(13) << "\%cut" << endl;
  cout << setw(10) << tau << setw(13) << E << setw(13) << Efull << setw(13)
-      << nbSurf << setw(13) << S << endl;
+      << nbSurf << setw(13) << S << setw(13) << EtotSurf << endl;
 #ifdef SWAP_EOS
  swap(eos, eosH);
 #endif
