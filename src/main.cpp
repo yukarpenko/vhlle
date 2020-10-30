@@ -26,6 +26,7 @@
 #include "ic.h"
 #include "ickw.h"
 #include "icPartUrqmd.h"
+#include "icPartSMASH.h"
 #include "icGlauber.h"
 #include "icGubser.h"
 #include "icGlissando.h"
@@ -253,6 +254,10 @@ int main(int argc, char **argv) {
   delete ic;
   }else if(icModel==5){ // IC from GLISSANDO + rapidity dependence
    IcGlissando *ic = new IcGlissando(f, icInputFile, tau0, argv[2]);
+   ic->setIC(f, eos);
+   delete ic;
+ } else if (icModel == 6){ // SMASH IC
+   IcPartSMASH *ic = new IcPartSMASH(f, icInputFile, Rgt, Rgz, tau0);
    ic->setIC(f, eos);
    delete ic;
  } else {
