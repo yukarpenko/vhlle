@@ -43,6 +43,7 @@ using namespace std;
 
 // program parameters, to be read from file
 int nx, ny, nz, eosType;
+int eosTypeHadron = 0;
 double xmin, xmax, ymin, ymax, etamin, etamax, tau0, tauMax, tauResize, dtau;
 char outputDir[255];
 char icInputFile[255];
@@ -72,6 +73,8 @@ void readParameters(char *parFile) {
    strcpy(outputDir, parValue);
   else if (strcmp(parName, "eosType") == 0)
    eosType = atoi(parValue);
+  else if (strcmp(parName, "eosTypeHadron") == 0)
+   eosTypeHadron = atoi(parValue);
   else if (strcmp(parName, "icInputFile") == 0)
    strcpy(icInputFile, parValue);
   else if (strcmp(parName, "nx") == 0)
@@ -131,6 +134,7 @@ void printParameters() {
  cout << "====== parameters ======\n";
  cout << "outputDir = " << outputDir << endl;
  cout << "eosType = " << eosType << endl;
+ cout << "eosTypeHadron = " << eosTypeHadron << endl;
  cout << "nx = " << nx << endl;
  cout << "ny = " << ny << endl;
  cout << "nz = " << nz << endl;
@@ -194,6 +198,7 @@ Fluid* expandGrid2x(Hydro* h, EoS* eos, EoS* eosH, TransportCoeff *trcoeff) {
 int main(int argc, char **argv) {
  // pointers to all the main objects
  EoS *eos;
+ EoS *eosH;
  TransportCoeff *trcoeff;
  Fluid *f;
  Hydro *h;
@@ -214,7 +219,7 @@ int main(int argc, char **argv) {
  readParameters(parFile);
  printParameters();
 
- // EoS
+ // EoS for hydro evolution
  if (eosType == 0)
   eos = new EoSs("eos/Laine_nf3.dat", 3);
  else if (eosType == 1)
@@ -225,8 +230,19 @@ int main(int argc, char **argv) {
   cout << "eosType != 0,1,2\n";
   return 0;
  }
- //EoS *eosH = new EoSHadron("eos/eosHadronLog.dat");
- EoS *eosH = new EoSSmash("eos/hadgas_eos_SMASH.dat", 101, 101, 101);
+
+ // hadronic EoS for hypersurface creation
+ if (eosTypeHadron == 0) {
+   eosH = new EoSHadron((char*)"eos/eosHadronLog.dat"); //PDG hadronic EoS
+ } else if (eosTypeHadron == 1) {
+   eosH = new EoSSmash((char*)"eos/hadgas_eos_SMASH.dat", 101, 101, 101); //SMASH hadronic EoS
+ } else {
+   cout << "Unknown haronic EoS type for hypersurface creation.\n" <<
+           "eosTypeHadron should be either \"0\" (PDG hadronic EoS) or " <<
+           "\"1\" (SMASH hadronic EoS).\n";
+   return 0;
+ }
+
 
  // transport coefficients
  trcoeff = new TransportCoeff(etaS, zetaS, eos);
