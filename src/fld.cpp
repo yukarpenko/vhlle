@@ -893,6 +893,29 @@ void Fluid::outputCorona(double tau) {
 void Fluid::InitialAnisotropies(double tau0) {
  double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz;
 
+ double xcm = 0.0, xcm_nom = 0.0, xcm_denom = 0.0 ;
+ double ycm = 0.0, ycm_nom = 0.0, ycm_denom = 0.0 ;
+
+ for (int ix = 0; ix < nx; ix++) {
+  for (int iy = 0; iy < ny; iy++) {
+   for (int iz = 0; iz < nz; iz++) {
+    if(fabs(getZ(iz)) < 0.5) {
+     Cell* c = getCell(ix, iy, iz);
+     double x = getX(ix) ;
+     double y = getY(iy) ;
+     getCMFvariables(c, tau0, e, nb, nq, ns, vx, vy, vz);
+     xcm_nom += x * e ;
+     xcm_denom += e ;
+     ycm_nom += y * e ;
+     ycm_denom += e ;
+    }
+   }
+  }
+ }
+
+ xcm = xcm_nom / xcm_denom ;
+ ycm = ycm_nom / ycm_denom ;
+
  double eps2 = 0.0, eps2_nom_real = 0.0, eps2_nom_imag = 0.0, eps2_denom = 0.0 ;
  double eps3 = 0.0, eps3_nom_real = 0.0, eps3_nom_imag = 0.0, eps3_denom = 0.0 ;
 
@@ -903,6 +926,8 @@ void Fluid::InitialAnisotropies(double tau0) {
      Cell* c = getCell(ix, iy, iz);
      double x = getX(ix) ;
      double y = getY(iy) ;
+     x = x - xcm ;
+     y = y - ycm ;
      double r = sqrt(x*x + y*y) ;
      double phi = atan2(y, x) ;
      getCMFvariables(c, tau0, e, nb, nq, ns, vx, vy, vz);
