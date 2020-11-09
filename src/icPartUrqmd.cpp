@@ -239,12 +239,12 @@ void IcPartUrqmd::setIC(Fluid* f, EoS* eos) {
     Nb += tau0 * nb * u[0] * dx * dy * dz;
     S += tau0 * eos->s(e, nb, nq, ns) * u[0] * dx * dy * dz;
 
-    if (iz == (int)nz/2 and iy == (int)ny/2) {
+    /*if (iz == (int)nz/2 and iy == (int)ny/2) {
       cout << "x " << xmin + ix * dx << "  " << vx << "  " << e << endl;
     }
     if (iz == (int)nz/2 and ix == (int)ny/2) {
       cout << "y " << ymin + iy * dy << "  " << vy << "  " << e << endl;
-    }
+    }*/
    }
  cout << "hydrodynamic E = " << E << "  Pz = " << Pz << "  Nbar = " << Nb
       << endl
