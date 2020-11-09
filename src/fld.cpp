@@ -888,3 +888,40 @@ void Fluid::outputCorona(double tau) {
 #endif
  cout << "corona elements : " << nelements << endl;
 }
+
+
+void Fluid::InitialAnisotropies(double tau0) {
+ double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz;
+
+ double eps2 = 0.0, eps2_nom_real = 0.0, eps2_nom_imag = 0.0, eps2_denom = 0.0 ;
+ double eps3 = 0.0, eps3_nom_real = 0.0, eps3_nom_imag = 0.0, eps3_denom = 0.0 ;
+
+ for (int ix = 0; ix < nx; ix++) {
+  for (int iy = 0; iy < ny; iy++) {
+   for (int iz = 0; iz < nz; iz++) {
+    if(fabs(getZ(iz)) < 0.5) {
+     Cell* c = getCell(ix, iy, iz);
+     double x = getX(ix) ;
+     double y = getY(iy) ;
+     double r = sqrt(x*x + y*y) ;
+     double phi = atan2(y, x) ;
+     getCMFvariables(c, tau0, e, nb, nq, ns, vx, vy, vz);
+     eps2_denom += pow(r, 2) * e ;
+     eps2_nom_real += pow(r, 2) * cos(2 * phi) * e ;
+     eps2_nom_imag += pow(r, 2) * sin(2 * phi) * e ;
+     eps3_denom += pow(r, 3) * e ;
+     eps3_nom_real += pow(r, 3) * cos(3 * phi) * e ;
+     eps3_nom_imag += pow(r, 3) * sin(3 * phi) * e ;
+    }
+   }
+  }
+ }
+
+ eps2 = sqrt(pow(eps2_nom_real, 2) + pow(eps2_nom_imag, 2)) / eps2_denom ;
+ eps3 = sqrt(pow(eps3_nom_real, 2) + pow(eps3_nom_imag, 2)) / eps3_denom ;
+
+ cout << "epsilon2 = " << eps2 << endl;
+ cout << "epsilon3 = " << eps3 << endl;
+
+ exit(1) ;
+}

@@ -66,4 +66,5 @@ public:
  void outputGnuplot(double tau);
  void outputSurface(double tau);
  void outputCorona(double tau);
+ void InitialAnisotropies(double tau0);
 };
