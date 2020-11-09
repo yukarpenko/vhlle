@@ -57,10 +57,10 @@ double fmin(double eta)
 }
 
 double ICGlauber::eProfile(double x, double y, double eta) {
- prms[0] = sqrt((x + b / 2.0) * (x + b / 2.0) + y * y);
- const double tpp = iff->Integral(-3.0 * Ra, 3.0 * Ra, prms, 1.0e-9);
- prms[0] = sqrt((x - b / 2.0) * (x - b / 2.0) + y * y);
- const double tmm = iff->Integral(-3.0 * Ra, 3.0 * Ra, prms, 1.0e-9);
+ iff->SetParameters(sqrt((x + b / 2.0) * (x + b / 2.0) + y * y), 0.0); // second arg for the sake of syntax
+ const double tpp = iff->Integral(-3.0 * Ra, 3.0 * Ra, 1.0e-9);
+ iff->SetParameters(sqrt((x - b / 2.0) * (x - b / 2.0) + y * y), 0.0); // second arg for the sake of syntax
+ const double tmm = iff->Integral(-3.0 * Ra, 3.0 * Ra, 1.0e-9);
  double T1 = tpp * (1.0 - pow((1.0 - sigma * tmm / A), A));
  double T2 = tmm * (1.0 - pow((1.0 - sigma * tpp / A), A));
  return 2.0 * (T1 * fmin(eta) + T2 * fplu(eta));
@@ -88,9 +88,6 @@ void ICGlauber::setIC(Fluid *f, EoS *eos) {
   }
   delete ff;
   cout << "a = " << A / intgr2 << endl;
-  prms[1] = A / intgr2;
-  prms[2] = Ra;
-  prms[3] = dlt;
   iff = new TF1("WoodSaxonDF", this, &ICGlauber::WoodSaxon, -3.0 * Ra, 3.0 * Ra, 4, "IC", "WoodSaxon");
   rho0 = eProfile(0., 0., 0.);
 
@@ -133,15 +130,12 @@ void ICGlauber::setIC(Fluid *f, EoS *eos) {
 
 double ICGlauber::Thickness(double *x, double *p) {
   // p[0]: Ra radius; p[1]: delta = 0.54fm
-  double intgrl, prms[4];
+  double intgrl;
   TF1 *iff = 0;
   iff = new TF1("WoodSaxonDF", this, &ICGlauber::WoodSaxon, -3.0 * p[0], 3.0 * p[0], 4,
                 "IC", "WoodSaxon");
-  prms[0] = sqrt(x[0] * x[0] + x[1] * x[1]);  //
-  prms[1] = 1.0;  // normalization parameter which must be found.
-  prms[2] = p[0];
-  prms[3] = p[1];
-  intgrl = iff->Integral(-3.0 * p[0], 3.0 * p[0], prms, 1.0e-9);
+  iff->SetParameters( sqrt(x[0] * x[0] + x[1] * x[1]), 1.0, p[0], p[1]);
+  intgrl = iff->Integral(-3.0 * p[0], 3.0 * p[0], 1.0e-9);
   if (iff) delete iff;
   return intgrl;
 }
