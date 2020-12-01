@@ -270,7 +270,7 @@ int main(int argc, char **argv) {
  }
  cout << "IC done\n";
 
- f->InitialAnisotropies(tau0) ;
+ //f->InitialAnisotropies(tau0) ;
 
  time_t tinit = 0;
  time(&tinit);
