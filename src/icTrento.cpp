@@ -32,13 +32,6 @@ IcTrento::IcTrento(Fluid* f, const char* filename, double _tau0, const char* set
 
  tau0 = _tau0;
 
- /* parameters of grid in Trento IC - these parameters correspond to Trento setting
-    --grid-max 12.1 --grid-step 0.2 */
- xminG = -12.1;
- xmaxG = 12.1;
- yminG = -12.1;
- ymaxG = 12.1;
- n_grid = 121;
 
  if(strcmp(setup,"LHC276")==0) {
   sNN = 2760;
@@ -85,6 +78,13 @@ IcTrento::IcTrento(Fluid* f, const char* filename, double _tau0, const char* set
   sigEta = 0.7;
   nsigma = 1.0;
   neta0 = 2.2;
+
+  xminG = -20.125;
+  xmaxG = 20.125;
+  yminG = -20.125;
+  ymaxG = 20.125;
+  n_grid = 161;
+
   cout << "IcTrento: setup for 62.4 GeV RHIC\n";
  } else if(strcmp(setup,"RHIC27")==0) {
   sNN = 27;
@@ -93,6 +93,13 @@ IcTrento::IcTrento(Fluid* f, const char* filename, double _tau0, const char* set
   alphaMix = 0.123; // 0.125 WN/binary mixing
   Rg = 0.4; // Gaussian smearing in transverse dir
   A = 0.0 ; // 5e-4; // initial shear flow
+
+  xminG = -12.1;
+  xmaxG = 12.1;
+  yminG = -12.1;
+  ymaxG = 12.1;
+  n_grid = 121;
+
   cout << "IcTrento: setup for 27 GeV RHIC\n";
  } else {
   cout << "IcTrento: optional parameter LHC276 or RHIC200 is expected\n";
