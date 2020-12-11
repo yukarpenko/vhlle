@@ -716,6 +716,7 @@ void Hydro::ISformal() {
        }
       }
      c->addPiH0(-delPiPi * c->getPi() * du / gamma * 0.5 * dt);
+     c->setPiH0(0.0);
      // 1) relaxation(piH)+source(piH) terms for full-step
      for (int i = 0; i < 4; i++)
       for (int j = 0; j <= i; j++) {
@@ -734,6 +735,7 @@ void Hydro::ISformal() {
 #else
      c->setPi0(c->getPi() - (c->getPiH0() - PiNS) * dt / gamma / tauPi);
 #endif
+     c->setPi0(0.0);
      tau1 = tau - dt * 0.5;
      c->addpi0(0, 0, -2. * vz / tau1 * c->getpiH0(0, 3) * dt);  // *gamma/gamma
      c->addpi0(3, 3, -(2. * vz / tau1 * c->getpiH0(0, 3)) * dt);
@@ -846,8 +848,8 @@ void Hydro::ISformal() {
       c->setpi(i, j, pi[i][j]);
       c->setpiH(i, j, piH[i][j]);
      }
-    c->setPi(Pi);
-    c->setPiH(PiH);
+    c->setPi(0.0);
+    c->setPiH(0.0);
     // source term  - (tau+dt)*delta_Q_(i+1)/delta_tau
     double gamma = 1.0 / sqrt(1.0 - vx * vx - vy * vy - vz * vz);
     double u[4];
