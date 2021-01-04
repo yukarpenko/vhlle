@@ -88,7 +88,7 @@ The following branches may be particularly useful:
  2) clone the main vHLLE repository:
  git clone https://github.com/yukarpenko/vhlle.git
  cd vhlle
- git checkout stable_ebe
+ git checkout jakub_project
 
  3) clone another repository, which contains the equation of state,
     sample initial state tables and related sample parameter files:
@@ -118,7 +118,7 @@ The following branches may be particularly useful:
  does not exist, it will be created.
 
  A sample command:
- ./hlle_visc -params params/glissRHIC/gliss2RHIC.20-30 -system RHIC200 -ISinput ic/glissando/sources.RHIC.20-30.d -outputDir output/RHIC.20-30
+ ./hlle_visc -params params/glissRHIC/gliss2RHIC.20-30 -system RHIC200 -ISinput ic/glissando/sources.RHIC.20-30.dat -outputDir output/RHIC.20-30
  executes vHLLE with an averaged initial state table pre-computed from GLISSANDO code, and corresponding to 20-30% central Au-Au collisions at sqrt(s)=200 GeV.
  
 Other sample parameter files can be found in a code package linked to the reference
