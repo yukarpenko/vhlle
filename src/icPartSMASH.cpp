@@ -117,6 +117,19 @@ IcPartSMASH::IcPartSMASH(Fluid* f, char* filename, double _Rgt, double _Rgz,
    }
    makeSmoothTable(np);
    np = 0;
+
+   // Clear arrays for next event
+   Tau.clear();
+   X.clear();
+   Y.clear();
+   Eta.clear();
+   Mt.clear();
+   Px.clear();
+   Py.clear();
+   Rap.clear();
+   Id.clear();
+   Charge.clear();
+
    nevents++;
    // if(nevents>10000) return ;
   }
