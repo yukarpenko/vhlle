@@ -15,14 +15,14 @@
 *******************************************************************************
 
 
- This repository contains source code of vHLLE.
+ This repository contains the source code of vHLLE.
  
 The following branches may be particularly useful:
 + cpc_final branch corresponds to the code published in Comput. Phys. Commun.
   This branch is more useful to get familiarized with the structure of the code
   and reproduce the published test results.
-+ stable_ebe branch contains the most recent, feature-rich code used for actual
-  event-by-event simulations:
++ stable_ebe branch (RECOMMENDED) contains the most recent, feature-rich code
+  used for the actual event-by-event simulations, and includes:
   - different initial state modules (classes)
   - Cornelius module to reconstruct the elements of particlization hypersurface
     (please cite P. Huovinen, H. Petersen, Eur. Phys. J. A (2012) 48: 171,
@@ -68,7 +68,7 @@ The following branches may be particularly useful:
             published in Comput.Phys.Commun.
 
 
- I. BUILDING vHLLE on Linux
+ I. GETTING and BUILDING vHLLE on Linux
 
  1) The following software must be installed in order to compile the code:
  make, g++, binutils, ROOT
@@ -85,21 +85,43 @@ The following branches may be particularly useful:
  Optionally, to run Gluplot scripts provided in the program package one has to
  install Gnuplot and awk (gawk).
   
- 2) Unpack the code: 
- mkdir vHLLE
- tar xzf vHLLE.tar.gz -C vHLLE
- cd vHLLE
+ 2) clone the main vHLLE repository:
+ git clone https://github.com/yukarpenko/vhlle.git
+ cd vhlle
+ git checkout jakub_project
 
- 3) make the code:
- make
+ 3) clone another repository, which contains the equation of state,
+    sample initial state tables and related sample parameter files:
+ cd ..
+ git clone https://github.com/yukarpenko/vhlle_params.git
+ cd vhlle_params
  
+ 4) Copy the eos/, ic/ and params/ subdirectories from vhlle_params/
+ into the directory containing the vhlle code, vhlle/, e.g. by executing:
+ mv ic eos ../vhlle/
+ mv params/* ../vhlle/params/
  
  II. RUNNING vHLLE
  
- 1. to run the code, type
- ./hlle_visc <parameter-file>
+ 1. to run vHLLE, cd into the vhlle subdirectory and type:
+ ./hlle_visc -params <parameter-file> [-system <system>] -ISinput <IS-file> -outputDir <output-directory>
  
-Sample parameter files can be found in a code package linked to the reference
+<parameter-file> is the file name (including relative path) of a parameter file.
+<system> is an optional command-line parameter, which is mandatory for GLISSANDO
+ and TrENTo initial state options, and specifies a setup for a particular collision
+ energy. The standard values are: RHIC200, LHC276, which corresponds to sqrt(s)=200 GeV
+ RHIC and sqrt(s)=2760 GeV LHC energies, respectively. See the implementation of
+ IcGlissando::IcGlissando() in src/icGlissando.cpp for more details.
+<IS-file> is the file name of an initial state table. This file has to be supplied
+ for all but the simplest initial state options (optical Glauber or Gubser).
+<output-directory> is the directory to write the output files into. If the directory
+ does not exist, it will be created.
+
+ A sample command:
+ ./hlle_visc -params params/glissRHIC/gliss2RHIC.20-30 -system RHIC200 -ISinput ic/glissando/sources.RHIC.20-30.dat -outputDir output/RHIC.20-30
+ executes vHLLE with an averaged initial state table pre-computed from GLISSANDO code, and corresponding to 20-30% central Au-Au collisions at sqrt(s)=200 GeV.
+ 
+Other sample parameter files can be found in a code package linked to the reference
 publication [Comput. Phys. Commun. 185 (2014), 3016]. The parameter files are located
 in params/ subdirectory and cover several of the results published in the ref. publication:
 
