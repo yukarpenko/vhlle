@@ -8,10 +8,12 @@ private:
  double xmin, xmax, ymin, ymax, zmin, zmax;
  double dx, dy, dz;
  double ***T00, ***T0x, ***T0y, ***T0z, ***QB, ***QE;
- static const int NP = 10000;  // dimension for particle arrays
- // auxiliary particle arrays
- double Tau[NP], X[NP], Y[NP], Eta[NP], Mt[NP], Px[NP], Py[NP], Rap[NP];
- int Id[NP], Charge[NP];
+ // auxiliary particle values for reading from file
+ double Tau_val, X_val, Y_val, Eta_val, Mt_val, Px_val, Py_val, Rap_val;
+ int Id_val, Charge_val;
+  // auxiliary particle arrays
+ std::vector<double> Tau, X, Y, Eta, Mt, Px, Py, Rap;
+ std::vector<int> Id, Charge;
 
  double tau0;
  double Rgx, Rgy, Rgz;
