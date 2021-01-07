@@ -4,6 +4,7 @@
 #include <sstream>
 #include <iomanip>
 #include <cfloat>
+#include <vector>
 
 #include "eos.h"
 #include "eoChiral.h"
@@ -84,8 +85,22 @@ IcPartSMASH::IcPartSMASH(Fluid* f, char* filename, double _Rgt, double _Rgz,
   instream.str(line);
   instream.seekg(0);
   instream.clear();
-  instream >> Tau[np] >> X[np] >> Y[np] >> Eta[np] >> Mt[np] >> Px[np] >>
-      Py[np] >> Rap[np] >> Id[np] >> Charge[np];
+  // Read line
+  instream >> Tau_val >> X_val >> Y_val >> Eta_val >> Mt_val >> Px_val >>
+              Py_val >> Rap_val >> Id_val >> Charge_val;
+
+  // Fill arrays
+  Tau.push_back(Tau_val);
+  X.push_back(X_val);
+  Y.push_back(Y_val);
+  Eta.push_back(Eta_val);
+  Mt.push_back(Mt_val);
+  Px.push_back(Px_val);
+  Py.push_back(Py_val);
+  Rap.push_back(Rap_val);
+  Id.push_back(Id_val);
+  Charge.push_back(Charge_val);
+
 #ifdef TSHIFT
   Eta[np] = TMath::ATanH(Tau[np] * sinh(Eta[np]) /
                          (Tau[np] * cosh(Eta[np]) + tshift));
@@ -102,10 +117,22 @@ IcPartSMASH::IcPartSMASH(Fluid* f, char* filename, double _Rgt, double _Rgz,
    }
    makeSmoothTable(np);
    np = 0;
+
+   // Clear arrays for next event
+   Tau.clear();
+   X.clear();
+   Y.clear();
+   Eta.clear();
+   Mt.clear();
+   Px.clear();
+   Py.clear();
+   Rap.clear();
+   Id.clear();
+   Charge.clear();
+
    nevents++;
    // if(nevents>10000) return ;
   }
-  if (np > NP - 1) cout << "ERROR: increase NP constant\n";
  }
  if (nevents > 1)
   cout << "++ Warning: loaded " << nevents << "  initial SMASH events\n";
