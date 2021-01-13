@@ -7,7 +7,7 @@ class TF1;
 class ICGlauber {
   TF1 *iff;  // instance of TF1 class used for numerical integration relevant to
              // the initial conditions from optical Glauber approach
-  double rho0;  // relevant to the initial conditions from optical
+  double rho0, prms[4];  // relevant to the initial conditions from optical
                          // Glauber approach
 
   double WoodSaxon(double *x, double *p);  // Wood-Saxon profile
