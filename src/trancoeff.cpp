@@ -32,12 +32,10 @@ void TransportCoeff::getEta(double e, double T, double &_etaS, double &_zetaS) {
 }
 
 void TransportCoeff::getTau(double e, double T, double &_taupi, double &_tauPi) {
- if (T > 0.)
-  _taupi = std::max(5. / 5.068 * etaS / T, 0.003);
- else
-  _taupi = 0.1;
- if (T > 0.)
-  _tauPi = std::max(1. / 5.068 * zetaS(e,T) / (15. * pow(0.33333-eos->cs2(e),2) * T), 0.005);
- else
-  _tauPi = 0.1;
+ if (T > 0.) {
+  _taupi = 5. / 5.068 * etaS / T;
+  _tauPi = 1. / 5.068 * zetaS(e,T) / (15. * pow(0.33333-eos->cs2(e),2) * T);
+ } else {
+  _taupi = _tauPi = 0.;
+ }
 }
