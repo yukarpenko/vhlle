@@ -78,6 +78,18 @@ IcGlissando::IcGlissando(Fluid* f, const char* filename, double _tau0, const cha
   nsigma = 1.0;
   neta0 = 2.2;
   cout << "IcGlissando: setup for 62.4 GeV RHIC\n";
+ } else if(strcmp(setup,"AFTER72")==0) {
+  sNN = 72;
+  etaM = 1.8;
+  ybeam = 4.2;
+  alphaMix = 0.132;
+  Rg = 0.4;
+  A = 0.0;
+  eta0 = 1.8;
+  sigEta = 0.7;
+  nsigma = 1.0;
+  neta0 = 2.2;
+  cout << "IcGlissando: setup for 72 GeV AFTER\n";
  } else if(strcmp(setup,"RHIC27")==0) {
   sNN = 27;
   etaM = 1.0;
