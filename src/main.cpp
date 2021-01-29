@@ -180,10 +180,11 @@ int main(int argc, char **argv) {
   printParameters();
 
   // EoS
-  // char * eosfile = "eos/Laine_nf3.dat" ;
-  // int ncols = 3, nrows = 286 ;
-  // eos = new EoSs(eosfile,ncols) ;
-  if (eosType == 1)
+  char * eosfile = "eos/Laine_nf3.dat" ;
+  int ncols = 3, nrows = 286 ;
+  if (eosType==0)
+    eos = new EoSs(eosfile,ncols) ;
+  else if (eosType == 1)
     eos = new EoSChiral();
   else if (eosType == 2)
     eos = new EoSAZH();
