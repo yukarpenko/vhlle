@@ -1,3 +1,4 @@
+#include <vector>
 
 class Fluid;
 class EoS;
