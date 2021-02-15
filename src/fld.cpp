@@ -948,5 +948,56 @@ void Fluid::InitialAnisotropies(double tau0) {
  cout << "epsilon2 = " << eps2 << endl;
  cout << "epsilon3 = " << eps3 << endl;
 
+ double xcm_eta[nz], xcm_nom_eta[nz], xcm_denom_eta[nz];
+ double ycm_eta[nz], ycm_nom_eta[nz], ycm_denom_eta[nz];
+
+ for (int iz = 0; iz < nz; iz++) {
+  xcm_eta[iz] = 0;
+  xcm_nom_eta[iz] = 0;
+  xcm_denom_eta[iz] = 0;
+  ycm_eta[iz] = 0;
+  ycm_nom_eta[iz] = 0;
+  ycm_denom_eta[iz] = 0;
+  for (int ix = 0; ix < nx; ix++) {
+   for (int iy = 0; iy < ny; iy++) {
+    Cell* c = getCell(ix, iy, iz);
+    double x = getX(ix) ;
+    double y = getY(iy) ;
+    getCMFvariables(c, tau0, e, nb, nq, ns, vx, vy, vz);
+    xcm_nom_eta[iz] += x * e ;
+    xcm_denom_eta[iz] += e ;
+    ycm_nom_eta[iz] += y * e ;
+    ycm_denom_eta[iz] += e ;
+   }
+  }
+  xcm_eta[iz] = xcm_nom_eta[iz] / xcm_denom_eta[iz];
+  ycm_eta[iz] = ycm_nom_eta[iz] / ycm_denom_eta[iz];
+ }
+
+ for (int iz = 0; iz < nz; iz++) {
+  eps2 = 0.0;
+  eps2_nom_real = 0.0;
+  eps2_nom_imag = 0.0;
+  eps2_denom = 0.0;
+  for (int ix = 0; ix < nx; ix++) {
+   for (int iy = 0; iy < ny; iy++) {
+     Cell* c = getCell(ix, iy, iz);
+     double x = getX(ix) ;
+     double y = getY(iy) ;
+     x = x - xcm_eta[iz] ;
+     y = y - ycm_eta[iz] ;
+     double r = sqrt(x*x + y*y) ;
+     double phi = atan2(y, x) ;
+     getCMFvariables(c, tau0, e, nb, nq, ns, vx, vy, vz);
+     eps2_denom += pow(r, 2) * e ;
+     eps2_nom_real += pow(r, 2) * cos(2 * phi) * e ;
+     eps2_nom_imag += pow(r, 2) * sin(2 * phi) * e ;
+   }
+  }
+  eps2 = sqrt(pow(eps2_nom_real, 2) + pow(eps2_nom_imag, 2)) / eps2_denom ;
+  double eta = getZ(iz) ;
+  cout << eta << " " << eps2 << endl;
+ }
+
  exit(1) ;
 }

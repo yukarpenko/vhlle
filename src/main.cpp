@@ -270,6 +270,7 @@ int main(int argc, char **argv) {
  }
  cout << "IC done\n";
 
+ // For calculating initial anisotropy without running full hydro, uncomment following line
  //f->InitialAnisotropies(tau0) ;
 
  time_t tinit = 0;
