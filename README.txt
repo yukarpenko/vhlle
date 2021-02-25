@@ -104,14 +104,22 @@ The following branches may be particularly useful:
  II. RUNNING vHLLE
  
  1. to run vHLLE, cd into the vhlle subdirectory and type:
- ./hlle_visc <parameter-file> <optional-string>
+ ./hlle_visc -params <parameter-file> [-system <system>] -ISinput <IS-file> -outputDir <output-directory>
  
- The optional command-line parameter <optional-string> is mandatory for the GLISSANDO initial state option, and specifies a setup for a particular collision energy
- ( see IcGlissando::IcGlissando() in src/icGlissando.cpp )
+<parameter-file> is the file name (including relative path) of a parameter file.
+<system> is an optional command-line parameter, which is mandatory for GLISSANDO
+ and TrENTo initial state options, and specifies a setup for a particular collision
+ energy. The standard values are: RHIC200, LHC276, which corresponds to sqrt(s)=200 GeV
+ RHIC and sqrt(s)=2760 GeV LHC energies, respectively. See the implementation of
+ IcGlissando::IcGlissando() in src/icGlissando.cpp for more details.
+<IS-file> is the file name of an initial state table. This file has to be supplied
+ for all but the simplest initial state options (optical Glauber or Gubser).
+<output-directory> is the directory to write the output files into. If the directory
+ does not exist, it will be created.
 
  A sample command:
- ./hlle_visc params/glissRHIC/gliss2RHIC.20-30 RHIC200
- executes vHLLE with an averaged initial state from GLISSANDO corresponding to 20-30% central Au-Au collisions at sqrt(s)=200 GeV.
+ ./hlle_visc -params params/glissRHIC/gliss2RHIC.20-30 -system RHIC200 -ISinput ic/glissando/sources.RHIC.20-30.dat -outputDir output/RHIC.20-30
+ executes vHLLE with an averaged initial state table pre-computed from GLISSANDO code, and corresponding to 20-30% central Au-Au collisions at sqrt(s)=200 GeV.
  
 Other sample parameter files can be found in a code package linked to the reference
 publication [Comput. Phys. Commun. 185 (2014), 3016]. The parameter files are located

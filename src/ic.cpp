@@ -13,7 +13,7 @@
 
 using namespace std;
 
-IC::IC(char *icInputFile, double s0ScaleFactor) {
+IC::IC(const char *icInputFile, double s0ScaleFactor) {
  s95p::loadSongIC(icInputFile, s0ScaleFactor);
 }
 

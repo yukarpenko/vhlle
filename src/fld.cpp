@@ -438,7 +438,8 @@ void Fluid::outputSurface(double tau) {
  double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz, Q[7];
  double E = 0., Efull = 0., S = 0., Px = 0., vt_num = 0., vt_den = 0.,
         vxvy_num = 0., vxvy_den = 0., pi0x_num = 0., pi0x_den = 0.,
-        txxyy_num = 0., txxyy_den = 0., Nb1 = 0., Nb2 = 0.;
+        txxyy_num = 0., txxyy_den = 0., Nb1 = 0., Nb2 = 0.,
+        eps_p = 0. ;
  double eta = 0;
  int nelements = 0, nsusp = 0;  // all surface emenents and suspicious ones
  int nCoreCells = 0,
@@ -506,15 +507,17 @@ void Fluid::outputSurface(double tau) {
           sqrt(1. - vx * vx - vy * vy - tanh(vz) * tanh(vz));
     }
     Px += tau * (e + p) * vx / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz));
-    vt_num += e / sqrt(1. - vx * vx - vy * vy) * sqrt(vx * vx + vy * vy);
-    vt_den += e / sqrt(1. - vx * vx - vy * vy);
-    vxvy_num += e * (fabs(vx) - fabs(vy));
-    vxvy_den += e;
-    txxyy_num += (e + p) / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz)) *
+    if (iz > nz/2-3 and iz < nz/2+3) {
+      vxvy_num += e * (fabs(vx) - fabs(vy));
+      vxvy_den += e;
+      vt_den += e / sqrt(1. - vx * vx - vy * vy);
+      vt_num += e / sqrt(1. - vx * vx - vy * vy) * sqrt(vx * vx + vy * vy);
+      txxyy_num += (e + p) / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz)) *
                  (vx * vx - vy * vy);
-    txxyy_den += (e + p) / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz)) *
+      txxyy_den += (e + p) / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz)) *
                      (vx * vx + vy * vy) +
                  2. * p;
+    }
     pi0x_num += e / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz)) *
                 fabs(c->getpi(0, 1));
     pi0x_den += e / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz));
@@ -659,6 +662,7 @@ void Fluid::outputSurface(double tau) {
  S = S * dx * dy * dz;
  Nb1 *= dx * dy * dz;
  Nb2 *= dx * dy * dz;
+ eps_p = txxyy_num / txxyy_den ;
  output::faniz << setw(12) << tau << setw(14) << vt_num / vt_den << setw(14)
            << vxvy_num / vxvy_den << setw(14) << pi0x_num / pi0x_den << endl;
  cout << setw(10) << tau << setw(13) << E << setw(13) << Efull << setw(13)
@@ -883,4 +887,117 @@ void Fluid::outputCorona(double tau) {
  swap(eos, eosH);
 #endif
  cout << "corona elements : " << nelements << endl;
+}
+
+
+void Fluid::InitialAnisotropies(double tau0) {
+ double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz;
+
+ double xcm = 0.0, xcm_nom = 0.0, xcm_denom = 0.0 ;
+ double ycm = 0.0, ycm_nom = 0.0, ycm_denom = 0.0 ;
+
+ for (int ix = 0; ix < nx; ix++) {
+  for (int iy = 0; iy < ny; iy++) {
+   for (int iz = 0; iz < nz; iz++) {
+    if(fabs(getZ(iz)) < 0.5) {
+     Cell* c = getCell(ix, iy, iz);
+     double x = getX(ix) ;
+     double y = getY(iy) ;
+     getCMFvariables(c, tau0, e, nb, nq, ns, vx, vy, vz);
+     xcm_nom += x * e ;
+     xcm_denom += e ;
+     ycm_nom += y * e ;
+     ycm_denom += e ;
+    }
+   }
+  }
+ }
+
+ xcm = xcm_nom / xcm_denom ;
+ ycm = ycm_nom / ycm_denom ;
+
+ double eps2 = 0.0, eps2_nom_real = 0.0, eps2_nom_imag = 0.0, eps2_denom = 0.0 ;
+ double eps3 = 0.0, eps3_nom_real = 0.0, eps3_nom_imag = 0.0, eps3_denom = 0.0 ;
+
+ for (int ix = 0; ix < nx; ix++) {
+  for (int iy = 0; iy < ny; iy++) {
+   for (int iz = 0; iz < nz; iz++) {
+    if(fabs(getZ(iz)) < 0.5) {
+     Cell* c = getCell(ix, iy, iz);
+     double x = getX(ix) ;
+     double y = getY(iy) ;
+     x = x - xcm ;
+     y = y - ycm ;
+     double r = sqrt(x*x + y*y) ;
+     double phi = atan2(y, x) ;
+     getCMFvariables(c, tau0, e, nb, nq, ns, vx, vy, vz);
+     eps2_denom += pow(r, 2) * e ;
+     eps2_nom_real += pow(r, 2) * cos(2 * phi) * e ;
+     eps2_nom_imag += pow(r, 2) * sin(2 * phi) * e ;
+     eps3_denom += pow(r, 3) * e ;
+     eps3_nom_real += pow(r, 3) * cos(3 * phi) * e ;
+     eps3_nom_imag += pow(r, 3) * sin(3 * phi) * e ;
+    }
+   }
+  }
+ }
+
+ eps2 = sqrt(pow(eps2_nom_real, 2) + pow(eps2_nom_imag, 2)) / eps2_denom ;
+ eps3 = sqrt(pow(eps3_nom_real, 2) + pow(eps3_nom_imag, 2)) / eps3_denom ;
+
+ cout << "epsilon2 = " << eps2 << endl;
+ cout << "epsilon3 = " << eps3 << endl;
+
+ double xcm_eta[nz], xcm_nom_eta[nz], xcm_denom_eta[nz];
+ double ycm_eta[nz], ycm_nom_eta[nz], ycm_denom_eta[nz];
+
+ for (int iz = 0; iz < nz; iz++) {
+  xcm_eta[iz] = 0;
+  xcm_nom_eta[iz] = 0;
+  xcm_denom_eta[iz] = 0;
+  ycm_eta[iz] = 0;
+  ycm_nom_eta[iz] = 0;
+  ycm_denom_eta[iz] = 0;
+  for (int ix = 0; ix < nx; ix++) {
+   for (int iy = 0; iy < ny; iy++) {
+    Cell* c = getCell(ix, iy, iz);
+    double x = getX(ix) ;
+    double y = getY(iy) ;
+    getCMFvariables(c, tau0, e, nb, nq, ns, vx, vy, vz);
+    xcm_nom_eta[iz] += x * e ;
+    xcm_denom_eta[iz] += e ;
+    ycm_nom_eta[iz] += y * e ;
+    ycm_denom_eta[iz] += e ;
+   }
+  }
+  xcm_eta[iz] = xcm_nom_eta[iz] / xcm_denom_eta[iz];
+  ycm_eta[iz] = ycm_nom_eta[iz] / ycm_denom_eta[iz];
+ }
+
+ for (int iz = 0; iz < nz; iz++) {
+  eps2 = 0.0;
+  eps2_nom_real = 0.0;
+  eps2_nom_imag = 0.0;
+  eps2_denom = 0.0;
+  for (int ix = 0; ix < nx; ix++) {
+   for (int iy = 0; iy < ny; iy++) {
+     Cell* c = getCell(ix, iy, iz);
+     double x = getX(ix) ;
+     double y = getY(iy) ;
+     x = x - xcm_eta[iz] ;
+     y = y - ycm_eta[iz] ;
+     double r = sqrt(x*x + y*y) ;
+     double phi = atan2(y, x) ;
+     getCMFvariables(c, tau0, e, nb, nq, ns, vx, vy, vz);
+     eps2_denom += pow(r, 2) * e ;
+     eps2_nom_real += pow(r, 2) * cos(2 * phi) * e ;
+     eps2_nom_imag += pow(r, 2) * sin(2 * phi) * e ;
+   }
+  }
+  eps2 = sqrt(pow(eps2_nom_real, 2) + pow(eps2_nom_imag, 2)) / eps2_denom ;
+  double eta = getZ(iz) ;
+  cout << eta << " " << eps2 << endl;
+ }
+
+ exit(1) ;
 }

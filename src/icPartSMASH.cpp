@@ -14,7 +14,7 @@
 
 using namespace std;
 
-IcPartSMASH::IcPartSMASH(Fluid* f, char* filename, double _Rgt, double _Rgz,
+IcPartSMASH::IcPartSMASH(Fluid* f, const char* filename, double _Rgt, double _Rgz,
                          double _tau0) {
  nx = f->getNX();
  ny = f->getNY();

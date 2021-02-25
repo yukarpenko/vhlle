@@ -73,7 +73,7 @@ private:
                -9952212, -9962112, -9962212, -9972112, -9972212};
 
 public:
- IcPartSMASH(Fluid *f, char *filename, double _Rgt, double _Rgz, double tau0);
+ IcPartSMASH(Fluid *f, const char *filename, double _Rgt, double _Rgz, double tau0);
  ~IcPartSMASH();
  void setIC(Fluid *f, EoS *eos);
 };

@@ -2,7 +2,7 @@
 class Fluid;
 class EoS;
 
-class IcGlissando {
+class IcTrento {
 private:
  double eta0; // midrapidity plateau
  double sigEta; // diffuseness of rapidity profile
@@ -17,14 +17,15 @@ private:
  double etaM;
  double A; // initial shear flow constant
  int nx, ny, nz, nevents;
+ int n_grid;
+ double xminG, xmaxG, yminG, ymaxG; // grid sizes
  double xmin, xmax, ymin, ymax, zmin, zmax;
  double dx, dy, dz;
  double ***rho;
  double ***nrho;
+ double **source;
  static const int NP = 10000;  // dimension for particle arrays
  // auxiliary particle arrays
- double X[NP], Y[NP], W[NP];
- int C[NP];
 
  double tau0;
  int nsmoothx;  // smoothly distribute to +- this many cells
@@ -33,8 +34,9 @@ private:
  void makeSmoothTable(int npart);
 
 public:
- IcGlissando(Fluid *f, const char *filename, double tau0, const char* setup);
- ~IcGlissando();
+ IcTrento(Fluid *f, const char *filename, double tau0, const char* setup);
+ ~IcTrento();
+ double interpolateGrid(double x, double y);
  void setIC(Fluid *f, EoS *eos);
  double setNormalization(int npart);
  double setBaryonNorm(int npart);
