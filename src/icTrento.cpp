@@ -32,7 +32,6 @@ IcTrento::IcTrento(Fluid* f, const char* filename, double _tau0, const char* set
 
  tau0 = _tau0;
 
-
  if(strcmp(setup,"LHC276")==0) {
   sNN = 2760;
   eta0 = 2.3; // midrapidity plateau
@@ -79,12 +78,6 @@ IcTrento::IcTrento(Fluid* f, const char* filename, double _tau0, const char* set
   nsigma = 1.0;
   neta0 = 2.2;
 
-  xminG = -20.125;
-  xmaxG = 20.125;
-  yminG = -20.125;
-  ymaxG = 20.125;
-  n_grid = 161;
-
   cout << "IcTrento: setup for 62.4 GeV RHIC\n";
  } else if(strcmp(setup,"RHIC27")==0) {
   sNN = 27;
@@ -93,12 +86,6 @@ IcTrento::IcTrento(Fluid* f, const char* filename, double _tau0, const char* set
   alphaMix = 0.123; // 0.125 WN/binary mixing
   Rg = 0.4; // Gaussian smearing in transverse dir
   A = 0.0 ; // 5e-4; // initial shear flow
-
-  xminG = -12.1;
-  xmaxG = 12.1;
-  yminG = -12.1;
-  ymaxG = 12.1;
-  n_grid = 121;
 
   cout << "IcTrento: setup for 27 GeV RHIC\n";
  } else {
@@ -117,14 +104,6 @@ IcTrento::IcTrento(Fluid* f, const char* filename, double _tau0, const char* set
    for (int iz = 0; iz < nz; iz++) {
     rho[ix][iy][iz] = 0.0;
    }
-  }
- }
-
- source = new double*[n_grid];
- for (int ix = 0; ix < n_grid; ix++) {
-  source[ix] = new double[n_grid];
-  for (int iy = 0; iy < n_grid; iy++) {
-   source[ix][iy] = 0.0;
   }
  }
 
@@ -157,6 +136,28 @@ IcTrento::IcTrento(Fluid* f, const char* filename, double _tau0, const char* set
  for (int i = 0; i < 5; i++) { // read the rest 5 lines from header
   getline(fin, line);
  }
+ getline(fin, line); // read grid-step
+ getline(fin, line); // read grid-nsteps
+ instream.str(line);
+ instream.seekg(15);
+ instream >> n_grid;
+
+ // create array for the source
+ source = new double*[n_grid];
+ for (int ix = 0; ix < n_grid; ix++) {
+  source[ix] = new double[n_grid];
+  for (int iy = 0; iy < n_grid; iy++) {
+   source[ix][iy] = 0.0;
+  }
+ }
+
+ getline(fin, line); // read grid-max
+ instream.str(line);
+ instream.seekg(12);
+ instream >> xmaxG;
+ ymaxG = xmaxG;
+ xminG = -xmaxG;
+ yminG = -xmaxG;
  for (int iy = 0; iy < n_grid; iy++) {
   for (int ix = 0; ix < n_grid; ix++) {
    fin >> source[ix][iy];
