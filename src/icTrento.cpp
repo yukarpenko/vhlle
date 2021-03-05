@@ -124,7 +124,7 @@ IcTrento::IcTrento(Fluid* f, const char* filename, double _tau0, const char* set
   cout << "I/O error with " << filename << endl;
   exit(1);
  }
- int np = 0;  // particle counter
+ int npart = 0;  // particle counter
  string line;
  istringstream instream;
  for (int i = 0; i < 3; i++) { // read first 3 lines - the 3rd line contains npart
@@ -132,7 +132,7 @@ IcTrento::IcTrento(Fluid* f, const char* filename, double _tau0, const char* set
  }
  instream.str(line);
  instream.seekg(9);
- instream >> np; // read npart
+ instream >> npart; // read npart
  for (int i = 0; i < 5; i++) { // read the rest 5 lines from header
   getline(fin, line);
  }
@@ -158,20 +158,21 @@ IcTrento::IcTrento(Fluid* f, const char* filename, double _tau0, const char* set
  ymaxG = xmaxG;
  xminG = -xmaxG;
  yminG = -xmaxG;
+ cout << "Trento IS grid: x,ymaxG = " << xmaxG << "  n_grid = " << n_grid << endl;
  for (int iy = 0; iy < n_grid; iy++) {
   for (int ix = 0; ix < n_grid; ix++) {
    fin >> source[ix][iy];
   }
  }
- cout << "np = " << np << "\n";
- makeSmoothTable(np);
+ cout << "npart = " << npart << "\n";
+ makeSmoothTable(npart);
 
  // autocalculation of sNorm and nNorm
  sNorm = 1.0;
  double old_sNorm = 0.0;
  do {
    old_sNorm = sNorm;
-   sNorm = pow(setNormalization(np), 0.75)*old_sNorm;
+   sNorm = pow(setNormalization(npart), 0.75)*old_sNorm;
  } while (abs(sNorm-old_sNorm) > 0.0001);
  cout << "sNorm set to " << sNorm << endl;
  double old_nNorm = 0.0;
@@ -179,7 +180,7 @@ IcTrento::IcTrento(Fluid* f, const char* filename, double _tau0, const char* set
   nNorm = 1.0;
   do {
     old_nNorm = nNorm;
-    nNorm = setBaryonNorm(np)*old_nNorm;
+    nNorm = setBaryonNorm(npart)*old_nNorm;
   } while (abs(nNorm-old_nNorm) > 0.0001);
   cout << "nNorm set to " << nNorm << endl;
  }
