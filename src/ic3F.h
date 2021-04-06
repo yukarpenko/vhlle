@@ -25,7 +25,6 @@ private:
  int nsmoothy;
  int nsmoothz;
  void makeSmoothPart(double x, double y, double eta, int Charge, double rap, bool isProjectile);
- double GenerateRadius(double R);
 
 public:
  IC3F(Fluid *f_p, Fluid *f_t, double tau, int _nevents, double _snn, int _projA, int _targA, int _projZ, int _targZ, double _Rg);

@@ -13,12 +13,6 @@
 using namespace std;
 
 IC3F::IC3F(Fluid *f_p, Fluid *f_t, double tau, int _nevents, double _snn, int _projA, int _targA, int _projZ, int _targZ, double _Rg) {
- // random generators
- random_device rd;
- mt19937 gen(rd());
- uniform_real_distribution<> dis(0.0, C_PI);
- uniform_real_distribution<> dis2(0.0, 2*C_PI);
-
  nx = f_p->getNX();
  ny = f_p->getNY();
  nz = f_p->getNZ();
@@ -102,27 +96,42 @@ IC3F::IC3F(Fluid *f_p, Fluid *f_t, double tau, int _nevents, double _snn, int _p
   }
  }
 
+ // random generator
+ random_device rd;
+ mt19937 gen(rd());
+ uniform_real_distribution<> dis_proj(- Rproj - 4.0, Rproj + 4.0);
+ uniform_real_distribution<> dis_targ(- Rtarg - 4.0, Rtarg + 4.0);
+ uniform_real_distribution<> dis(0.0, 1.0);
+
  // generating nucleons of projectile nucleus
  for (int i = 0; i < projA * nevents; i++) {
-  double r = GenerateRadius(Rproj);
-  double phi = dis2(gen);
-  double theta = dis(gen);
-  double x = r * sin(theta) * cos(phi);
-  double y = r * sin(theta) * sin(phi);
-  double z = (r * cos(theta)) / gamma - z0_proj;
+  bool generated = false;
+  double x, y, z, r;
+  while (!generated) {
+   x = dis_proj(gen);
+   y = dis_proj(gen);
+   z = dis_proj(gen);
+   r = sqrt(x*x + y*y + z*z);
+   if (dis(gen) < 1/(1 + exp((r - Rproj) / WSdelta))) generated = true;
+  }
+  z = z / gamma - z0_proj;
   double eta = asinh(z * cosh(rap_beam) / tau0 - sinh(rap_beam)) + rap_beam;
-  int charge = i < projZ ? 1 : 0;
+  int charge = i < projZ * nevents ? 1 : 0;
   makeSmoothPart(x, y, eta, charge, rap_beam, true);
  }
 
  // generating nucleons of target nucleus
  for (int i = 0; i < targA * nevents; i++) {
-  double r = GenerateRadius(Rtarg);
-  double phi = dis2(gen);
-  double theta = dis(gen);
-  double x = r * sin(theta) * cos(phi);
-  double y = r * sin(theta) * sin(phi);
-  double z = (r * cos(theta)) / gamma - z0_targ;
+  bool generated = false;
+  double x, y, z, r;
+  while (!generated) {
+   x = dis_targ(gen);
+   y = dis_targ(gen);
+   z = dis_targ(gen);
+   r = sqrt(x*x + y*y + z*z);
+   if (dis(gen) < 1/(1 + exp((r - Rtarg) / WSdelta))) generated = true;
+  }
+  z = z / gamma - z0_targ;
   double eta = asinh(z * cosh(rap_beam) / tau0 + sinh(rap_beam)) - rap_beam;
   int charge = i < targZ ? 1 : 0;
   makeSmoothPart(x, y, eta, charge, rap_beam, false);
@@ -158,20 +167,6 @@ IC3F::~IC3F() {
  delete[] T0z_t;
  delete[] QB_t;
  delete[] QE_t;
-}
-
-double IC3F::GenerateRadius(double R) {
- bool generated = false;
- random_device rd;
- mt19937 gen(rd());
- uniform_real_distribution<> dis(0.0, R + 4.0);
- uniform_real_distribution<> dis2(0.0, 1.0);
- double r;
- while (!generated) {
-  r = dis(gen);
-  if (1/(1 + exp((r - R) / WSdelta)) > dis2(gen)) generated = true;
- }
- return r;
 }
 
 void IC3F::makeSmoothPart(double x, double y, double eta, int Charge, double rap, bool isProjectile) {
@@ -263,6 +258,7 @@ void IC3F::setIC(Fluid* f_p, Fluid* f_t, EoS* eos) {
 
     Cell* c_t = f_t->getCell(ix, iy, iz);
     c_t->setPrimVar(eos, tau0, e_t, nb_t, nq_t, ns_t, vx_t, vy_t, vz_t);
+
     if (e_p > 0.) c_p->setAllM(1.);
     if (e_t > 0.) c_t->setAllM(1.);
     /*const double gamma = 1.0 / sqrt(1.0 - vx * vx - vy * vy - vz * vz);
