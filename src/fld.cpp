@@ -111,31 +111,44 @@ Fluid::~Fluid() {
  delete cell0;
 }
 
-void Fluid::initOutput(const char *dir, double tau0) {
+void Fluid::initOutput(const char *dir, double tau0, char *suffix) {
  char command[255];
  sprintf(command, "mkdir -p %s", dir);
  int return_mkdir = system(command);
  cout << "mkdir returns: " << return_mkdir << endl;
+ string suff = "_";
+ suff.append(suffix);
+ suff.append(".dat");
  string outx = dir;
- outx.append("/outx.dat");
+ outx.append("/outx");
+ outx.append(suff);
  string outxvisc = dir;
- outxvisc.append("/outx.visc.dat");
+ outxvisc.append("/outx.visc");
+ outxvisc.append(suff);
  string outyvisc = dir;
- outyvisc.append("/outy.visc.dat");
+ outyvisc.append("/outy.visc");
+ outyvisc.append(suff);
  string outdiagvisc = dir;
- outdiagvisc.append("/diag.visc.dat");
+ outdiagvisc.append("/diag.visc");
+ outdiagvisc.append(suff);
  string outy = dir;
- outy.append("/outy.dat");
+ outy.append("/outy");
+ outy.append(suff);
  string outdiag = dir;
  outdiag.append("/outdiag.dat");
+ outdiag.append(suff);
  string outz = dir;
  outz.append("/outz.dat");
+ outz.append(suff);
  string outaniz = dir;
  outaniz.append("/out.aniz.dat");
+ outaniz.append(suff);
  string out2d = dir;
  out2d.append("/out2D.dat");
+ out2d.append(suff);
  string outfreeze = dir;
  outfreeze.append("/freezeout.dat");
+ outfreeze.append(suff);
  output::fx.open(outx.c_str());
  output::fy.open(outy.c_str());
  output::fz.open(outz.c_str());

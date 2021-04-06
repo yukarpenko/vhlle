@@ -24,6 +24,7 @@
 #include "fld.h"
 #include "hdo.h"
 #include "ic.h"
+#include "ic3F.h"
 #include "ickw.h"
 #include "icPartUrqmd.h"
 #include "icPartSMASH.h"
@@ -39,11 +40,12 @@
 #include "eoHadron.h"
 #include "eoSmash.h"
 #include "trancoeff.h"
+#include "multiHydro.h"
 
 using namespace std;
 
 // program parameters, to be read from file
-int nx, ny, nz, eosType;
+int nx, ny, nz, nevents, eosType;
 int eosTypeHadron = 0;
 double xmin, xmax, ymin, ymax, etamin, etamax, tau0, tauMax, tauResize, dtau;
 string collSystem, outputDir, isInputFile;
@@ -52,6 +54,9 @@ int icModel,
     glauberVariable =
         1;  // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
 double epsilon0, Rgt, Rgz, impactPar, s0ScaleFactor;
+
+double snn;
+int projA, targA, projZ, targZ;
 
 void setDefaultParameters() {
  tauResize = 4.0;
@@ -120,6 +125,18 @@ void readParameters(char *parFile) {
    impactPar = atof(parValue);
   else if (strcmp(parName, "s0ScaleFactor") == 0)
    s0ScaleFactor = atof(parValue);
+  else if (strcmp(parName, "nevents") == 0)
+   nevents = atoi(parValue);
+  else if (strcmp(parName, "snn") == 0)
+   snn = atof(parValue);
+  else if (strcmp(parName, "projA") == 0)
+   projA = atoi(parValue);
+  else if (strcmp(parName, "targA") ==0)
+   targA = atoi(parValue);
+  else if (strcmp(parName, "projZ") == 0)
+   projZ = atoi(parValue);
+  else if (strcmp(parName, "targZ") ==0)
+   targZ = atoi(parValue);
   else if (parName[0] == '!')
    cout << "CCC " << sline.str() << endl;
   else
@@ -132,6 +149,12 @@ void printParameters() {
  cout << "outputDir = " << outputDir << endl;
  cout << "eosType = " << eosType << endl;
  cout << "eosTypeHadron = " << eosTypeHadron << endl;
+ cout << "nevents = " << nevents << endl;
+ cout << "snn = " << snn << endl;
+ cout << "projA = " << projA << endl;
+ cout << "targA = " << targA << endl;
+ cout << "projZ = " << projZ << endl;
+ cout << "targZ = " << targZ << endl;
  cout << "nx = " << nx << endl;
  cout << "ny = " << ny << endl;
  cout << "nz = " << nz << endl;
@@ -216,8 +239,9 @@ int main(int argc, char **argv) {
  EoS *eos;
  EoS *eosH;
  TransportCoeff *trcoeff;
- Fluid *f;
- Hydro *h;
+ Fluid *f_p, *f_t, *f_f;
+ Hydro *h_p, *h_t, *h_f;
+ MultiHydro *mh;
  time_t start = 0, end;
 
  time(&start);
@@ -255,10 +279,15 @@ int main(int argc, char **argv) {
  // transport coefficients
  trcoeff = new TransportCoeff(etaS, zetaS, eos);
 
- f = new Fluid(eos, eosH, trcoeff, nx, ny, nz, xmin, xmax, ymin, ymax, etamin,
+ f_p = new Fluid(eos, eosH, trcoeff, nx, ny, nz, xmin, xmax, ymin, ymax, etamin,
+               etamax, dtau, eCrit);
+ f_t = new Fluid(eos, eosH, trcoeff, nx, ny, nz, xmin, xmax, ymin, ymax, etamin,
+               etamax, dtau, eCrit);
+ f_f = new Fluid(eos, eosH, trcoeff, nx, ny, nz, xmin, xmax, ymin, ymax, etamin,
                etamax, dtau, eCrit);
  cout << "fluid allocation done\n";
 
+/*
  // initilal conditions
  if (icModel == 1) {  // optical Glauber
   ICGlauber *ic = new ICGlauber(epsilon0, impactPar, tau0);
@@ -292,6 +321,12 @@ int main(int argc, char **argv) {
   cout << "icModel = " << icModel << " not implemented\n";
  }
  cout << "IC done\n";
+*/
+
+ IC3F *ic = new IC3F(f_p, f_t, tau0, nevents, snn, projA, targA, projZ, targZ, Rgt);
+ ic->setIC(f_p, f_t, eos);
+ delete ic;
+ cout << "IC done\n";
 
  // For calculating initial anisotropy without running full hydro, uncomment following line
  //f->InitialAnisotropies(tau0) ;
@@ -302,47 +337,75 @@ int main(int argc, char **argv) {
  cout << "Init time = " << diff << " [sec]" << endl;
 
  // hydro init
- h = new Hydro(f, eos, trcoeff, tau0, dtau);
+ h_p = new Hydro(f_p, eos, trcoeff, tau0, dtau);
+ h_t = new Hydro(f_t, eos, trcoeff, tau0, dtau);
+ h_f = new Hydro(f_f, eos, trcoeff, tau0, dtau);
+ int maxstep = ceil((tauMax - tau0) / dtau);
  start = 0;
  time(&start);
  // h->setNSvalues() ; // initialize viscous terms
 
- f->initOutput(outputDir.c_str(), tau0);
- f->outputCorona(tau0);
+ mh = new MultiHydro(f_p, f_t, f_f, h_p, h_t, h_f, eos, trcoeff);
 
- bool resized = false; // flag if the grid has been resized
+ f_p->initOutput(outputDir.c_str(), tau0, "proj");
+ f_t->initOutput(outputDir.c_str(), tau0, "targ");
+ f_f->initOutput(outputDir.c_str(), tau0, "fire");
+ f_p->outputCorona(tau0);
+ f_t->outputCorona(tau0);
+ f_f->outputCorona(tau0);
+
+ for (int istep = 0; istep < maxstep; istep++) {
+  mh->performStep();
+  f_p->outputGnuplot(h_p->getTau());
+  f_t->outputGnuplot(h_t->getTau());
+  f_f->outputGnuplot(h_t->getTau());
+  cout << "step done, tau=" << h_p->getTau() << endl;
+ }
+
+ /*bool resized = false; // flag if the grid has been resized
  do {
   // small tau: decrease timestep by makins substeps, in order
   // to avoid instabilities in eta direction (signal velocity ~1/tau)
   int nSubSteps = 1;
   while (dtau / nSubSteps >
-         1.0 * h->getTau() * (etamax - etamin) / (nz - 1)) {
+         1.0 * h_p->getTau() * (etamax - etamin) / (nz - 1)) {
    nSubSteps *= 2;  // 0.02 in "old" coordinates
   }
   if(nSubSteps>1) {
-   h->setDtau(h->getDtau() / nSubSteps);
+   h_p->setDtau(h_p->getDtau() / nSubSteps);
    for (int j = 0; j < nSubSteps; j++)
-    h->performStep();
+    mh->performStep();
    h->setDtau(h->getDtau() * nSubSteps);
    cout << "timestep reduced by " << nSubSteps << endl;
   } else
-   h->performStep();
-  f->outputGnuplot(h->getTau());
-  f->outputSurface(h->getTau());
+   mh->performStep();
+  f_p->outputGnuplot(h_p->getTau());
+  f_t->outputGnuplot(h_t->getTau());
+  f_f->outputGnuplot(h_f->getTau());
+  f_p->outputSurface(h_p->getTau());
+  f_t->outputSurface(h_t->getTau());
+  f_f->outputSurface(h_f->getTau());
   if(h->getTau()>=tauResize and resized==false) {
    cout << "grid resize\n";
-   f = expandGrid2x(h, eos, eosH, trcoeff);
+   f_p = expandGrid2x(h_p, eos, eosH, trcoeff);
+   f_t = expandGrid2x(h_t, eos, eosH, trcoeff);
+   f_f = expandGrid2x(h_f, eos, eosH, trcoeff);
    resized = true;
   }
- } while(h->getTau()<tauMax+0.0001);
+ } while(h_p->getTau()<tauMax+0.0001);*/
 
  end = 0;
  time(&end);
  float diff2 = difftime(end, start);
  cout << "Execution time = " << diff2 << " [sec]" << endl;
 
- delete f;
- delete h;
+ delete mh;
+ delete f_p;
+ delete f_t;
+ delete f_f;
+ delete h_p;
+ delete h_t;
+ delete h_f;
  delete eos;
  delete eosH;
 }

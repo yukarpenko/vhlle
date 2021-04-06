@@ -1,0 +1,44 @@
+! Cartesian coordinates, for cold nuclei init
+
+nevents 1
+snn   27
+projA  197
+targA  197
+projZ  79
+targZ  79
+
+! EoS type: 0 = complex EoS, 1 = simple table (eosFile)
+eosType       1
+eosFile         Laine_nf3.dat
+chiBfile        chiB.txt
+chiSfile        chiS.txt
+T_ch          0.165
+mu_b          0.0285
+mu_q         -0.001
+mu_s          0.007
+gammaS        0.935
+gammaFactor   0.75
+exclVolume    0.0
+
+etaS      0.0
+zetaS     0.0
+e_crit    0.5
+
+nx        51
+ny        51
+nz        51
+xmin     -12.0
+xmax      12.0
+ymin     -12.0
+ymax      12.0
+etamin     -12.0
+etamax      12.0
+
+glauberVar 1
+s0ScaleFactor  53.55
+epsilon0   30.0
+impactPar  0.0
+Rg      1.0
+tau0       1.0
+tauMax     8.0
+dtau       0.1
