@@ -114,7 +114,7 @@ IC3F::IC3F(Fluid *f_p, Fluid *f_t, double tau, int _nevents, double _snn, int _p
    r = sqrt(x*x + y*y + z*z);
    if (dis(gen) < 1/(1 + exp((r - Rproj) / WSdelta))) generated = true;
   }
-  z = z / gamma - z0_proj;
+  z = z / gamma + z0_proj;
   double eta = asinh(z * cosh(rap_beam) / tau0 - sinh(rap_beam)) + rap_beam;
   int charge = i < projZ * nevents ? 1 : 0;
   makeSmoothPart(x, y, eta, charge, rap_beam, true);
@@ -131,10 +131,10 @@ IC3F::IC3F(Fluid *f_p, Fluid *f_t, double tau, int _nevents, double _snn, int _p
    r = sqrt(x*x + y*y + z*z);
    if (dis(gen) < 1/(1 + exp((r - Rtarg) / WSdelta))) generated = true;
   }
-  z = z / gamma - z0_targ;
+  z = z / gamma + z0_targ;
   double eta = asinh(z * cosh(rap_beam) / tau0 + sinh(rap_beam)) - rap_beam;
   int charge = i < targZ ? 1 : 0;
-  makeSmoothPart(x, y, eta, charge, rap_beam, false);
+  makeSmoothPart(x, y, eta, charge, -rap_beam, false);
  }
 }
 
