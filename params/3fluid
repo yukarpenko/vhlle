@@ -2,6 +2,8 @@
 
 nevents 1
 snn   27
+b_min  4.6
+b_max  9.3
 projA  197
 targA  197
 projZ  79
@@ -31,8 +33,8 @@ xmin     -12.0
 xmax      12.0
 ymin     -12.0
 ymax      12.0
-etamin     -12.0
-etamax      12.0
+etamin     -4.0
+etamax      4.0
 
 glauberVar 1
 s0ScaleFactor  53.55

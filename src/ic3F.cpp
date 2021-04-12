@@ -12,7 +12,7 @@
 
 using namespace std;
 
-IC3F::IC3F(Fluid *f_p, Fluid *f_t, double tau, int _nevents, double _snn, int _projA, int _targA, int _projZ, int _targZ, double _Rg) {
+IC3F::IC3F(Fluid *f_p, Fluid *f_t, double tau, int _nevents, double _snn, double _b_min, double _b_max int _projA, int _targA, int _projZ, int _targZ, double _Rg) {
  nx = f_p->getNX();
  ny = f_p->getNY();
  nz = f_p->getNZ();
@@ -27,6 +27,8 @@ IC3F::IC3F(Fluid *f_p, Fluid *f_t, double tau, int _nevents, double _snn, int _p
  zmax = f_p->getZ(nz - 1);
 
  snn = _snn;
+ b_min = _b_min;
+ b_max = _b_max;
  nevents = _nevents;
  projA = _projA;
  targA = _targA;
@@ -96,46 +98,75 @@ IC3F::IC3F(Fluid *f_p, Fluid *f_t, double tau, int _nevents, double _snn, int _p
   }
  }
 
- // random generator
+ // random generators
  random_device rd;
  mt19937 gen(rd());
  uniform_real_distribution<> dis_proj(- Rproj - 4.0, Rproj + 4.0);
  uniform_real_distribution<> dis_targ(- Rtarg - 4.0, Rtarg + 4.0);
- uniform_real_distribution<> dis(0.0, 1.0);
+ uniform_real_distribution<> dis_uniform(0.0, 1.0);
+
+ // generating impact parameter
+ bool generated = false;
+ double bx, by, b;
+ if (b_max > Rproj + Rtarg) b_max = Rproj + Rtarg;
+ if (b_min < 0) b_min = 0;
+ if (b_min > b_max) {
+  cout << "b_min has to be smaller than b_max" << endl;
+  exit(1);
+ }
+ if (b_min == b_max) {
+  b = b_min;
+  generated = true;
+ }
+ uniform_real_distribution<> dis_impact(- b_max, b_max);
+ while (!generated) {
+  bx = dis_impact(gen);
+  by = dis_impact(gen);
+  b = sqrt(bx*bx + by*by);
+  if (b < b_max && b > b_min) generated = true;
+ }
+
+ // output for debugging
+ // ofstream fout("nucleons.dat");
 
  // generating nucleons of projectile nucleus
  for (int i = 0; i < projA * nevents; i++) {
-  bool generated = false;
+  generated = false;
   double x, y, z, r;
   while (!generated) {
    x = dis_proj(gen);
    y = dis_proj(gen);
    z = dis_proj(gen);
    r = sqrt(x*x + y*y + z*z);
-   if (dis(gen) < 1/(1 + exp((r - Rproj) / WSdelta))) generated = true;
+   if (dis_uniform(gen) < 1/(1 + exp((r - Rproj) / WSdelta))) generated = true;
   }
+  x += b / 2;
   z = z / gamma + z0_proj;
   double eta = asinh(z * cosh(rap_beam) / tau0 - sinh(rap_beam)) + rap_beam;
   int charge = i < projZ * nevents ? 1 : 0;
   makeSmoothPart(x, y, eta, charge, rap_beam, true);
+  //fout << x << " " << y << " " << z << " " << r << " " << eta << endl;
  }
 
  // generating nucleons of target nucleus
  for (int i = 0; i < targA * nevents; i++) {
-  bool generated = false;
+  generated = false;
   double x, y, z, r;
   while (!generated) {
    x = dis_targ(gen);
    y = dis_targ(gen);
    z = dis_targ(gen);
    r = sqrt(x*x + y*y + z*z);
-   if (dis(gen) < 1/(1 + exp((r - Rtarg) / WSdelta))) generated = true;
+   if (dis_uniform(gen) < 1/(1 + exp((r - Rtarg) / WSdelta))) generated = true;
   }
+  x -= b / 2;
   z = z / gamma + z0_targ;
   double eta = asinh(z * cosh(rap_beam) / tau0 + sinh(rap_beam)) - rap_beam;
   int charge = i < targZ ? 1 : 0;
   makeSmoothPart(x, y, eta, charge, -rap_beam, false);
+  //fout << x << " " << y << " " << z << " " << r << " " << eta << endl;
  }
+ //fout.close();
 }
 
 IC3F::~IC3F() {
@@ -222,6 +253,8 @@ void IC3F::setIC(Fluid* f_p, Fluid* f_t, EoS* eos) {
  double E = 0.0, Px = 0.0, Py = 0.0, Pz = 0.0, Nb = 0.0, S = 0.0;
  double Q_p[7], e_p, p_p, nb_p, nq_p, ns_p, vx_p, vy_p, vz_p;
  double Q_t[7], e_t, p_t, nb_t, nq_t, ns_t, vx_t, vy_t, vz_t;
+ // output for debugging
+ //ofstream feout("energy.dat");
  for (int ix = 0; ix < nx; ix++)
   for (int iy = 0; iy < ny; iy++)
    for (int iz = 0; iz < nz; iz++) {
@@ -259,6 +292,8 @@ void IC3F::setIC(Fluid* f_p, Fluid* f_t, EoS* eos) {
     Cell* c_t = f_t->getCell(ix, iy, iz);
     c_t->setPrimVar(eos, tau0, e_t, nb_t, nq_t, ns_t, vx_t, vy_t, vz_t);
 
+    //feout << f_p->getX(ix) << " " << f_p->getY(iy) << " " << f_p->getZ(iz) << " " << e_p+e_t << endl;
+
     if (e_p > 0.) c_p->setAllM(1.);
     if (e_t > 0.) c_t->setAllM(1.);
     /*const double gamma = 1.0 / sqrt(1.0 - vx * vx - vy * vy - vz * vz);
@@ -288,5 +323,6 @@ void IC3F::setIC(Fluid* f_p, Fluid* f_t, EoS* eos) {
       << "  Px = " << Px << "  Py = " << Py << endl;
  cout << "initial_entropy S_ini = " << S << endl;*/
    }
+ //feout.close();
  exit(1);
 }

@@ -12,6 +12,7 @@ private:
  double ***T00_p, ***T0z_p, ***QB_p, ***QE_p;
  double ***T00_t, ***T0z_t, ***QB_t, ***QE_t;
  double snn;
+ double b_min, b_max;
  int projA;
  int targA;
  int projZ;
@@ -27,7 +28,7 @@ private:
  void makeSmoothPart(double x, double y, double eta, int Charge, double rap, bool isProjectile);
 
 public:
- IC3F(Fluid *f_p, Fluid *f_t, double tau, int _nevents, double _snn, int _projA, int _targA, int _projZ, int _targZ, double _Rg);
+ IC3F(Fluid *f_p, Fluid *f_t, double tau, int _nevents, double _snn, double _b_min, double _b_max int _projA, int _targA, int _projZ, int _targZ, double _Rg);
  ~IC3F(void);
  // setIC: initializes entire hydro grid at a given initial proper time tau
  void setIC(Fluid* f_p, Fluid *f_t, EoS* eos);

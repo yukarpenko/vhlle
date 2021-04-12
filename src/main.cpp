@@ -55,7 +55,7 @@ int icModel,
         1;  // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
 double epsilon0, Rgt, Rgz, impactPar, s0ScaleFactor;
 
-double snn;
+double snn, b_min, b_max;
 int projA, targA, projZ, targZ;
 
 void setDefaultParameters() {
@@ -129,6 +129,10 @@ void readParameters(char *parFile) {
    nevents = atoi(parValue);
   else if (strcmp(parName, "snn") == 0)
    snn = atof(parValue);
+  else if (strcmp(parName, "b_min") == 0)
+   b_min = atof(parValue);
+  else if (strcmp(parName, "b_max") == 0)
+   b_max = atof(parValue);
   else if (strcmp(parName, "projA") == 0)
    projA = atoi(parValue);
   else if (strcmp(parName, "targA") ==0)
@@ -323,7 +327,7 @@ int main(int argc, char **argv) {
  cout << "IC done\n";
 */
 
- IC3F *ic = new IC3F(f_p, f_t, tau0, nevents, snn, projA, targA, projZ, targZ, Rgt);
+ IC3F *ic = new IC3F(f_p, f_t, tau0, nevents, snn, b_min, b_max, projA, targA, projZ, targZ, Rgt);
  ic->setIC(f_p, f_t, eos);
  delete ic;
  cout << "IC done\n";
