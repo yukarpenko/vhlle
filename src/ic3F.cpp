@@ -127,7 +127,7 @@ IC3F::IC3F(Fluid *f_p, Fluid *f_t, double tau, int _nevents, double _snn, double
  }
 
  // output for debugging
- // ofstream fout("nucleons.dat");
+ //ofstream fout("nucleons.dat");
 
  // generating nucleons of projectile nucleus
  for (int i = 0; i < projA * nevents; i++) {
@@ -324,5 +324,5 @@ void IC3F::setIC(Fluid* f_p, Fluid* f_t, EoS* eos) {
  cout << "initial_entropy S_ini = " << S << endl;*/
    }
  //feout.close();
- exit(1);
+ //exit(1);
 }
