@@ -223,8 +223,8 @@ int main(int argc, char **argv) {
  time(&start);
 
  // read parameters from file
- readCommandLine(argc, argv);
  setDefaultParameters();
+ readCommandLine(argc, argv);
  printParameters();
 
  // EoS for hydro evolution
