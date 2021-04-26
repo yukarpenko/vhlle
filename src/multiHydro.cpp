@@ -106,10 +106,13 @@ void MultiHydro::frictionSubstep()
     }
     flux_t[0] += -D*nbt*pf/uf[0]*h_p->getDtau();
    }
-   c_p->addFlux(flux_p[0], flux_p[1], flux_p[2], flux_p[3], 0., 0., 0.);
-   c_t->addFlux(flux_t[0], flux_t[1], flux_t[2], flux_t[3], 0., 0., 0.);
-   c_f->addFlux(-flux_p[0]-flux_t[0], -flux_p[1]-flux_t[1],
-    -flux_p[2]-flux_t[2], -flux_p[3]-flux_t[3], 0., 0., 0.);
+   double taup = h_p->getTau();
+   double taut = h_t->getTau();
+   double tauf = h_f->getTau();
+   c_p->addFlux(flux_p[0]*taup, flux_p[1]*taup, flux_p[2]*taup, flux_p[3]*taup, 0., 0., 0.);
+   c_t->addFlux(flux_t[0]*taut, flux_t[1]*taut, flux_t[2]*taut, flux_t[3]*taut, 0., 0., 0.);
+   c_f->addFlux((-flux_p[0]-flux_t[0])*tauf, (-flux_p[1]-flux_t[1])*tauf,
+    (-flux_p[2]-flux_t[2])*tauf, (-flux_p[3]-flux_t[3])*tauf, 0., 0., 0.);
    c_p->updateByFlux();
    c_t->updateByFlux();
    c_f->updateByFlux();
