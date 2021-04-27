@@ -363,6 +363,9 @@ int main(int argc, char **argv) {
   f_p->outputGnuplot(h_p->getTau());
   f_t->outputGnuplot(h_t->getTau());
   f_f->outputGnuplot(h_t->getTau());
+  f_p->outputSurface(h_p->getTau());
+  f_t->outputSurface(h_t->getTau());
+  f_f->outputSurface(h_f->getTau());
   cout << "step done, tau=" << h_p->getTau() << endl;
  }
 
