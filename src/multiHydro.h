@@ -11,10 +11,12 @@ class MultiHydro {
  EoS *eos;
  TransportCoeff *trcoeff;
  CrossSections *xsect;
+ std::ofstream fmhfreeze;
 
 public:
  MultiHydro(Fluid *f_p, Fluid *f_t, Fluid *f_f, Hydro *h_p, Hydro *h_t,
   Hydro* h_f, EoS *eos, TransportCoeff *trcoeff);
+ void initOutput(const char *dir);
  void performStep();
  void frictionSubstep();
  void findFreezeout();

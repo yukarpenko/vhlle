@@ -354,6 +354,7 @@ int main(int argc, char **argv) {
  f_p->initOutput(outputDir.c_str(), tau0, "proj");
  f_t->initOutput(outputDir.c_str(), tau0, "targ");
  f_f->initOutput(outputDir.c_str(), tau0, "fire");
+ mh->initOutput(outputDir.c_str());
  f_p->outputCorona(tau0);
  f_t->outputCorona(tau0);
  f_f->outputCorona(tau0);
@@ -366,6 +367,7 @@ int main(int argc, char **argv) {
   f_p->outputSurface(h_p->getTau());
   f_t->outputSurface(h_t->getTau());
   f_f->outputSurface(h_f->getTau());
+  mh->findFreezeout();
   cout << "step done, tau=" << h_p->getTau() << endl;
  }
 

@@ -1,6 +1,8 @@
 #include <cmath>
 #include <fstream>
+#include <iostream>
 #include <TMatrixDSymEigen.h>
+#include <TMatrixDSym.h>
 
 #include "multiHydro.h"
 #include "hdo.h"
@@ -10,6 +12,7 @@
 #include "cll.h"
 #include "xsect.h"
 
+using namespace std;
 
 MultiHydro::MultiHydro(Fluid *_f_p, Fluid *_f_t, Fluid *_f_f, Hydro *_h_p,
  Hydro *_h_t, Hydro *_h_f, EoS *_eos, TransportCoeff *_trcoeff)
@@ -23,6 +26,12 @@ MultiHydro::MultiHydro(Fluid *_f_p, Fluid *_f_t, Fluid *_f_f, Hydro *_h_p,
  eos = _eos;
  trcoeff = _trcoeff;
  xsect = new CrossSections;
+}
+
+void MultiHydro::initOutput(const char *dir) {
+ string outfreeze = dir;
+ outfreeze.append("/freezeout.dat");
+ fmhfreeze.open(outfreeze.c_str());
 }
 
 void MultiHydro::performStep()
@@ -147,12 +156,20 @@ void MultiHydro::findFreezeout()
     double ut [4] = {gammat,gammat*vxt,gammat*vyt,gammat*vzt};
     double gammaf = 1.0/sqrt(1.0-vxf*vxf-vyf*vyf-vzf*vzf);
     double uf [4] = {gammaf,gammaf*vxf,gammaf*vyf,gammaf*vzf};
-    double T [4][4] = {0.};
+
+    // calculation of the energy-momentum tensor
+    TMatrixDSym T(4);
     for (int i=0; i<4; i++)
-     for (int j=0; j<0; j++){
+     for (int j=0; j<4; j++){
       T[i][j] = (ep + pp) * up[i] * up[j] - pp * gmunu[i][j]
        + (et + pt) * ut[i] * ut[j] - pt * gmunu[i][j]
        + (ef + pf) * uf[i] * uf[j] - pf * gmunu[i][j];
-     }
+    }
+    // diagonalization of the energy-momentum tensor
+    TMatrixDSymEigen Te(T);
+    TVectorD eigenValues = Te.GetEigenValues();
+    TMatrixD eigenVectors = Te.GetEigenVectors();
+
+    double energyDensity = eigenValues[0];
    }
 }
