@@ -442,7 +442,7 @@ void transformToLab(double eta, double &vx, double &vy, double &vz) {
 }
 
 void Fluid::outputSurface(double tau) {
- static double nbSurf = 0.0;
+ double nbSurf = 0.0;
  double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz, Q[7];
  double E = 0., Efull = 0., S = 0., Px = 0., vt_num = 0., vt_den = 0.,
         vxvy_num = 0., vxvy_den = 0., pi0x_num = 0., pi0x_den = 0.,
@@ -674,7 +674,7 @@ void Fluid::outputSurface(double tau) {
  faniz << setw(12) << tau << setw(14) << vt_num / vt_den << setw(14)
            << vxvy_num / vxvy_den << setw(14) << pi0x_num / pi0x_den << endl;
  cout << setw(10) << tau << setw(13) << E << setw(13) << Efull << setw(13)
-      << nbSurf << setw(13) << S << setw(13) << EtotSurf
+      << Nb1 << setw(13) << S << setw(13) << EtotSurf
       << setw(10) << nelements << setw(10) << nsusp
       << setw(13) << (float)(nCoreCutCells) / (float)(nCoreCells) << endl;
  //-- Cornelius: all done, let's free memory
@@ -696,7 +696,7 @@ void Fluid::outputSurface(double tau) {
 }
 
 void Fluid::outputCorona(double tau) {
- static double nbSurf = 0.0;
+ double nbSurf = 0.0;
  double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz, Q[7];
  double E = 0., Efull = 0., S = 0., Px = 0., vt_num = 0., vt_den = 0.,
         vxvy_num = 0., vxvy_den = 0., pi0x_num = 0., pi0x_den = 0.,
@@ -890,7 +890,7 @@ void Fluid::outputCorona(double tau) {
       << "Nb" << setw(13) << "Sfull" << setw(13) << "EtotSurf" << setw(13) << "elements" << setw(10)
       << "susp." << setw(13) << "\%cut" << endl;
  cout << setw(10) << tau << setw(13) << E << setw(13) << Efull << setw(13)
-      << nbSurf << setw(13) << S << setw(13) << EtotSurf << endl;
+      << Nb1 << setw(13) << S << setw(13) << EtotSurf << endl;
 #ifdef SWAP_EOS
  swap(eos, eosH);
 #endif
