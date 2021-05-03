@@ -172,6 +172,26 @@ void MultiHydro::findFreezeout()
     TVectorD eigenValues = Te.GetEigenValues();
     TMatrixD eigenVectors = Te.GetEigenVectors();
 
-    double energyDensity = eigenValues[0];
+    double energyDensity;
+    TVectorD v(4);
+    for (int i=0; i<4; i++) {
+     double vmuvmu = 0;
+     energyDensity = eigenValues[i];
+     v = TMatrixDColumn(eigenVectors,i);
+     for (int j=0; j<4; j++) {
+      vmuvmu += v[j]*v[j]*gmunu[j][j];
+     }
+     if (vmuvmu > 0 && energyDensity >= 0) {
+      break;
+     }
+     else if (i == 3) {
+      cout << "Multihydro: None of the eigenvectors is time-like, ";
+      cout << "using largest eigenvalue for energy density." << endl;
+      energyDensity = eigenValues[0];
+      v = TMatrixDColumn(eigenVectors,0);
+      break;
+     }
+    }
+
    }
 }
