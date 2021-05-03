@@ -137,6 +137,8 @@ void MultiHydro::findFreezeout()
 {
  const double gmunu[4][4] = {
      {1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, -1, 0}, {0, 0, 0, -1}};
+ const double delta[4][4] = {
+     {1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}};
  for (int iy = 0; iy < f_p->getNY(); iy++)
   for (int iz = 0; iz < f_p->getNZ(); iz++)
    for (int ix = 0; ix < f_p->getNX(); ix++) {
@@ -161,9 +163,9 @@ void MultiHydro::findFreezeout()
     TMatrixDSym T(4);
     for (int i=0; i<4; i++)
      for (int j=0; j<4; j++){
-      T[i][j] = (ep + pp) * up[i] * up[j] - pp * gmunu[i][j]
-       + (et + pt) * ut[i] * ut[j] - pt * gmunu[i][j]
-       + (ef + pf) * uf[i] * uf[j] - pf * gmunu[i][j];
+      T[i][j] = (ep + pp) * up[i] * up[j] * gmunu[j][j] - pp * delta[i][j]
+       + (et + pt) * ut[i] * ut[j] * gmunu[j][j] - pt * delta[i][j]
+       + (ef + pf) * uf[i] * uf[j] * gmunu[j][j] - pf * delta[i][j];
     }
     // diagonalization of the energy-momentum tensor
     TMatrixDSymEigen Te(T);
