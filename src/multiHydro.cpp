@@ -165,7 +165,7 @@ void MultiHydro::frictionSubstep()
    } // end cell loop
 }
 
-void MultiHydro::findFreezeout()
+void MultiHydro::getEnergyDensity()
 {
  const double gmunu[4][4] = {
      {1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, -1, 0}, {0, 0, 0, -1}};
@@ -225,5 +225,23 @@ void MultiHydro::findFreezeout()
      }
     }
 
+    // save computed energy density into private field
+    MHeps[ix][iy][iz] = energyDensity;
    }
+}
+
+void MultiHydro::updateEnergyDensity()
+{
+ for (int ix = 0; ix < nx; ix++)
+  for (int iy = 0; iy < ny; iy++)
+   for (int iz = 0; iz < nz; iz++) {
+    MHepsPrev[ix][iy][iz] = MHeps[ix][iy][iz];
+    MHeps[ix][iy][iz] = 0.0;
+   }
+}
+
+void MultiHydro::findFreezeout()
+{
+ updateEnergyDensity();
+ getEnergyDensity();
 }

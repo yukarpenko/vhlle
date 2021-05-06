@@ -358,6 +358,7 @@ int main(int argc, char **argv) {
  f_p->outputCorona(tau0);
  f_t->outputCorona(tau0);
  f_f->outputCorona(tau0);
+ mh->getEnergyDensity();
 
  for (int istep = 0; istep < maxstep; istep++) {
   mh->performStep();

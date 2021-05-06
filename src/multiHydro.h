@@ -22,5 +22,7 @@ public:
  void initOutput(const char *dir);
  void performStep();
  void frictionSubstep();
+ void getEnergyDensity();
+ void updateEnergyDensity();
  void findFreezeout();
 };
