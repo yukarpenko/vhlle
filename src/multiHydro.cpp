@@ -11,11 +11,13 @@
 #include "trancoeff.h"
 #include "cll.h"
 #include "xsect.h"
+#include "cornelius.h"
 
 using namespace std;
 
 MultiHydro::MultiHydro(Fluid *_f_p, Fluid *_f_t, Fluid *_f_f, Hydro *_h_p,
- Hydro *_h_t, Hydro *_h_f, EoS *_eos, TransportCoeff *_trcoeff)
+ Hydro *_h_t, Hydro *_h_f, EoS *_eos, TransportCoeff *_trcoeff, double dtau,
+ double eCrit)
 {
  f_p = _f_p;
  f_t = _f_t;
@@ -29,6 +31,12 @@ MultiHydro::MultiHydro(Fluid *_f_p, Fluid *_f_t, Fluid *_f_f, Hydro *_h_p,
  nx = f_p->getNX();
  ny = f_p->getNY();
  nz = f_p->getNZ();
+
+ //---- Cornelius init
+ double arrayDx[4] = {dtau, f_p->getDx(), f_p->getDy(), f_p->getDz()};
+ cornelius = new Cornelius;
+ cornelius->init(4, eCrit, arrayDx);
+ ecrit = eCrit;
 
  // allocate field for oveall energy density
  MHeps = new double**[nx];
@@ -244,4 +252,61 @@ void MultiHydro::findFreezeout()
 {
  updateEnergyDensity();
  getEnergyDensity();
+
+ int nelements = 0;
+ double E=0., Efull = 0.;
+
+ // allocating corner points for Cornelius
+ double ****ccube = new double ***[2];
+ for (int i1 = 0; i1 < 2; i1++) {
+  ccube[i1] = new double **[2];
+  for (int i2 = 0; i2 < 2; i2++) {
+   ccube[i1][i2] = new double *[2];
+   for (int i3 = 0; i3 < 2; i3++) {
+    ccube[i1][i2][i3] = new double[2];
+   }
+  }
+ }
+
+ for (int ix = 2; ix < nx - 2; ix++)
+  for (int iy = 2; iy < ny - 2; iy++)
+   for (int iz = 2; iz < nz - 2; iz++) {
+    double QCube[2][2][2][2][7];
+    double piSquare[2][2][2][10], PiSquare[2][2][2];
+
+    // fill all neighbour energy densities
+    for (int jx = 0; jx < 2; jx++)
+     for (int jy = 0; jy < 2; jy++)
+      for (int jz = 0; jz < 2; jz++) {
+       ccube[0][jx][jy][jz] = MHepsPrev[ix + jx][iy + jy][iz + jz];
+       ccube[1][jx][jy][jz] = MHeps[ix + jx][iy + jy][iz + jz];
+    }
+
+    // cornelius
+    cornelius->find_surface_4d(ccube);
+    const int Nsegm = cornelius->get_Nelements();
+    for (int isegm = 0; isegm < Nsegm; isegm++) {
+     nelements++;
+     fmhfreeze.precision(15);
+     fmhfreeze << setw(24) << h_p->getTau() + cornelius->get_centroid_elem(isegm, 0)
+               << setw(24) << f_p->getX(ix) + cornelius->get_centroid_elem(isegm, 1)
+               << setw(24) << f_p->getY(iy) + cornelius->get_centroid_elem(isegm, 2)
+               << setw(24) << f_p->getZ(iz) + cornelius->get_centroid_elem(isegm, 3)
+               << endl;
+    }
+ }
+
+ cout << setw(10) << h_p->getTau() << setw(10) << nelements << endl;
+
+ for (int i1 = 0; i1 < 2; i1++) {
+  for (int i2 = 0; i2 < 2; i2++) {
+   for (int i3 = 0; i3 < 2; i3++) {
+    delete[] ccube[i1][i2][i3];
+   }
+   delete[] ccube[i1][i2];
+  }
+  delete[] ccube[i1];
+ }
+ delete[] ccube;
+
 }
