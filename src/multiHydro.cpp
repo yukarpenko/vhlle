@@ -26,6 +26,38 @@ MultiHydro::MultiHydro(Fluid *_f_p, Fluid *_f_t, Fluid *_f_f, Hydro *_h_p,
  eos = _eos;
  trcoeff = _trcoeff;
  xsect = new CrossSections;
+ nx = f_p->getNX();
+ ny = f_p->getNY();
+ nz = f_p->getNZ();
+
+ // allocate field for oveall energy density
+ MHeps = new double**[nx];
+ MHepsPrev = new double**[nx];
+ for (int ix = 0; ix < nx; ix++) {
+  MHeps[ix] = new double*[ny];
+  MHepsPrev[ix] = new double*[ny];
+  for (int iy = 0; iy < ny; iy++) {
+   MHeps[ix][iy] = new double[nz];
+   MHepsPrev[ix][iy] = new double[nz];
+   for (int iz = 0; iz < nz; iz++) {
+    MHeps[ix][iy][iz] = 0.0;
+    MHepsPrev[ix][iy][iz] = 0.0;
+   }
+  }
+ }
+}
+
+MultiHydro::~MultiHydro() {
+ for (int ix = 0; ix < nx; ix++) {
+  for (int iy = 0; iy < ny; iy++) {
+   delete[] MHeps[ix][iy];
+   delete[] MHepsPrev[ix][iy];
+  }
+  delete[] MHeps[ix];
+  delete[] MHepsPrev[ix];
+ }
+ delete[] MHeps;
+ delete[] MHepsPrev;
 }
 
 void MultiHydro::initOutput(const char *dir) {

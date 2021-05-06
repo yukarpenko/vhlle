@@ -12,10 +12,13 @@ class MultiHydro {
  TransportCoeff *trcoeff;
  CrossSections *xsect;
  std::ofstream fmhfreeze;
+ double ***MHeps, ***MHepsPrev;
+ int nx, ny, nz;
 
 public:
  MultiHydro(Fluid *f_p, Fluid *f_t, Fluid *f_f, Hydro *h_p, Hydro *h_t,
   Hydro* h_f, EoS *eos, TransportCoeff *trcoeff);
+ ~MultiHydro(void);
  void initOutput(const char *dir);
  void performStep();
  void frictionSubstep();
