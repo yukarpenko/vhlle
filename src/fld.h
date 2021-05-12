@@ -4,6 +4,8 @@ class EoS;
 class TransportCoeff;
 class Cornelius;
 
+void transformToLab(double eta, double &vx, double &vy, double &vz);
+
 // this class contains the information and methods related to the hydro grid
 // 'z' direction actually denotes eta direction, as well as
 // dz == d(eta), getZ returns eta coordinate etc.

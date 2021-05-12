@@ -42,5 +42,5 @@ epsilon0   30.0
 impactPar  0.0
 Rg      1.0
 tau0       1.0
-tauMax     8.0
+tauMax     12.0
 dtau       0.1

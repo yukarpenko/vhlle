@@ -8,6 +8,7 @@
 #include "hdo.h"
 #include "fld.h"
 #include "eos.h"
+#include "rmn.h"
 #include "trancoeff.h"
 #include "cll.h"
 #include "xsect.h"
@@ -16,7 +17,7 @@
 using namespace std;
 
 MultiHydro::MultiHydro(Fluid *_f_p, Fluid *_f_t, Fluid *_f_f, Hydro *_h_p,
- Hydro *_h_t, Hydro *_h_f, EoS *_eos, TransportCoeff *_trcoeff, double dtau,
+ Hydro *_h_t, Hydro *_h_f, EoS *_eos, TransportCoeff *_trcoeff, double _dtau,
  double eCrit)
 {
  f_p = _f_p;
@@ -31,12 +32,17 @@ MultiHydro::MultiHydro(Fluid *_f_p, Fluid *_f_t, Fluid *_f_f, Hydro *_h_p,
  nx = f_p->getNX();
  ny = f_p->getNY();
  nz = f_p->getNZ();
+ dx = f_p->getDx();
+ dy = f_p->getDy();
+ dz = f_p->getDz();
+ dtau = _dtau;
 
  //---- Cornelius init
  double arrayDx[4] = {dtau, f_p->getDx(), f_p->getDy(), f_p->getDz()};
  cornelius = new Cornelius;
  cornelius->init(4, eCrit, arrayDx);
  ecrit = eCrit;
+ vEff = 0.;
 
  // allocate field for oveall energy density
  MHeps = new double**[nx];
@@ -173,39 +179,60 @@ void MultiHydro::frictionSubstep()
    } // end cell loop
 }
 
-void MultiHydro::getEnergyDensity()
+double** MultiHydro::getEnergyMomentumTensor(double Q_p[7], double Q_f[7], double Q_t[7])
 {
- const double gmunu[4][4] = {
-     {1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, -1, 0}, {0, 0, 0, -1}};
  const double delta[4][4] = {
      {1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}};
+ double ep, pp, nbp, nqp, nsp, vxp, vyp, vzp;
+ double et, pt, nbt, nqt, nst, vxt, vyt, vzt;
+ double ef, pf, nbf, nqf, nsf, vxf, vyf, vzf;
+ transformPV(eos, Q_p, ep, pp, nbp, nqp, nsp, vxp, vyp, vzp);
+ transformPV(eos, Q_t, et, pt, nbt, nqt, nst, vxt, vyt, vzt);
+ transformPV(eos, Q_f, ef, pf, nbf, nqf, nsf, vxf, vyf, vzf);
+ // 4-velocities, u_p and u_t
+ double gammap = 1.0/sqrt(1.0-vxp*vxp-vyp*vyp-vzp*vzp);
+ double up [4] = {gammap,gammap*vxp,gammap*vyp,gammap*vzp};
+ double gammat = 1.0/sqrt(1.0-vxt*vxt-vyt*vyt-vzt*vzt);
+ double ut [4] = {gammat,gammat*vxt,gammat*vyt,gammat*vzt};
+ double gammaf = 1.0/sqrt(1.0-vxf*vxf-vyf*vyf-vzf*vzf);
+ double uf [4] = {gammaf,gammaf*vxf,gammaf*vyf,gammaf*vzf};
+
+ // calculation of the energy-momentum tensor
+ double** T = new double*[4];
+ for (int i=0; i<4; i++){
+  T[i] = new double[4];
+  for (int j=0; j<4; j++){
+   T[i][j] = (ep + pp) * up[i] * up[j] - pp * gmunu[i][j]
+    + (et + pt) * ut[i] * ut[j] - pt * gmunu[i][j]
+    + (ef + pf) * uf[i] * uf[j] - pf * gmunu[i][j];
+  }
+ }
+ return T;
+}
+
+void MultiHydro::getEnergyDensity()
+{
+ double Q_p[7], Q_f[7], Q_t[7];
+ double** Ttemp = new double*[4];
+ for (int i=0; i < 4; i++){
+  Ttemp[i] = new double[4];
+ }
  for (int iy = 0; iy < f_p->getNY(); iy++)
   for (int iz = 0; iz < f_p->getNZ(); iz++)
    for (int ix = 0; ix < f_p->getNX(); ix++) {
     Cell *c_p = f_p->getCell(ix, iy, iz);
     Cell *c_t = f_t->getCell(ix, iy, iz);
     Cell *c_f = f_f->getCell(ix, iy, iz);
-    double ep, pp, nbp, nqp, nsp, vxp, vyp, vzp;
-    double et, pt, nbt, nqt, nst, vxt, vyt, vzt;
-    double ef, pf, nbf, nqf, nsf, vxf, vyf, vzf;
-    c_p->getPrimVar(eos, h_p->getTau(), ep, pp, nbp, nqp, nsp, vxp, vyp, vzp);
-    c_t->getPrimVar(eos, h_t->getTau(), et, pt, nbt, nqt, nst, vxt, vyt, vzt);
-    c_f->getPrimVar(eos, h_f->getTau(), ef, pf, nbf, nqf, nsf, vxf, vyf, vzf);
-    // 4-velocities, u_p and u_t
-    double gammap = 1.0/sqrt(1.0-vxp*vxp-vyp*vyp-vzp*vzp);
-    double up [4] = {gammap,gammap*vxp,gammap*vyp,gammap*vzp};
-    double gammat = 1.0/sqrt(1.0-vxt*vxt-vyt*vyt-vzt*vzt);
-    double ut [4] = {gammat,gammat*vxt,gammat*vyt,gammat*vzt};
-    double gammaf = 1.0/sqrt(1.0-vxf*vxf-vyf*vyf-vzf*vzf);
-    double uf [4] = {gammaf,gammaf*vxf,gammaf*vyf,gammaf*vzf};
+    c_p->getQ(Q_p);
+    c_f->getQ(Q_f);
+    c_t->getQ(Q_t);
+    Ttemp = getEnergyMomentumTensor(Q_p, Q_f, Q_t);
 
     // calculation of the energy-momentum tensor
     TMatrixDSym T(4);
     for (int i=0; i<4; i++)
      for (int j=0; j<4; j++){
-      T[i][j] = (ep + pp) * up[i] * up[j] * gmunu[j][j] - pp * delta[i][j]
-       + (et + pt) * ut[i] * ut[j] * gmunu[j][j] - pt * delta[i][j]
-       + (ef + pf) * uf[i] * uf[j] * gmunu[j][j] - pf * delta[i][j];
+      T[i][j] = Ttemp[i][j]*gmunu[j][j];
     }
     // diagonalization of the energy-momentum tensor
     TMatrixDSymEigen Te(T);
@@ -235,6 +262,11 @@ void MultiHydro::getEnergyDensity()
 
     // save computed energy density into private field
     MHeps[ix][iy][iz] = energyDensity;
+
+    for (int i = 0; i < 4; i++) {
+     delete[] Ttemp[i];
+    }
+    delete[] Ttemp;
    }
 }
 
@@ -254,7 +286,12 @@ void MultiHydro::findFreezeout()
  getEnergyDensity();
 
  int nelements = 0;
+ int ne_pos = 0;
  double E=0., Efull = 0.;
+ double** Ttemp = new double*[4];
+ for (int i=0; i < 4; i++){
+  Ttemp[i] = new double[4];
+ }
 
  // allocating corner points for Cornelius
  double ****ccube = new double ***[2];
@@ -271,15 +308,37 @@ void MultiHydro::findFreezeout()
  for (int ix = 2; ix < nx - 2; ix++)
   for (int iy = 2; iy < ny - 2; iy++)
    for (int iz = 2; iz < nz - 2; iz++) {
-    double QCube[2][2][2][2][7];
+    double QCube_p[2][2][2][2][7], QCube_f[2][2][2][2][7], QCube_t[2][2][2][2][7];
+    // array for storing full energy-momentum tensor of all three fluids at corners
+    double TCube[2][2][2][2][4][4];
     double piSquare[2][2][2][10], PiSquare[2][2][2];
 
-    // fill all neighbour energy densities
+    // fill all corner cell with energy-momentum tensor
     for (int jx = 0; jx < 2; jx++)
      for (int jy = 0; jy < 2; jy++)
       for (int jz = 0; jz < 2; jz++) {
        ccube[0][jx][jy][jz] = MHepsPrev[ix + jx][iy + jy][iz + jz];
        ccube[1][jx][jy][jz] = MHeps[ix + jx][iy + jy][iz + jz];
+       Cell *cc_p = f_p->getCell(ix + jx, iy + jy, iz + jz);
+       Cell *cc_t = f_t->getCell(ix + jx, iy + jy, iz + jz);
+       Cell *cc_f = f_f->getCell(ix + jx, iy + jy, iz + jz);
+       double Qc_p[7], Qc_f[7], Qc_t[7];
+       cc_p->getQ(Qc_p);
+       cc_f->getQ(Qc_f);
+       cc_t->getQ(Qc_t);
+       Ttemp = getEnergyMomentumTensor(Qc_p, Qc_f, Qc_t);
+       for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++) {
+         TCube[1][jx][jy][jz][i][j] = Ttemp[i][j];
+       }
+       cc_p->getQprev(Qc_p);
+       cc_f->getQprev(Qc_f);
+       cc_t->getQprev(Qc_t);
+       Ttemp = getEnergyMomentumTensor(Qc_p, Qc_f, Qc_t);
+       for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++) {
+         TCube[0][jx][jy][jz][i][j] = Ttemp[i][j];
+       }
     }
 
     // cornelius
@@ -293,10 +352,96 @@ void MultiHydro::findFreezeout()
                << setw(24) << f_p->getY(iy) + cornelius->get_centroid_elem(isegm, 2)
                << setw(24) << f_p->getZ(iz) + cornelius->get_centroid_elem(isegm, 3)
                << endl;
+
+     // interpolation procedure
+     double vxC = 0., vyC = 0., vzC = 0., TC = 0., mubC = 0., muqC = 0.,
+            musC = 0., piC[10], PiC = 0., nbC = 0., nqC = 0.;
+     double QC[7] = {0., 0., 0., 0., 0., 0., 0.};
+     double TmunuC[4][4];
+     double eC = 0., pC = 0.;
+     for (int ii = 0; ii < 10; ii++) piC[ii] = 0.0;
+     double wCenT[2] = {1. - cornelius->get_centroid_elem(isegm, 0) / dtau,
+                        cornelius->get_centroid_elem(isegm, 0) / dtau};
+     double wCenX[2] = {1. - cornelius->get_centroid_elem(isegm, 1) / dx,
+                        cornelius->get_centroid_elem(isegm, 1) / dx};
+     double wCenY[2] = {1. - cornelius->get_centroid_elem(isegm, 2) / dy,
+                        cornelius->get_centroid_elem(isegm, 2) / dy};
+     double wCenZ[2] = {1. - cornelius->get_centroid_elem(isegm, 3) / dz,
+                        cornelius->get_centroid_elem(isegm, 3) / dz};
+
+     for (int jt = 0; jt < 2; jt++)
+      for (int jx = 0; jx < 2; jx++)
+       for (int jy = 0; jy < 2; jy++)
+        for (int jz = 0; jz < 2; jz++)
+         for (int i = 0; i < 4; i++)
+          for (int j = 0; j < 4; j++) {
+           TmunuC[i][j] += TCube[jt][jx][jy][jz][i][j] * wCenT[jt] * wCenX[jx] *
+                   wCenY[jy] * wCenZ[jz];
+          }
+
+     for (int i = 0; i < 4; i++)
+      for (int j = 0; j < 4; j++)
+       TmunuC[i][j] = TmunuC[i][j] / (h_p->getTau() + cornelius->get_centroid_elem(isegm, 0));
+     double _ns = 0.0;
+
+     TMatrixDSym T(4);
+     for (int i=0; i<4; i++)
+      for (int j=0; j<4; j++){
+       T[i][j] = TmunuC[i][j]*gmunu[j][j];
+     }
+     // diagonalization of the energy-momentum tensor
+     TMatrixDSymEigen Te(T);
+     TVectorD eigenValues = Te.GetEigenValues();
+     TMatrixD eigenVectors = Te.GetEigenVectors();
+
+     eC = eigenValues[0];
+     TVectorD v(4);
+     v = TMatrixDColumn(eigenVectors,0);
+     vxC = v[1];
+     vyC = v[2];
+     vzC = v[3];
+
+     /*transformPV(eos, QC, eC, pC, nbC, nqC, _ns, vxC, vyC, vzC);
+     eos->eos(eC, nbC, nqC, _ns, TC, mubC, muqC, musC, pC);
+     if (TC > 0.4 || fabs(mubC) > 0.85) {
+      cout << "#### Error (surface): high T/mu_b (T=" << TC << "/mu_b=" << mubC << ") ####\n";
+     }*/
+     double v2C = vxC * vxC + vyC * vyC + vzC * vzC;
+     if (v2C > 1.) {
+      vxC *= sqrt(0.99 / v2C);
+      vyC *= sqrt(0.99 / v2C);
+      vzC *= sqrt(0.99 / v2C);
+      v2C = 0.99;
+     }
+     double etaC = f_p->getZ(iz) + cornelius->get_centroid_elem(isegm, 3);
+     transformToLab(etaC, vxC, vyC, vzC);  // viC is now in lab.frame!
+     double gammaC = 1. / sqrt(1. - vxC * vxC - vyC * vyC - vzC * vzC);
+
+     double uC[4] = {gammaC, gammaC * vxC, gammaC * vyC, gammaC * vzC};
+     const double tauC = h_p->getTau() + cornelius->get_centroid_elem(isegm, 0);
+     double dsigma[4];
+     // ---- transform dsigma to lab.frame :
+     const double ch = cosh(etaC);
+     const double sh = sinh(etaC);
+     dsigma[0] = tauC * (ch * cornelius->get_normal_elem(0, 0) -
+                         sh / tauC * cornelius->get_normal_elem(0, 3));
+     dsigma[3] = tauC * (-sh * cornelius->get_normal_elem(0, 0) +
+                         ch / tauC * cornelius->get_normal_elem(0, 3));
+     dsigma[1] = tauC * cornelius->get_normal_elem(0, 1);
+     dsigma[2] = tauC * cornelius->get_normal_elem(0, 2);
+     double dVEff = 0.0;
+     for (int ii = 0; ii < 4; ii++)
+      dVEff += dsigma[ii] * uC[ii];  // normalize for Delta eta=1
+     if (dVEff > 0) ne_pos++;
+     vEff += dVEff;
+     for (int ii = 0; ii < 4; ii++) fmhfreeze << setw(24) << dsigma[ii];
+     for (int ii = 0; ii < 4; ii++) fmhfreeze << setw(24) << uC[ii];
+     //fmhfreeze << setw(24) << TC << setw(24) << mubC << setw(24) << muqC
+     //        << setw(24) << musC;*/
     }
  }
 
- cout << setw(10) << h_p->getTau() << setw(10) << nelements << endl;
+ cout << setw(10) << h_p->getTau() << setw(10) << nelements << " " << ne_pos << endl;
 
  for (int i1 = 0; i1 < 2; i1++) {
   for (int i2 = 0; i2 < 2; i2++) {
@@ -308,5 +453,10 @@ void MultiHydro::findFreezeout()
   delete[] ccube[i1];
  }
  delete[] ccube;
+
+ for (int i = 0; i < 4; i++) {
+  delete[] Ttemp[i];
+ }
+ delete[] Ttemp;
 
 }
