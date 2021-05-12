@@ -28,7 +28,7 @@ public:
  void initOutput(const char *dir);
  void performStep();
  void frictionSubstep();
- double** getEnergyMomentumTensor(double Q_p[7], double Q_f[7], double Q_t[7]);
+ void getEnergyMomentumTensor(double (&T)[4][4], double Q_p[7], double Q_f[7], double Q_t[7]);
  void getEnergyDensity();
  void updateEnergyDensity();
  void findFreezeout();

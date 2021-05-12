@@ -179,7 +179,7 @@ void MultiHydro::frictionSubstep()
    } // end cell loop
 }
 
-double** MultiHydro::getEnergyMomentumTensor(double Q_p[7], double Q_f[7], double Q_t[7])
+void MultiHydro::getEnergyMomentumTensor(double (&T)[4][4], double Q_p[7], double Q_f[7], double Q_t[7])
 {
  const double delta[4][4] = {
      {1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}};
@@ -198,25 +198,19 @@ double** MultiHydro::getEnergyMomentumTensor(double Q_p[7], double Q_f[7], doubl
  double uf [4] = {gammaf,gammaf*vxf,gammaf*vyf,gammaf*vzf};
 
  // calculation of the energy-momentum tensor
- double** T = new double*[4];
  for (int i=0; i<4; i++){
-  T[i] = new double[4];
   for (int j=0; j<4; j++){
    T[i][j] = (ep + pp) * up[i] * up[j] - pp * gmunu[i][j]
     + (et + pt) * ut[i] * ut[j] - pt * gmunu[i][j]
     + (ef + pf) * uf[i] * uf[j] - pf * gmunu[i][j];
   }
  }
- return T;
 }
 
 void MultiHydro::getEnergyDensity()
 {
  double Q_p[7], Q_f[7], Q_t[7];
- double** Ttemp = new double*[4];
- for (int i=0; i < 4; i++){
-  Ttemp[i] = new double[4];
- }
+ double Ttemp[4][4];
  for (int iy = 0; iy < f_p->getNY(); iy++)
   for (int iz = 0; iz < f_p->getNZ(); iz++)
    for (int ix = 0; ix < f_p->getNX(); ix++) {
@@ -226,7 +220,7 @@ void MultiHydro::getEnergyDensity()
     c_p->getQ(Q_p);
     c_f->getQ(Q_f);
     c_t->getQ(Q_t);
-    Ttemp = getEnergyMomentumTensor(Q_p, Q_f, Q_t);
+    getEnergyMomentumTensor(Ttemp, Q_p, Q_f, Q_t);
 
     // calculation of the energy-momentum tensor
     TMatrixDSym T(4);
@@ -262,11 +256,6 @@ void MultiHydro::getEnergyDensity()
 
     // save computed energy density into private field
     MHeps[ix][iy][iz] = energyDensity;
-
-    for (int i = 0; i < 4; i++) {
-     delete[] Ttemp[i];
-    }
-    delete[] Ttemp;
    }
 }
 
@@ -288,10 +277,7 @@ void MultiHydro::findFreezeout()
  int nelements = 0;
  int ne_pos = 0;
  double E=0., Efull = 0.;
- double** Ttemp = new double*[4];
- for (int i=0; i < 4; i++){
-  Ttemp[i] = new double[4];
- }
+ double Ttemp[4][4];
 
  // allocating corner points for Cornelius
  double ****ccube = new double ***[2];
@@ -326,7 +312,7 @@ void MultiHydro::findFreezeout()
        cc_p->getQ(Qc_p);
        cc_f->getQ(Qc_f);
        cc_t->getQ(Qc_t);
-       Ttemp = getEnergyMomentumTensor(Qc_p, Qc_f, Qc_t);
+       getEnergyMomentumTensor(Ttemp, Qc_p, Qc_f, Qc_t);
        for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++) {
          TCube[1][jx][jy][jz][i][j] = Ttemp[i][j];
@@ -334,7 +320,7 @@ void MultiHydro::findFreezeout()
        cc_p->getQprev(Qc_p);
        cc_f->getQprev(Qc_f);
        cc_t->getQprev(Qc_t);
-       Ttemp = getEnergyMomentumTensor(Qc_p, Qc_f, Qc_t);
+       getEnergyMomentumTensor(Ttemp, Qc_p, Qc_f, Qc_t);
        for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++) {
          TCube[0][jx][jy][jz][i][j] = Ttemp[i][j];
@@ -453,10 +439,4 @@ void MultiHydro::findFreezeout()
   delete[] ccube[i1];
  }
  delete[] ccube;
-
- for (int i = 0; i < 4; i++) {
-  delete[] Ttemp[i];
- }
- delete[] Ttemp;
-
 }
