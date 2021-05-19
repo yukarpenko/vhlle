@@ -309,18 +309,18 @@ void MultiHydro::findFreezeout()
        Cell *cc_t = f_t->getCell(ix + jx, iy + jy, iz + jz);
        Cell *cc_f = f_f->getCell(ix + jx, iy + jy, iz + jz);
        double Qc_p[7], Qc_f[7], Qc_t[7];
-       cc_p->getQ(Qc_p);
-       cc_f->getQ(Qc_f);
-       cc_t->getQ(Qc_t);
-       getEnergyMomentumTensor(Ttemp, Qc_p, Qc_f, Qc_t);
+       cc_p->getQ(QCube_p[1][jx][jy][jz]);
+       cc_f->getQ(QCube_f[1][jx][jy][jz]);
+       cc_t->getQ(QCube_t[1][jx][jy][jz]);
+       getEnergyMomentumTensor(Ttemp, QCube_p[1][jx][jy][jz], QCube_f[1][jx][jy][jz], QCube_t[1][jx][jy][jz]);
        for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++) {
          TCube[1][jx][jy][jz][i][j] = Ttemp[i][j];
        }
-       cc_p->getQprev(Qc_p);
-       cc_f->getQprev(Qc_f);
-       cc_t->getQprev(Qc_t);
-       getEnergyMomentumTensor(Ttemp, Qc_p, Qc_f, Qc_t);
+       cc_p->getQprev(QCube_p[0][jx][jy][jz]);
+       cc_f->getQprev(QCube_f[0][jx][jy][jz]);
+       cc_t->getQprev(QCube_t[0][jx][jy][jz]);
+       getEnergyMomentumTensor(Ttemp, QCube_p[0][jx][jy][jz], QCube_f[0][jx][jy][jz], QCube_t[0][jx][jy][jz]);
        for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++) {
          TCube[0][jx][jy][jz][i][j] = Ttemp[i][j];
@@ -342,8 +342,14 @@ void MultiHydro::findFreezeout()
      // interpolation procedure
      double vxC = 0., vyC = 0., vzC = 0., TC = 0., mubC = 0., muqC = 0.,
             musC = 0., piC[10], PiC = 0., nbC = 0., nqC = 0.;
-     double QC[7] = {0., 0., 0., 0., 0., 0., 0.};
+     double QC_p[7] = {0., 0., 0., 0., 0., 0., 0.};
+     double QC_t[7] = {0., 0., 0., 0., 0., 0., 0.};
+     double QC_f[7] = {0., 0., 0., 0., 0., 0., 0.};
      double TmunuC[4][4];
+     for (int i = 0; i < 4; i++)
+      for (int j = 0; j < 4; j++) {
+       TmunuC[i][j] = 0;
+     }
      double eC = 0., pC = 0.;
      for (int ii = 0; ii < 10; ii++) piC[ii] = 0.0;
      double wCenT[2] = {1. - cornelius->get_centroid_elem(isegm, 0) / dtau,
@@ -358,17 +364,37 @@ void MultiHydro::findFreezeout()
      for (int jt = 0; jt < 2; jt++)
       for (int jx = 0; jx < 2; jx++)
        for (int jy = 0; jy < 2; jy++)
-        for (int jz = 0; jz < 2; jz++)
+        for (int jz = 0; jz < 2; jz++) {
          for (int i = 0; i < 4; i++)
           for (int j = 0; j < 4; j++) {
            TmunuC[i][j] += TCube[jt][jx][jy][jz][i][j] * wCenT[jt] * wCenX[jx] *
                    wCenY[jy] * wCenZ[jz];
-          }
+         }
+         for (int i = 0; i < 7; i++) {
+          QC_p[i] += QCube_p[jt][jx][jy][jz][i] * wCenT[jt] * wCenX[jx] *
+                   wCenY[jy] * wCenZ[jz];
+          QC_t[i] += QCube_t[jt][jx][jy][jz][i] * wCenT[jt] * wCenX[jx] *
+                   wCenY[jy] * wCenZ[jz];
+          QC_f[i] += QCube_f[jt][jx][jy][jz][i] * wCenT[jt] * wCenX[jx] *
+                   wCenY[jy] * wCenZ[jz];
+         }
+     }
 
      for (int i = 0; i < 4; i++)
       for (int j = 0; j < 4; j++)
        TmunuC[i][j] = TmunuC[i][j] / (h_p->getTau() + cornelius->get_centroid_elem(isegm, 0));
+     for (int i = 0; i < 7; i++) {
+      QC_p[i] = QC_p[i] / (h_p->getTau() + cornelius->get_centroid_elem(isegm, 0));
+      QC_t[i] = QC_t[i] / (h_p->getTau() + cornelius->get_centroid_elem(isegm, 0));
+      QC_f[i] = QC_f[i] / (h_p->getTau() + cornelius->get_centroid_elem(isegm, 0));
+     }
      double _ns = 0.0;
+     double ep, pp, nbp, nqp, nsp, vxp, vyp, vzp;
+     double et, pt, nbt, nqt, nst, vxt, vyt, vzt;
+     double ef, pf, nbf, nqf, nsf, vxf, vyf, vzf;
+     transformPV(eos, QC_p, ep, pp, nbp, nqp, nsp, vxp, vyp, vzp);
+     transformPV(eos, QC_t, et, pt, nbt, nqt, nst, vxt, vyt, vzt);
+     transformPV(eos, QC_f, ef, pf, nbf, nqf, nsf, vxf, vyf, vzf);
 
      TMatrixDSym T(4);
      for (int i=0; i<4; i++)
