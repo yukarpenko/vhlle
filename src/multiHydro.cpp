@@ -413,6 +413,13 @@ void MultiHydro::findFreezeout()
      vyC = v[2];
      vzC = v[3];
 
+     // condition for switching the sign of resulting velocity
+     if ((vzp+vzt+vzf) * vzC + (vxp+vxt+vxf) * vxC + (vyp+vyt+vyf) * vyC < 0) {
+      vxC *= -1;
+      vyC *= -1;
+      vzC *= -1;
+     }
+
      /*transformPV(eos, QC, eC, pC, nbC, nqC, _ns, vxC, vyC, vzC);
      eos->eos(eC, nbC, nqC, _ns, TC, mubC, muqC, musC, pC);
      if (TC > 0.4 || fabs(mubC) > 0.85) {
