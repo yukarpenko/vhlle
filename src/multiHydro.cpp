@@ -340,7 +340,8 @@ void MultiHydro::findFreezeout()
 
      // interpolation procedure
      double vxC = 0., vyC = 0., vzC = 0., TC = 0., mubC = 0., muqC = 0.,
-            musC = 0., piC[10], PiC = 0., nbC = 0., nqC = 0.;
+            musC = 0., piC[10] = {0., 0., 0., 0., 0., 0., 0., 0., 0., 0.},
+            PiC = 0., nbC = 0., nqC = 0.;
      double QC_p[7] = {0., 0., 0., 0., 0., 0., 0.};
      double QC_t[7] = {0., 0., 0., 0., 0., 0., 0.};
      double QC_f[7] = {0., 0., 0., 0., 0., 0., 0.};
@@ -412,24 +413,20 @@ void MultiHydro::findFreezeout()
      vyC = v[2]/v[0];
      vzC = v[3]/v[0];
 
-     // condition for switching the sign of resulting velocity
-     if ((vzp+vzt+vzf) * vzC + (vxp+vxt+vxf) * vxC + (vyp+vyt+vyf) * vyC < 0) {
-      vxC *= -1;
-      vyC *= -1;
-      vzC *= -1;
-     }
-
      /*fmhfreeze << setw(24) << vxp << setw(24) << vyp << setw(24) << vzp
                << setw(24) << vxt << setw(24) << vyt << setw(24) << vzt
                << setw(24) << vxf << setw(24) << vyf << setw(24) << vzf
                << setw(24) << vxC << setw(24) << vyC << setw(24) << vzC
                << setw(24) << ep << setw(24) << et << setw(24) << ef << setw(24) << eC;*/
 
-     /*transformPV(eos, QC, eC, pC, nbC, nqC, _ns, vxC, vyC, vzC);
+     //transformPV(eos, QC, eC, pC, nbC, nqC, _ns, vxC, vyC, vzC);
+     nbC = nbp + nbt + nbf;
+     nqC = nqp + nqt + nqf;
+     _ns = nsp + nst + nsf;
      eos->eos(eC, nbC, nqC, _ns, TC, mubC, muqC, musC, pC);
      if (TC > 0.4 || fabs(mubC) > 0.85) {
       cout << "#### Error (surface): high T/mu_b (T=" << TC << "/mu_b=" << mubC << ") ####\n";
-     }*/
+     }
      double v2C = vxC * vxC + vyC * vyC + vzC * vzC;
      if (v2C > 1.) {
       vxC *= sqrt(0.99 / v2C);
@@ -460,8 +457,35 @@ void MultiHydro::findFreezeout()
      vEff += dVEff;
      for (int ii = 0; ii < 4; ii++) fmhfreeze << setw(24) << dsigma[ii];
      for (int ii = 0; ii < 4; ii++) fmhfreeze << setw(24) << uC[ii];
-     //fmhfreeze << setw(24) << TC << setw(24) << mubC << setw(24) << muqC
-     //        << setw(24) << musC;*/
+     fmhfreeze << setw(24) << TC << setw(24) << mubC << setw(24) << muqC
+             << setw(24) << musC;
+#ifdef OUTPI
+     double picart[10];
+     /*pi00*/ picart[index44(0, 0)] = ch * ch * piC[index44(0, 0)] +
+                                      2. * ch * sh * piC[index44(0, 3)] +
+                                      sh * sh * piC[index44(3, 3)];
+     /*pi01*/ picart[index44(0, 1)] =
+         ch * piC[index44(0, 1)] + sh * piC[index44(3, 1)];
+     /*pi02*/ picart[index44(0, 2)] =
+         ch * piC[index44(0, 2)] + sh * piC[index44(3, 2)];
+     /*pi03*/ picart[index44(0, 3)] =
+         ch * sh * (piC[index44(0, 0)] + piC[index44(3, 3)]) +
+         (ch * ch + sh * sh) * piC[index44(0, 3)];
+     /*pi11*/ picart[index44(1, 1)] = piC[index44(1, 1)];
+     /*pi12*/ picart[index44(1, 2)] = piC[index44(1, 2)];
+     /*pi13*/ picart[index44(1, 3)] =
+         sh * piC[index44(0, 1)] + ch * piC[index44(3, 1)];
+     /*pi22*/ picart[index44(2, 2)] = piC[index44(2, 2)];
+     /*pi23*/ picart[index44(2, 3)] =
+         sh * piC[index44(0, 2)] + ch * piC[index44(3, 2)];
+     /*pi33*/ picart[index44(3, 3)] = sh * sh * piC[index44(0, 0)] +
+                                      ch * ch * piC[index44(3, 3)] +
+                                      2. * sh * ch * piC[index44(0, 3)];
+     for (int ii = 0; ii < 10; ii++) fmhfreeze << setw(24) << picart[ii];
+     fmhfreeze << setw(24) << PiC;
+#else
+     fmhfreeze << setw(24) << dVEff;
+#endif
      fmhfreeze << endl;
     }
  }
