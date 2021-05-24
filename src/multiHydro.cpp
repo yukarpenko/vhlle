@@ -336,8 +336,7 @@ void MultiHydro::findFreezeout()
      fmhfreeze << setw(24) << h_p->getTau() + cornelius->get_centroid_elem(isegm, 0)
                << setw(24) << f_p->getX(ix) + cornelius->get_centroid_elem(isegm, 1)
                << setw(24) << f_p->getY(iy) + cornelius->get_centroid_elem(isegm, 2)
-               << setw(24) << f_p->getZ(iz) + cornelius->get_centroid_elem(isegm, 3)
-               << endl;
+               << setw(24) << f_p->getZ(iz) + cornelius->get_centroid_elem(isegm, 3);
 
      // interpolation procedure
      double vxC = 0., vyC = 0., vzC = 0., TC = 0., mubC = 0., muqC = 0.,
@@ -409,9 +408,9 @@ void MultiHydro::findFreezeout()
      eC = eigenValues[0];
      TVectorD v(4);
      v = TMatrixDColumn(eigenVectors,0);
-     vxC = v[1];
-     vyC = v[2];
-     vzC = v[3];
+     vxC = v[1]/v[0];
+     vyC = v[2]/v[0];
+     vzC = v[3]/v[0];
 
      // condition for switching the sign of resulting velocity
      if ((vzp+vzt+vzf) * vzC + (vxp+vxt+vxf) * vxC + (vyp+vyt+vyf) * vyC < 0) {
@@ -419,6 +418,12 @@ void MultiHydro::findFreezeout()
       vyC *= -1;
       vzC *= -1;
      }
+
+     /*fmhfreeze << setw(24) << vxp << setw(24) << vyp << setw(24) << vzp
+               << setw(24) << vxt << setw(24) << vyt << setw(24) << vzt
+               << setw(24) << vxf << setw(24) << vyf << setw(24) << vzf
+               << setw(24) << vxC << setw(24) << vyC << setw(24) << vzC
+               << setw(24) << ep << setw(24) << et << setw(24) << ef << setw(24) << eC;*/
 
      /*transformPV(eos, QC, eC, pC, nbC, nqC, _ns, vxC, vyC, vzC);
      eos->eos(eC, nbC, nqC, _ns, TC, mubC, muqC, musC, pC);
@@ -457,6 +462,7 @@ void MultiHydro::findFreezeout()
      for (int ii = 0; ii < 4; ii++) fmhfreeze << setw(24) << uC[ii];
      //fmhfreeze << setw(24) << TC << setw(24) << mubC << setw(24) << muqC
      //        << setw(24) << musC;*/
+     fmhfreeze << endl;
     }
  }
 
