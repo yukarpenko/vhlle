@@ -14,6 +14,8 @@
 #include "xsect.h"
 #include "cornelius.h"
 
+#define OUTPI
+
 using namespace std;
 
 MultiHydro::MultiHydro(Fluid *_f_p, Fluid *_f_t, Fluid *_f_f, Hydro *_h_p,
@@ -502,4 +504,5 @@ void MultiHydro::findFreezeout()
   delete[] ccube[i1];
  }
  delete[] ccube;
+ if (nelements == 0) exit(0);
 }
