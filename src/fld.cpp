@@ -692,7 +692,7 @@ void Fluid::outputSurface(double tau) {
 #ifdef SWAP_EOS
  swap(eos, eosH);
 #endif
- if (nelements == 0) exit(0);
+ //if (nelements == 0) exit(0);
 }
 
 void Fluid::outputCorona(double tau) {
