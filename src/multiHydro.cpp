@@ -458,6 +458,9 @@ void MultiHydro::findFreezeout()
      }
      double etaC = f_p->getZ(iz) + cornelius->get_centroid_elem(isegm, 3);
      transformToLab(etaC, vxC, vyC, vzC);  // viC is now in lab.frame!
+     transformToLab(etaC, vxp, vyp, vzp);
+     transformToLab(etaC, vxt, vyt, vzt);
+     transformToLab(etaC, vxf, vyf, vzf);
      double gammaC = 1. / sqrt(1. - vxC * vxC - vyC * vyC - vzC * vzC);
      double gammaC_p = 1. / sqrt(1. - vxp * vxp - vyp * vyp - vzp * vzp);
      double gammaC_t = 1. / sqrt(1. - vxt * vxt - vyt * vyt - vzt * vzt);
