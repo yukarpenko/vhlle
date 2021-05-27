@@ -327,7 +327,7 @@ int main(int argc, char **argv) {
  cout << "IC done\n";
 */
 
- IC3F *ic = new IC3F(f_p, f_t, tau0, nevents, snn, b_min, b_max, projA, targA, projZ, targZ, Rgt);
+ IC3F *ic = new IC3F(f_p, f_t, tau0, nevents, snn, b_min, b_max, projA, targA, projZ, targZ, Rgt, tau0);
  ic->setIC(f_p, f_t, eos);
  delete ic;
  cout << "IC done\n";
