@@ -12,7 +12,7 @@
 
 using namespace std;
 
-IC3F::IC3F(Fluid *f_p, Fluid *f_t, double tau, int _nevents, double _snn, double _b_min, double _b_max, int _projA, int _targA, int _projZ, int _targZ, double _Rg) {
+IC3F::IC3F(Fluid *f_p, Fluid *f_t, double tau, int _nevents, double _snn, double _b_min, double _b_max, int _projA, int _targA, int _projZ, int _targZ, double _Rg, double _tau0) {
  nx = f_p->getNX();
  ny = f_p->getNY();
  nz = f_p->getNZ();
@@ -42,7 +42,7 @@ IC3F::IC3F(Fluid *f_p, Fluid *f_t, double tau, int _nevents, double _snn, double
  const double Rtarg = 1.25 * pow(targA, 0.333); // target nucleus radius
  const double z0_proj = - Rproj / gamma;
  const double z0_targ = Rtarg / gamma;
- tau0 = 2 * max(-z0_proj, z0_targ);
+ tau0 = _tau0;
  Rgx = _Rg;
  Rgy = _Rg;
  Rgz = _Rg;
