@@ -166,16 +166,21 @@ void MultiHydro::frictionSubstep()
    double taup = h_p->getTau();
    double taut = h_t->getTau();
    double tauf = h_f->getTau();
-   c_p->addFlux(flux_p[0]*taup, flux_p[1]*taup, flux_p[2]*taup, flux_p[3]*taup, 0., 0., 0.);
-   c_t->addFlux(flux_t[0]*taut, flux_t[1]*taut, flux_t[2]*taut, flux_t[3]*taut, 0., 0., 0.);
-   c_f->addFlux((-flux_p[0]-flux_t[0])*tauf, (-flux_p[1]-flux_t[1])*tauf,
-    (-flux_p[2]-flux_t[2])*tauf, (-flux_p[3]-flux_t[3])*tauf, 0., 0., 0.);
-   c_p->updateByFlux();
-   c_t->updateByFlux();
-   c_f->updateByFlux();
-   c_p->clearFlux();
-   c_t->clearFlux();
-   c_f->clearFlux();
+   double _Q_p[7], _Q_t[7];
+   c_p->getQ(_Q_p);
+   c_t->getQ(_Q_t);
+   if (_Q_p[0] + flux_p[0]*taup > 0.2*_Q_p[0] && _Q_t[0] + flux_t[0]*taut > 0.2*_Q_t[0]) {
+    c_p->addFlux(flux_p[0]*taup, flux_p[1]*taup, flux_p[2]*taup, flux_p[3]*taup, 0., 0., 0.);
+    c_t->addFlux(flux_t[0]*taut, flux_t[1]*taut, flux_t[2]*taut, flux_t[3]*taut, 0., 0., 0.);
+    c_f->addFlux((-flux_p[0]-flux_t[0])*tauf, (-flux_p[1]-flux_t[1])*tauf,
+     (-flux_p[2]-flux_t[2])*tauf, (-flux_p[3]-flux_t[3])*tauf, 0., 0., 0.);
+    c_p->updateByFlux();
+    c_t->updateByFlux();
+    c_f->updateByFlux();
+    c_p->clearFlux();
+    c_t->clearFlux();
+    c_f->clearFlux();
+   }
    if(-flux_p[0]-flux_t[0] > 0. && c_f->getMaxM()<0.01)
     c_f->setAllM(1.0);
    } // end cell loop
