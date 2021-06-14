@@ -40,7 +40,7 @@ MultiHydro::MultiHydro(Fluid *_f_p, Fluid *_f_t, Fluid *_f_f, Hydro *_h_p,
  dtau = _dtau;
 
  //---- Cornelius init
- double arrayDx[4] = {dtau, f_p->getDx(), f_p->getDy(), f_p->getDz()};
+ double arrayDx[4] = {h_p->getDtau(), f_p->getDx(), f_p->getDy(), f_p->getDz()};
  cornelius = new Cornelius;
  cornelius->init(4, eCrit, arrayDx);
  ecrit = eCrit;
@@ -74,6 +74,30 @@ MultiHydro::~MultiHydro() {
  }
  delete[] MHeps;
  delete[] MHepsPrev;
+}
+
+void MultiHydro::setFluids(Fluid *_f_p, Fluid *_f_t, Fluid *_f_f, Hydro *_h_p,
+ Hydro *_h_t, Hydro *_h_f) {
+ f_p = _f_p;
+ f_t = _f_t;
+ f_f = _f_f;
+ h_p = _h_p;
+ h_t = _h_t;
+ h_f = _h_f;
+ nx = f_p->getNX();
+ ny = f_p->getNY();
+ nz = f_p->getNZ();
+ dx = f_p->getDx();
+ dy = f_p->getDy();
+ dz = f_p->getDz();
+ dtau = h_p->getDtau();
+
+ //---- Cornelius init
+ double arrayDx[4] = {h_p->getDtau(), f_p->getDx(), f_p->getDy(), f_p->getDz()};
+ cornelius = new Cornelius;
+ cornelius->init(4, ecrit, arrayDx);
+
+ resizeMHeps();
 }
 
 void MultiHydro::initOutput(const char *dir) {
@@ -276,6 +300,25 @@ void MultiHydro::updateEnergyDensity()
    }
 }
 
+void MultiHydro::resizeMHeps()
+{
+ double temp[nx][ny][nz];
+ for (int ix = 0; ix < nx; ix++)
+  for (int iy = 0; iy < ny; iy++)
+   for (int iz = 0; iz < nz; iz++) {
+    if (2*(ix-(nx-1)/2)+(nx-1)/2 >= 0 && 2*(ix-(nx-1)/2)+(nx-1)/2 < nx && 2*(iy-(ny-1)/2)+(ny-1)/2 >=0 && 2*(iy-(ny-1)/2)+(ny-1)/2 < ny) {
+     temp[ix][iy][iz] = MHeps[2*(ix-(nx-1)/2)+(nx-1)/2][2*(iy-(ny-1)/2)+(ny-1)/2][iz];
+    } else {
+     temp[ix][iy][iz] = 0.;
+    }
+   }
+ for (int ix = 0; ix < nx; ix++)
+  for (int iy = 0; iy < ny; iy++)
+   for (int iz = 0; iz < nz; iz++) {
+    MHeps[ix][iy][iz] = temp[ix][iy][iz];
+   }
+}
+
 void MultiHydro::findFreezeout()
 {
  updateEnergyDensity();
@@ -359,8 +402,8 @@ void MultiHydro::findFreezeout()
      }
      double eC = 0., pC = 0.;
      for (int ii = 0; ii < 10; ii++) piC[ii] = 0.0;
-     double wCenT[2] = {1. - cornelius->get_centroid_elem(isegm, 0) / dtau,
-                        cornelius->get_centroid_elem(isegm, 0) / dtau};
+     double wCenT[2] = {1. - cornelius->get_centroid_elem(isegm, 0) / h_p->getDtau(),
+                        cornelius->get_centroid_elem(isegm, 0) / h_p->getDtau()};
      double wCenX[2] = {1. - cornelius->get_centroid_elem(isegm, 1) / dx,
                         cornelius->get_centroid_elem(isegm, 1) / dx};
      double wCenY[2] = {1. - cornelius->get_centroid_elem(isegm, 2) / dy,

@@ -32,4 +32,7 @@ public:
  void getEnergyDensity();
  void updateEnergyDensity();
  void findFreezeout();
+ void resizeMHeps();
+ void setFluids(Fluid *f_p, Fluid *f_t, Fluid *f_f, Hydro *h_p, Hydro *h_t,
+  Hydro* h_f);
 };
