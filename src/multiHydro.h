@@ -18,6 +18,7 @@ class MultiHydro {
  double ecrit, vEff;
  int nx, ny, nz;
  double dx, dy, dz, dtau;
+ double lambda = 5;
  const double gmunu[4][4] = {
      {1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, -1, 0}, {0, 0, 0, -1}};
 

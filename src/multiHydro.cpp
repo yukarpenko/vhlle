@@ -3,6 +3,7 @@
 #include <iostream>
 #include <TMatrixDSymEigen.h>
 #include <TMatrixDSym.h>
+#include <TLorentzVector.h>
 
 #include "multiHydro.h"
 #include "hdo.h"
@@ -144,6 +145,9 @@ void MultiHydro::frictionSubstep()
     double ut [4] = {gammat,gammat*vxt,gammat*vyt,gammat*vzt};
     double gammaf = 1.0/sqrt(1.0-vxf*vxf-vyf*vyf-vzf*vzf);
     double uf [4] = {gammaf,gammaf*vxf,gammaf*vyf,gammaf*vzf};
+    TLorentzVector upLV(up[1], up[2], up[3], up[0]);
+    TLorentzVector utLV(ut[1], ut[2], ut[3], ut[0]);
+    TLorentzVector ufLV(uf[1], uf[2], uf[3], uf[0]);
     double flux_p [4] = {0.}, flux_t [4] = {0.};
      // 1. projectile-target friction
     if (ep>0. && et>0.) {
@@ -159,9 +163,13 @@ void MultiHydro::frictionSubstep()
     // friction coefficient
     double D_P = mN*Vrel*sigmaP;
     double D_E = mN*Vrel*sigmaE; // SAME cross section moment for testing
+    upLV.Boost(-vxt, -vyt, -vzt);
+    utLV.Boost(-vxp, -vyp, -vzp);
     for(int i=0; i<4; i++){
-     flux_p[i] += -nbp*nbt*(D_P*(up[i] - ut[i]) + D_E*(up[i] + ut[i]))*h_p->getDtau();
-     flux_t[i] += -nbp*nbt*(D_P*(ut[i] - up[i]) + D_E*(up[i] + ut[i]))*h_p->getDtau();
+     //flux_p[i] += -nbp*nbt*(D_P*(up[i] - ut[i]) + D_E*(up[i] + ut[i]))*h_p->getDtau();
+     //flux_t[i] += -nbp*nbt*(D_P*(ut[i] - up[i]) + D_E*(up[i] + ut[i]))*h_p->getDtau();
+     flux_p[i] += -upLV[(i+3)%4]*sqrt(ep*et)*h_p->getDtau()/lambda;
+     flux_t[i] += -utLV[(i+3)%4]*sqrt(ep*et)*h_p->getDtau()/lambda;
     }
    }
    // 2. projectile-fireball friction
@@ -190,10 +198,11 @@ void MultiHydro::frictionSubstep()
    double taup = h_p->getTau();
    double taut = h_t->getTau();
    double tauf = h_f->getTau();
-   double _Q_p[7], _Q_t[7];
+   double _Q_p[7], _Q_t[7], _Q_f[7];
    c_p->getQ(_Q_p);
    c_t->getQ(_Q_t);
-   if (_Q_p[0] + flux_p[0]*taup > 0.2*_Q_p[0] && _Q_t[0] + flux_t[0]*taut > 0.2*_Q_t[0]) {
+   c_f->getQ(_Q_f);
+   if (_Q_p[0] + flux_p[0]*taup >= 0.2*_Q_p[0] && _Q_t[0] + flux_t[0]*taut >= 0.2*_Q_t[0] && _Q_f[0] + (-flux_p[0]-flux_t[0])*tauf >= 0) {
     c_p->addFlux(flux_p[0]*taup, flux_p[1]*taup, flux_p[2]*taup, flux_p[3]*taup, 0., 0., 0.);
     c_t->addFlux(flux_t[0]*taut, flux_t[1]*taut, flux_t[2]*taut, flux_t[3]*taut, 0., 0., 0.);
     c_f->addFlux((-flux_p[0]-flux_t[0])*tauf, (-flux_p[1]-flux_t[1])*tauf,
