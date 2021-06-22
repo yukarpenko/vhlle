@@ -342,7 +342,21 @@ void Fluid::updateM(double tau, double dt) {
       }
      }
     }  // if
-   }
+    if(c->getMaxM() > 0.) {
+     double e, p, nb, nq, ns, vx, vy, vz;
+     c->getPrimVar(eos, tau, e, p, nb, nq, ns, vx, vy, vz);
+     if (getCell(ix, iy, iz - 1)->getM(Z_) < 1e-5 && vz>0.5) {
+      c->setDM(Z_, - vz * dt / dz / tau);
+      c->setDM(X_, -1.0);
+      c->setDM(Y_, -1.0);
+     }
+     if (getCell(ix, iy, iz + 1)->getM(Z_) < 1e-5 && vz<-0.5) {
+      c->setDM(Z_,   vz * dt / dz / tau);
+      c->setDM(X_, -1.0);
+      c->setDM(Y_, -1.0);
+     }
+    }
+   }  // end of 3D cell loop
 
  for (int ix = 0; ix < getNX(); ix++)
   for (int iy = 0; iy < getNY(); iy++)
