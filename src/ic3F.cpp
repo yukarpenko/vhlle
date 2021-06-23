@@ -276,13 +276,11 @@ void IC3F::setIC(Fluid* f_p, Fluid* f_t, EoS* eos) {
 
     transformPV(eos, Q_p, e_p, p_p, nb_p, nq_p, ns_p, vx_p, vy_p, vz_p);
     transformPV(eos, Q_t, e_t, p_t, nb_t, nq_t, ns_t, vx_t, vy_t, vz_t);
-    if (e_p < 1e-7 || fabs(f_p->getX(ix)) > 10. || fabs(f_p->getY(iy)) > 10. ||
-        fabs(f_p->getZ(iz)) > 5.) {
+    if (e_p < 1e-7) {
      e_p = nb_p = nq_p = 0.0;
      vx_p = vy_p = vz_p = 0.0;
     }
-    if (e_t < 1e-7 || fabs(f_t->getX(ix)) > 10. || fabs(f_t->getY(iy)) > 10. ||
-        fabs(f_t->getZ(iz)) > 5.) {
+    if (e_t < 1e-7) {
      e_t = nb_t = nq_t = 0.0;
      vx_t = vy_t = vz_t = 0.0;
     }
