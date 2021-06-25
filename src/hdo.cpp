@@ -441,10 +441,11 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
  dmu[0][1] = (ux1 * ux1 - ux0 * ux0) / 2. / uuu[1] / dt;
  dmu[0][2] = (uy1 * uy1 - uy0 * uy0) / 2. / uuu[2] / dt;
  dmu[0][3] = (uz1 * uz1 - uz0 * uz0) / 2. / uuu[3] / dt;
- dbeta[0][0] = (ut1 / T1 - ut0 / T0) / dt;
- dbeta[0][1] = (ux1 / T1 - ux0 / T0) / dt;
- dbeta[0][2] = (uy1 / T1 - uy0 / T0) / dt;
- dbeta[0][3] = (uz1 / T1 - uz0 / T0) / dt;
+ double Tav = 0.5*(T0 + T1);
+ dbeta[0][0] = (ut1 - ut0) / Tav / dt;
+ dbeta[0][1] = (ux1 - ux0) / Tav / dt;
+ dbeta[0][2] = (uy1 - uy0) / Tav / dt;
+ dbeta[0][3] = (uz1 - uz0) / Tav / dt;
  if (fabs(0.5 * (ut1 + ut0) / ut1) > UDIFF) dmu[0][0] = (ut1 - ut0) / dt;
  if (fabs(uuu[1]) < VMIN || fabs(0.5 * (ux1 + ux0) / ux1) > UDIFF)
   dmu[0][1] = (ux1 - ux0) / dt;
@@ -478,10 +479,11 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
   dmu[1][1] = 0.25 * (ux1 * ux1 - ux0 * ux0) / uuu[1] / dx;
   dmu[1][2] = 0.25 * (uy1 * uy1 - uy0 * uy0) / uuu[2] / dx;
   dmu[1][3] = 0.25 * (uz1 * uz1 - uz0 * uz0) / uuu[3] / dx;
-  dbeta[1][0] = 0.5 * (ut1 / T1 - ut0 / T0) / dx;
-  dbeta[1][1] = 0.5 * (ux1 / T1 - ux0 / T0) / dx;
-  dbeta[1][2] = 0.5 * (uy1 / T1 - uy0 / T0) / dx;
-  dbeta[1][3] = 0.5 * (uz1 / T1 - uz0 / T0) / dx;
+  double Tav = 0.5*(T0 + T1);
+  dbeta[1][0] = 0.5 * (ut1 - ut0) / Tav / dx;
+  dbeta[1][1] = 0.5 * (ux1 - ux0) / Tav / dx;
+  dbeta[1][2] = 0.5 * (uy1 - uy0) / Tav / dx;
+  dbeta[1][3] = 0.5 * (uz1 - uz0) / Tav / dx;
   if (fabs(0.5 * (ut1 + ut0) / uuu[0]) > UDIFF)
    dmu[1][0] = 0.5 * (ut1 - ut0) / dx;
   if (fabs(uuu[1]) < VMIN || fabs(0.5 * (ux1 + ux0) / uuu[1]) > UDIFF)
@@ -518,10 +520,11 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
   dmu[2][1] = 0.25 * (ux1 * ux1 - ux0 * ux0) / uuu[1] / dy;
   dmu[2][2] = 0.25 * (uy1 * uy1 - uy0 * uy0) / uuu[2] / dy;
   dmu[2][3] = 0.25 * (uz1 * uz1 - uz0 * uz0) / uuu[3] / dy;
-  dbeta[2][0] = 0.5 * (ut1 / T1 - ut0 / T0) / dy;
-  dbeta[2][1] = 0.5 * (ux1 / T1 - ux0 / T0) / dy;
-  dbeta[2][2] = 0.5 * (uy1 / T1 - uy0 / T0) / dy;
-  dbeta[2][3] = 0.5 * (uz1 / T1 - uz0 / T0) / dy;
+  double Tav = 0.5*(T0 + T1);
+  dbeta[2][0] = 0.5 * (ut1 - ut0) / Tav / dy;
+  dbeta[2][1] = 0.5 * (ux1 - ux0) / Tav / dy;
+  dbeta[2][2] = 0.5 * (uy1 - uy0) / Tav / dy;
+  dbeta[2][3] = 0.5 * (uz1 - uz0) / Tav / dy;
   if (fabs(0.5 * (ut1 + ut0) / uuu[0]) > UDIFF)
    dmu[2][0] = 0.5 * (ut1 - ut0) / dy;
   if (fabs(uuu[1]) < VMIN || fabs(0.5 * (ux1 + ux0) / uuu[1]) > UDIFF)
@@ -556,10 +559,11 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
   dmu[3][1] = 0.25 * (ux1 * ux1 - ux0 * ux0) / uuu[1] / dz / (tau + 0.5 * dt);
   dmu[3][2] = 0.25 * (uy1 * uy1 - uy0 * uy0) / uuu[2] / dz / (tau + 0.5 * dt);
   dmu[3][3] = 0.25 * (uz1 * uz1 - uz0 * uz0) / uuu[3] / dz / (tau + 0.5 * dt);
-  dbeta[3][0] = 0.5 * (ut1 / T1 - ut0 / T0) / (dz * (tau + 0.5 * dt));
-  dbeta[3][1] = 0.5 * (ux1 / T1 - ux0 / T0) / (dz * (tau + 0.5 * dt));
-  dbeta[3][2] = 0.5 * (uy1 / T1 - uy0 / T0) / (dz * (tau + 0.5 * dt));
-  dbeta[3][3] = 0.5 * (uz1 / T1 - uz0 / T0) / (dz * (tau + 0.5 * dt));
+  double Tav = 0.5*(T0 + T1);
+  dbeta[3][0] = 0.5 * (ut1 - ut0) / Tav / (dz * (tau + 0.5 * dt));
+  dbeta[3][1] = 0.5 * (ux1 - ux0) / Tav / (dz * (tau + 0.5 * dt));
+  dbeta[3][2] = 0.5 * (uy1 - uy0) / Tav / (dz * (tau + 0.5 * dt));
+  dbeta[3][3] = 0.5 * (uz1 - uz0) / Tav / (dz * (tau + 0.5 * dt));
   if (fabs(0.5 * (ut1 + ut0) / uuu[0]) > UDIFF)
    dmu[3][0] = 0.5 * (ut1 - ut0) / dz / (tau + 0.5 * dt);
   if (fabs(uuu[1]) < VMIN || fabs(0.5 * (ux1 + ux0) / uuu[1]) > UDIFF)
