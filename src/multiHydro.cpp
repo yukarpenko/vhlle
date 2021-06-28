@@ -3,6 +3,7 @@
 #include <iostream>
 #include <TMatrixDSymEigen.h>
 #include <TMatrixDSym.h>
+#include <TLorentzVector.h>
 
 #include "multiHydro.h"
 #include "hdo.h"
@@ -40,7 +41,7 @@ MultiHydro::MultiHydro(Fluid *_f_p, Fluid *_f_t, Fluid *_f_f, Hydro *_h_p,
  dtau = _dtau;
 
  //---- Cornelius init
- double arrayDx[4] = {dtau, f_p->getDx(), f_p->getDy(), f_p->getDz()};
+ double arrayDx[4] = {h_p->getDtau(), f_p->getDx(), f_p->getDy(), f_p->getDz()};
  cornelius = new Cornelius;
  cornelius->init(4, eCrit, arrayDx);
  ecrit = eCrit;
@@ -74,6 +75,30 @@ MultiHydro::~MultiHydro() {
  }
  delete[] MHeps;
  delete[] MHepsPrev;
+}
+
+void MultiHydro::setFluids(Fluid *_f_p, Fluid *_f_t, Fluid *_f_f, Hydro *_h_p,
+ Hydro *_h_t, Hydro *_h_f) {
+ f_p = _f_p;
+ f_t = _f_t;
+ f_f = _f_f;
+ h_p = _h_p;
+ h_t = _h_t;
+ h_f = _h_f;
+ nx = f_p->getNX();
+ ny = f_p->getNY();
+ nz = f_p->getNZ();
+ dx = f_p->getDx();
+ dy = f_p->getDy();
+ dz = f_p->getDz();
+ dtau = h_p->getDtau();
+
+ //---- Cornelius init
+ double arrayDx[4] = {h_p->getDtau(), f_p->getDx(), f_p->getDy(), f_p->getDz()};
+ cornelius = new Cornelius;
+ cornelius->init(4, ecrit, arrayDx);
+
+ resizeMHeps();
 }
 
 void MultiHydro::initOutput(const char *dir) {
@@ -124,6 +149,9 @@ void MultiHydro::frictionSubstep()
     double ut [4] = {gammat,gammat*vxt,gammat*vyt,gammat*vzt};
     double gammaf = 1.0/sqrt(1.0-vxf*vxf-vyf*vyf-vzf*vzf);
     double uf [4] = {gammaf,gammaf*vxf,gammaf*vyf,gammaf*vzf};
+    TLorentzVector upLV(up[1], up[2], up[3], up[0]);
+    TLorentzVector utLV(ut[1], ut[2], ut[3], ut[0]);
+    TLorentzVector ufLV(uf[1], uf[2], uf[3], uf[0]);
     double flux_p [4] = {0.}, flux_t [4] = {0.};
      // 1. projectile-target friction
     if (ep>0. && et>0.) {
@@ -139,9 +167,13 @@ void MultiHydro::frictionSubstep()
     // friction coefficient
     double D_P = mN*Vrel*sigmaP;
     double D_E = mN*Vrel*sigmaE; // SAME cross section moment for testing
+    upLV.Boost(-vxt, -vyt, -vzt);
+    utLV.Boost(-vxp, -vyp, -vzp);
     for(int i=0; i<4; i++){
-     flux_p[i] += -nbp*nbt*(D_P*(up[i] - ut[i]) + D_E*(up[i] + ut[i]))*h_p->getDtau();
-     flux_t[i] += -nbp*nbt*(D_P*(ut[i] - up[i]) + D_E*(up[i] + ut[i]))*h_p->getDtau();
+     //flux_p[i] += -nbp*nbt*(D_P*(up[i] - ut[i]) + D_E*(up[i] + ut[i]))*h_p->getDtau();
+     //flux_t[i] += -nbp*nbt*(D_P*(ut[i] - up[i]) + D_E*(up[i] + ut[i]))*h_p->getDtau();
+     flux_p[i] += -upLV[(i+3)%4]*sqrt(ep*et)*h_p->getDtau()/lambda;
+     flux_t[i] += -utLV[(i+3)%4]*sqrt(ep*et)*h_p->getDtau()/lambda;
     }
    }
    // 2. projectile-fireball friction
@@ -170,16 +202,22 @@ void MultiHydro::frictionSubstep()
    double taup = h_p->getTau();
    double taut = h_t->getTau();
    double tauf = h_f->getTau();
-   c_p->addFlux(flux_p[0]*taup, flux_p[1]*taup, flux_p[2]*taup, flux_p[3]*taup, 0., 0., 0.);
-   c_t->addFlux(flux_t[0]*taut, flux_t[1]*taut, flux_t[2]*taut, flux_t[3]*taut, 0., 0., 0.);
-   c_f->addFlux((-flux_p[0]-flux_t[0])*tauf, (-flux_p[1]-flux_t[1])*tauf,
-    (-flux_p[2]-flux_t[2])*tauf, (-flux_p[3]-flux_t[3])*tauf, 0., 0., 0.);
-   c_p->updateByFlux();
-   c_t->updateByFlux();
-   c_f->updateByFlux();
-   c_p->clearFlux();
-   c_t->clearFlux();
-   c_f->clearFlux();
+   double _Q_p[7], _Q_t[7], _Q_f[7];
+   c_p->getQ(_Q_p);
+   c_t->getQ(_Q_t);
+   c_f->getQ(_Q_f);
+   if (_Q_p[0] + flux_p[0]*taup >= 0.2*_Q_p[0] && _Q_t[0] + flux_t[0]*taut >= 0.2*_Q_t[0] && _Q_f[0] + (-flux_p[0]-flux_t[0])*tauf >= 0) {
+    c_p->addFlux(flux_p[0]*taup, flux_p[1]*taup, flux_p[2]*taup, flux_p[3]*taup, 0., 0., 0.);
+    c_t->addFlux(flux_t[0]*taut, flux_t[1]*taut, flux_t[2]*taut, flux_t[3]*taut, 0., 0., 0.);
+    c_f->addFlux((-flux_p[0]-flux_t[0])*tauf, (-flux_p[1]-flux_t[1])*tauf,
+     (-flux_p[2]-flux_t[2])*tauf, (-flux_p[3]-flux_t[3])*tauf, 0., 0., 0.);
+    c_p->updateByFlux();
+    c_t->updateByFlux();
+    c_f->updateByFlux();
+    c_p->clearFlux();
+    c_t->clearFlux();
+    c_f->clearFlux();
+   }
    if(-flux_p[0]-flux_t[0] > 0. && c_f->getMaxM()<0.01)
     c_f->setAllM(1.0);
    } // end cell loop
@@ -272,6 +310,25 @@ void MultiHydro::updateEnergyDensity()
    for (int iz = 0; iz < nz; iz++) {
     MHepsPrev[ix][iy][iz] = MHeps[ix][iy][iz];
     MHeps[ix][iy][iz] = 0.0;
+   }
+}
+
+void MultiHydro::resizeMHeps()
+{
+ double temp[nx][ny][nz];
+ for (int ix = 0; ix < nx; ix++)
+  for (int iy = 0; iy < ny; iy++)
+   for (int iz = 0; iz < nz; iz++) {
+    if (2*(ix-(nx-1)/2)+(nx-1)/2 >= 0 && 2*(ix-(nx-1)/2)+(nx-1)/2 < nx && 2*(iy-(ny-1)/2)+(ny-1)/2 >=0 && 2*(iy-(ny-1)/2)+(ny-1)/2 < ny) {
+     temp[ix][iy][iz] = MHeps[2*(ix-(nx-1)/2)+(nx-1)/2][2*(iy-(ny-1)/2)+(ny-1)/2][iz];
+    } else {
+     temp[ix][iy][iz] = 0.;
+    }
+   }
+ for (int ix = 0; ix < nx; ix++)
+  for (int iy = 0; iy < ny; iy++)
+   for (int iz = 0; iz < nz; iz++) {
+    MHeps[ix][iy][iz] = temp[ix][iy][iz];
    }
 }
 
@@ -368,8 +425,8 @@ void MultiHydro::findFreezeout()
      }
      double eC = 0., pC = 0.;
      for (int ii = 0; ii < 10; ii++) piC[ii] = 0.0;
-     double wCenT[2] = {1. - cornelius->get_centroid_elem(isegm, 0) / dtau,
-                        cornelius->get_centroid_elem(isegm, 0) / dtau};
+     double wCenT[2] = {1. - cornelius->get_centroid_elem(isegm, 0) / h_p->getDtau(),
+                        cornelius->get_centroid_elem(isegm, 0) / h_p->getDtau()};
      double wCenX[2] = {1. - cornelius->get_centroid_elem(isegm, 1) / dx,
                         cornelius->get_centroid_elem(isegm, 1) / dx};
      double wCenY[2] = {1. - cornelius->get_centroid_elem(isegm, 2) / dy,

@@ -135,11 +135,7 @@ public:
  inline Cell *getPrev(int i) { return prev[i - 1]; }
 
  inline void setAllM(double value) { m[0] = m[1] = m[2] = value; }
- inline void addM(int dir, double inc) {
-  m[dir - 1] += inc;
-  if (m[dir - 1] > 0.9)
-   for (int i = 0; i < 3; i++) m[i] = 1.;
- }
+ void addM(int dir, double inc);
  inline double getM(int dir) { return m[dir - 1]; }
  inline double getMaxM(void) { return std::max(m[0], std::max(m[1], m[2])); }
  inline void setDM(int dir, double value) { dm[dir - 1] = value; }

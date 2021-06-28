@@ -18,6 +18,7 @@ class MultiHydro {
  double ecrit, vEff;
  int nx, ny, nz;
  double dx, dy, dz, dtau;
+ double lambda = 5;
  const double gmunu[4][4] = {
      {1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, -1, 0}, {0, 0, 0, -1}};
 
@@ -32,4 +33,7 @@ public:
  void getEnergyDensity();
  void updateEnergyDensity();
  void findFreezeout();
+ void resizeMHeps();
+ void setFluids(Fluid *f_p, Fluid *f_t, Fluid *f_f, Hydro *h_p, Hydro *h_t,
+  Hydro* h_f);
 };

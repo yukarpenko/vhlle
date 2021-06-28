@@ -279,6 +279,39 @@ int main(int argc, char **argv) {
    return 0;
  }
 
+ // CFL criterion
+ double dx = (xmax - xmin) / (nx - 1);
+ double dy = (ymax - ymin) / (ny - 1);
+ double deta = (etamax - etamin) / (nz - 1);
+ cout << "Checking x-coordinate for CFL criterion:";
+ if (dx > dtau && 0.1*dx < dtau) {
+  cout << "OK" << endl;
+ } else {
+  nx = (int)0.5*(xmax - xmin) / dtau;
+  if (nx % 2 == 0) nx++;
+  cout << "Not OK, resizing nx to " << nx << endl;
+ }
+
+ cout << "Checking y-coordinate for CFL criterion:";
+ if (dy > dtau && 0.1*dy < dtau) {
+  cout << "OK" << endl;
+ } else {
+  ny = (int)0.5*(ymax - ymin) / dtau;
+  if (ny % 2 == 0) ny++;
+  cout << "Not OK, resizing ny to " << ny << endl;
+ }
+
+ cout << "Checking eta-coordinate for CFL criterion:";
+ if (deta*tau0 > dtau && 0.1*deta*tau0 < dtau) {
+  cout << "OK" << endl;
+ } else {
+  nz = (int)0.5*(etamax - etamin)*tau0 / dtau;
+  if (nz % 2 == 0) nz++;
+  cout << "Not OK, resizing nz to " << nz << endl;
+ }
+
+
+
 
  // transport coefficients
  trcoeff = new TransportCoeff(etaS, zetaS, eos);
@@ -360,7 +393,7 @@ int main(int argc, char **argv) {
  f_f->outputCorona(tau0);
  mh->getEnergyDensity();
 
- for (int istep = 0; istep < maxstep; istep++) {
+ do {
   mh->performStep();
   f_p->outputGnuplot(h_p->getTau());
   f_t->outputGnuplot(h_t->getTau());
@@ -370,7 +403,14 @@ int main(int argc, char **argv) {
   f_f->outputSurface(h_f->getTau());
   mh->findFreezeout();
   cout << "step done, tau=" << h_p->getTau() << endl;
- }
+  if (0.1*f_p->getDz()*h_p->getTau() > h_p->getDtau()) {
+   cout << "grid resize" << endl;
+   f_p = expandGrid2x(h_p, eos, eosH, trcoeff);
+   f_t = expandGrid2x(h_t, eos, eosH, trcoeff);
+   f_f = expandGrid2x(h_f, eos, eosH, trcoeff);
+   mh->setFluids(f_p, f_t, f_f, h_p, h_t, h_f);
+  }
+ } while(h_p->getTau() < tauMax+0.0001);
 
  /*bool resized = false; // flag if the grid has been resized
  do {

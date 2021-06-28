@@ -51,6 +51,32 @@ Cell::Cell() {
  setAllM(0.);
 }
 
+ void Cell::addM(int dir, double inc) {
+  m[dir - 1] += inc;
+  m[dir - 1] = std::max(m[dir - 1], 0.);
+  if (m[dir - 1] > 0.9)
+   for (int i = 0; i < 3; i++) m[i] = 1.;
+  if(m[0]<1e-5 && m[1]<1e-5 && m[2]<1e-5) { // reset the cell when there's no matter in it anymore
+   for (int i = 0; i < 7; i++) {
+    Q[i] = 0.;
+    Qh[i] = 0.;
+    Qprev[i] = 0.;
+    flux[i] = 0.;
+   }
+   viscCorrCut = 1.;
+   for (int i = 0; i < 10; i++) {
+    pi[i] = 0.0;
+    piH[i] = 0.0;
+    pi0[i] = 0.0;
+    piH0[i] = 0.0;
+   }
+   Pi = 0.0;
+   PiH = 0.0;
+   Pi0 = 0.0;
+   PiH0 = 0.0;
+  } // end reset cell block
+}
+
 void Cell::importVars(Cell* c) {
  c->getQ(Q);
  c->getQh(Qh);

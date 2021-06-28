@@ -318,15 +318,18 @@ void Fluid::updateM(double tau, double dt) {
     c->setDM(X_, 0.);
     c->setDM(Y_, 0.);
     c->setDM(Z_, 0.);
-    if (getCell(ix, iy, iz)->getMaxM() < 1.) {
+    if (c->getMaxM() < 1.) {
+     double e, p, nb, nq, ns, vx, vy, vz;
+     getCell(ix, iy, iz)->getPrimVar(eos, tau, e, p, nb, nq, ns, vx, vy, vz);
      if (getCell(ix + 1, iy, iz)->getM(X_) >= 1. ||
          getCell(ix - 1, iy, iz)->getM(X_) >= 1.)
       c->setDM(X_, dt / dx);
      if (getCell(ix, iy + 1, iz)->getM(Y_) >= 1. ||
          getCell(ix, iy - 1, iz)->getM(Y_) >= 1.)
       c->setDM(Y_, dt / dy);
-     if (getCell(ix, iy, iz + 1)->getM(Z_) >= 1. ||
-         getCell(ix, iy, iz - 1)->getM(Z_) >= 1.)
+     if (getCell(ix, iy, iz + 1)->getM(Z_) >= 1. && vz<0.)
+      c->setDM(Z_, dt / dz / tau);
+     if (getCell(ix, iy, iz - 1)->getM(Z_) >= 1. && vz>0.)
       c->setDM(Z_, dt / dz / tau);
 
      if (c->getDM(X_) == 0. && c->getDM(Y_) == 0.) {
@@ -339,7 +342,21 @@ void Fluid::updateM(double tau, double dt) {
       }
      }
     }  // if
-   }
+    if(c->getMaxM() > 0.) {
+     double e, p, nb, nq, ns, vx, vy, vz;
+     c->getPrimVar(eos, tau, e, p, nb, nq, ns, vx, vy, vz);
+     if (getCell(ix, iy, iz - 1)->getM(Z_) < 1e-5 && vz>0.5) {
+      c->setDM(Z_, - vz * dt / dz / tau);
+      c->setDM(X_, -1.0);
+      c->setDM(Y_, -1.0);
+     }
+     if (getCell(ix, iy, iz + 1)->getM(Z_) < 1e-5 && vz<-0.5) {
+      c->setDM(Z_,   vz * dt / dz / tau);
+      c->setDM(X_, -1.0);
+      c->setDM(Y_, -1.0);
+     }
+    }
+   }  // end of 3D cell loop
 
  for (int ix = 0; ix < getNX(); ix++)
   for (int iy = 0; iy < getNY(); iy++)
