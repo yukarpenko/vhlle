@@ -21,6 +21,8 @@ class MultiHydro {
  double lambda = 5;
  const double gmunu[4][4] = {
      {1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, -1, 0}, {0, 0, 0, -1}};
+ double EtotSurf[3] = {0., 0., 0.}, EtotSurf_positive[3] = {0., 0., 0.},
+     EtotSurf_negative[3] = {0., 0., 0.};
 
 public:
  MultiHydro(Fluid *f_p, Fluid *f_t, Fluid *f_f, Hydro *h_p, Hydro *h_t,

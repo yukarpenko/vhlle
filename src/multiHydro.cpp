@@ -596,10 +596,26 @@ void MultiHydro::findFreezeout()
      fmhfreeze_p << endl;
      fmhfreeze_t << endl;
      fmhfreeze_f << endl;
+     double dEtotSurf[3] = {0., 0., 0.};
+     dEtotSurf[0] = (ep + pCp) * uC_p[0] * dVEff - pCp * dsigma[0]; // projectile
+     dEtotSurf[1] = (et + pCt) * uC_t[0] * dVEff - pCt * dsigma[0]; // target
+     dEtotSurf[2] = (ef + pCf) * uC_f[0] * dVEff - pCf * dsigma[0]; // fireball
+     EtotSurf[0] += dEtotSurf[0];
+     EtotSurf[1] += dEtotSurf[1];
+     EtotSurf[2] += dEtotSurf[2];
+     if (dEtotSurf[0] > 0) EtotSurf_positive[0] += dEtotSurf[0];
+     else EtotSurf_negative[0] += dEtotSurf[0];
+     if (dEtotSurf[1] > 0) EtotSurf_positive[1] += dEtotSurf[1];
+     else EtotSurf_negative[1] += dEtotSurf[1];
+     if (dEtotSurf[2] > 0) EtotSurf_positive[2] += dEtotSurf[2];
+     else EtotSurf_negative[2] += dEtotSurf[2];
     }
  }
 
- cout << setw(10) << h_p->getTau() << setw(10) << nelements << " " << ne_pos << endl;
+ cout << setw(10) << h_p->getTau() << setw(10) << nelements << "\t" << ne_pos << "\t"
+      << EtotSurf[0] << "\t" << EtotSurf_positive[0] << "\t" << EtotSurf_negative[0] << "\t"
+      << EtotSurf[1] << "\t" << EtotSurf_positive[1] << "\t" << EtotSurf_negative[1] << "\t"
+      << EtotSurf[2] << "\t" << EtotSurf_positive[2] << "\t" << EtotSurf_negative[2] << endl;
 
  for (int i1 = 0; i1 < 2; i1++) {
   for (int i2 = 0; i2 < 2; i2++) {
