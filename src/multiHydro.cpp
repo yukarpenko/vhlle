@@ -396,17 +396,17 @@ void MultiHydro::findFreezeout()
     for (int isegm = 0; isegm < Nsegm; isegm++) {
      nelements++;
      fmhfreeze_p.precision(15);
-     fmhfreeze_p << setw(24) << h_p->getTau() + cornelius->get_centroid_elem(isegm, 0)
+     fmhfreeze_p << setw(24) << h_p->getTau() - h_p->getDtau() + cornelius->get_centroid_elem(isegm, 0)
                << setw(24) << f_p->getX(ix) + cornelius->get_centroid_elem(isegm, 1)
                << setw(24) << f_p->getY(iy) + cornelius->get_centroid_elem(isegm, 2)
                << setw(24) << f_p->getZ(iz) + cornelius->get_centroid_elem(isegm, 3);
      fmhfreeze_t.precision(15);
-     fmhfreeze_t << setw(24) << h_p->getTau() + cornelius->get_centroid_elem(isegm, 0)
+     fmhfreeze_t << setw(24) << h_p->getTau() - h_p->getDtau() + cornelius->get_centroid_elem(isegm, 0)
                << setw(24) << f_p->getX(ix) + cornelius->get_centroid_elem(isegm, 1)
                << setw(24) << f_p->getY(iy) + cornelius->get_centroid_elem(isegm, 2)
                << setw(24) << f_p->getZ(iz) + cornelius->get_centroid_elem(isegm, 3);
      fmhfreeze_f.precision(15);
-     fmhfreeze_f << setw(24) << h_p->getTau() + cornelius->get_centroid_elem(isegm, 0)
+     fmhfreeze_f << setw(24) << h_p->getTau() - h_p->getDtau() + cornelius->get_centroid_elem(isegm, 0)
                << setw(24) << f_p->getX(ix) + cornelius->get_centroid_elem(isegm, 1)
                << setw(24) << f_p->getY(iy) + cornelius->get_centroid_elem(isegm, 2)
                << setw(24) << f_p->getZ(iz) + cornelius->get_centroid_elem(isegm, 3);
@@ -455,11 +455,11 @@ void MultiHydro::findFreezeout()
 
      for (int i = 0; i < 4; i++)
       for (int j = 0; j < 4; j++)
-       TmunuC[i][j] = TmunuC[i][j] / (h_p->getTau() + cornelius->get_centroid_elem(isegm, 0));
+       TmunuC[i][j] = TmunuC[i][j] / (h_p->getTau() - h_p->getDtau() + cornelius->get_centroid_elem(isegm, 0));
      for (int i = 0; i < 7; i++) {
-      QC_p[i] = QC_p[i] / (h_p->getTau() + cornelius->get_centroid_elem(isegm, 0));
-      QC_t[i] = QC_t[i] / (h_p->getTau() + cornelius->get_centroid_elem(isegm, 0));
-      QC_f[i] = QC_f[i] / (h_p->getTau() + cornelius->get_centroid_elem(isegm, 0));
+      QC_p[i] = QC_p[i] / (h_p->getTau() - h_p->getDtau() + cornelius->get_centroid_elem(isegm, 0));
+      QC_t[i] = QC_t[i] / (h_t->getTau() - h_t->getDtau() + cornelius->get_centroid_elem(isegm, 0));
+      QC_f[i] = QC_f[i] / (h_f->getTau() - h_f->getDtau() + cornelius->get_centroid_elem(isegm, 0));
      }
      double _ns = 0.0;
      double ep, pp, nbp, nqp, nsp, vxp, vyp, vzp;
@@ -504,7 +504,7 @@ void MultiHydro::findFreezeout()
      eos->eos(et, nbt, nqt, nst, TCt, mubCt, muqCt, musCt, pCt);
      eos->eos(ef, nbf, nqf, nsf, TCf, mubCf, muqCf, musCf, pCf);
      if (TC > 0.4 || fabs(mubC) > 0.85) {
-      cout << "#### Error (surface): high T/mu_b (T=" << TC << "/mu_b=" << mubC << ") ####\n";
+      cout << "#### Error (multifluid surface): high T/mu_b (T=" << TC << "/mu_b=" << mubC << ") ####\n";
      }
      double v2C = vxC * vxC + vyC * vyC + vzC * vzC;
      if (v2C > 1.) {
@@ -526,7 +526,7 @@ void MultiHydro::findFreezeout()
      double uC_p[4] = {gammaC_p, gammaC_p * vxp, gammaC_p * vyp, gammaC_p * vzp};
      double uC_t[4] = {gammaC_t, gammaC_t * vxt, gammaC_t * vyt, gammaC_t * vzt};
      double uC_f[4] = {gammaC_f, gammaC_f * vxf, gammaC_f * vyf, gammaC_f * vzf};
-     const double tauC = h_p->getTau() + cornelius->get_centroid_elem(isegm, 0);
+     const double tauC = h_p->getTau() - h_p->getDtau() + cornelius->get_centroid_elem(isegm, 0);
      double dsigma[4];
      // ---- transform dsigma to lab.frame :
      const double ch = cosh(etaC);
