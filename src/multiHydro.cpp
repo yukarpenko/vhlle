@@ -266,7 +266,7 @@ void MultiHydro::getEnergyDensity()
     TMatrixDSym T(4);
     for (int i=0; i<4; i++)
      for (int j=0; j<4; j++){
-      T[i][j] = Ttemp[i][j]*gmunu[j][j];
+      T[i][j] = Ttemp[i][j];
     }
     // diagonalization of the energy-momentum tensor
     TMatrixDSymEigen Te(T);
@@ -458,7 +458,7 @@ void MultiHydro::findFreezeout()
      TMatrixDSym T(4);
      for (int i=0; i<4; i++)
       for (int j=0; j<4; j++){
-       T[i][j] = TmunuC[i][j]*gmunu[j][j];
+       T[i][j] = TmunuC[i][j];
      }
      // diagonalization of the energy-momentum tensor
      TMatrixDSymEigen Te(T);
