@@ -1,8 +1,8 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
-#include <TMatrixDSymEigen.h>
-#include <TMatrixDSym.h>
+#include <TMatrixDEigen.h>
+#include <TMatrixD.h>
 #include <TLorentzVector.h>
 
 #include "multiHydro.h"
@@ -263,39 +263,44 @@ void MultiHydro::getEnergyDensity()
     getEnergyMomentumTensor(Ttemp, Q_p, Q_f, Q_t);
 
     // calculation of the energy-momentum tensor
-    TMatrixDSym T(4);
+    TMatrixD T(4,4);
     for (int i=0; i<4; i++)
      for (int j=0; j<4; j++){
-      T[i][j] = Ttemp[i][j];
+      T[i][j] = Ttemp[i][j]*gmunu[j][j];
     }
-    // diagonalization of the energy-momentum tensor
-    TMatrixDSymEigen Te(T);
-    TVectorD eigenValues = Te.GetEigenValues();
-    TMatrixD eigenVectors = Te.GetEigenVectors();
+    if (T[0][0] == 0 && T[1][1] == 0 && T[2][2] == 0 && T[3][3] == 0)
+     MHeps[ix][iy][iz] = 0;
+    else
+    {
+     // diagonalization of the energy-momentum tensor
+     TMatrixDEigen Te(T);
+     TMatrixD eigenValues = Te.GetEigenValues();
+     TMatrixD eigenVectors = Te.GetEigenVectors();
 
-    double energyDensity;
-    TVectorD v(4);
-    for (int i=0; i<4; i++) {
-     double vmuvmu = 0;
-     energyDensity = eigenValues[i];
-     v = TMatrixDColumn(eigenVectors,i);
-     for (int j=0; j<4; j++) {
-      vmuvmu += v[j]*v[j]*gmunu[j][j];
+     double energyDensity;
+     TVectorD v(4);
+     for (int i=0; i<4; i++) {
+      double vmuvmu = 0;
+      energyDensity = eigenValues[i][i];
+      v = TMatrixDColumn(eigenVectors,i);
+      for (int j=0; j<4; j++) {
+       vmuvmu += v[j]*v[j]*gmunu[j][j];
+      }
+      if (vmuvmu > 0 && energyDensity >= 0) {
+       break;
+      }
+      else if (i == 3) {
+       cout << "Multihydro: None of the eigenvectors is time-like, ";
+       cout << "using largest eigenvalue for energy density." << endl;
+       energyDensity = eigenValues[0][0];
+       v = TMatrixDColumn(eigenVectors,0);
+       break;
+      }
      }
-     if (vmuvmu > 0 && energyDensity >= 0) {
-      break;
-     }
-     else if (i == 3) {
-      cout << "Multihydro: None of the eigenvectors is time-like, ";
-      cout << "using largest eigenvalue for energy density." << endl;
-      energyDensity = eigenValues[0];
-      v = TMatrixDColumn(eigenVectors,0);
-      break;
-     }
+
+     // save computed energy density into private field
+     MHeps[ix][iy][iz] = energyDensity;
     }
-
-    // save computed energy density into private field
-    MHeps[ix][iy][iz] = energyDensity;
    }
 }
 
@@ -455,19 +460,30 @@ void MultiHydro::findFreezeout()
      transformPV(eos, QC_t, et, pt, nbt, nqt, nst, vxt, vyt, vzt);
      transformPV(eos, QC_f, ef, pf, nbf, nqf, nsf, vxf, vyf, vzf);
 
-     TMatrixDSym T(4);
+     TMatrixD T(4,4);
      for (int i=0; i<4; i++)
       for (int j=0; j<4; j++){
-       T[i][j] = TmunuC[i][j];
+       T[i][j] = TmunuC[i][j]*gmunu[j][j];
      }
      // diagonalization of the energy-momentum tensor
-     TMatrixDSymEigen Te(T);
-     TVectorD eigenValues = Te.GetEigenValues();
-     TMatrixD eigenVectors = Te.GetEigenVectors();
-
-     eC = eigenValues[0];
      TVectorD v(4);
-     v = TMatrixDColumn(eigenVectors,0);
+     if (T[0][0] == 0 && T[1][1] == 0 && T[2][2] == 0 && T[3][3] == 0)
+     {
+      eC = 0;
+      v[0] = 1;
+      v[1] = 0;
+      v[2] = 0;
+      v[3] = 0;
+     }
+     else
+     {
+      TMatrixDEigen Te(T);
+      TMatrixD eigenValues = Te.GetEigenValues();
+      TMatrixD eigenVectors = Te.GetEigenVectors();
+
+      eC = eigenValues[0][0];
+      v = TMatrixDColumn(eigenVectors,0);
+     }
      vxC = v[1]/v[0];
      vyC = v[2]/v[0];
      vzC = v[3]/v[0];
