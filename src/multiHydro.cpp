@@ -589,5 +589,5 @@ void MultiHydro::findFreezeout()
   delete[] ccube[i1];
  }
  delete[] ccube;
- if (nelements == 0) exit(0);
+ if (nelements == 0 && h_p->getTau() > 5) exit(0);
 }
