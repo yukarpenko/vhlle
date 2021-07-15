@@ -318,6 +318,18 @@ void MultiHydro::updateEnergyDensity()
    }
 }
 
+void MultiHydro::outputEnergyDensity()
+{
+ ofstream fenergy;
+ fenergy.open("energy.dat");
+ for (int ix = 0; ix < nx; ix++)
+  for (int iy = 0; iy < ny; iy++)
+   for (int iz = 0; iz < nz; iz++) {
+    fenergy << h_p->getTau() << "\t" << f_p->getX(ix) << "\t" << f_p->getY(iy) << "\t" << f_p->getZ(iz) << "\t" << MHeps[ix][iy][iz] << endl;
+   }
+ fenergy.close();
+}
+
 void MultiHydro::resizeMHeps()
 {
  double temp[nx][ny][nz];
@@ -643,5 +655,5 @@ void MultiHydro::findFreezeout()
   delete[] ccube[i1];
  }
  delete[] ccube;
- if (nelements == 0) exit(0);
+ if (nelements == 0 && h_p->getTau() > 5) exit(0);
 }
