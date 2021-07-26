@@ -15,7 +15,7 @@ class MultiHydro {
  CrossSections *xsect;
  std::ofstream fmhfreeze_p, fmhfreeze_f, fmhfreeze_t;
  double ***MHeps, ***MHepsPrev;
- double ecrit, vEff;
+ double ecrit, vEff_p, vEff_t, vEff_f;
  int nx, ny, nz;
  double dx, dy, dz, dtau;
  double lambda = 5;

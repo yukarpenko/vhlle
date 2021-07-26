@@ -45,7 +45,9 @@ MultiHydro::MultiHydro(Fluid *_f_p, Fluid *_f_t, Fluid *_f_f, Hydro *_h_p,
  cornelius = new Cornelius;
  cornelius->init(4, eCrit, arrayDx);
  ecrit = eCrit;
- vEff = 0.;
+ vEff_p = 0.;
+ vEff_t = 0.;
+ vEff_f = 0.;
 
  // allocate field for oveall energy density
  MHeps = new double**[nx];
@@ -582,11 +584,16 @@ void MultiHydro::findFreezeout()
                          ch / tauC * cornelius->get_normal_elem(0, 3));
      dsigma[1] = tauC * cornelius->get_normal_elem(0, 1);
      dsigma[2] = tauC * cornelius->get_normal_elem(0, 2);
-     double dVEff = 0.0;
-     for (int ii = 0; ii < 4; ii++)
-      dVEff += dsigma[ii] * uC[ii];  // normalize for Delta eta=1
-     if (dVEff > 0) ne_pos++;
-     vEff += dVEff;
+     double dVEff_p = 0.0, dVEff_t = 0.0, dVEff_f = 0.0;
+     for (int ii = 0; ii < 4; ii++) {
+      dVEff_p += dsigma[ii] * uC_p[ii];  // normalize for Delta eta=1
+      dVEff_t += dsigma[ii] * uC_t[ii];
+      dVEff_f += dsigma[ii] * uC_f[ii];
+     }
+     if (dVEff_p > 0) ne_pos++;
+     vEff_p += dVEff_p;
+     vEff_t += dVEff_t;
+     vEff_f += dVEff_f;
      for (int ii = 0; ii < 4; ii++) {
       fmhfreeze_p << setw(24) << dsigma[ii];
       fmhfreeze_t << setw(24) << dsigma[ii];
@@ -642,9 +649,9 @@ void MultiHydro::findFreezeout()
      fmhfreeze_t << endl;
      fmhfreeze_f << endl;
      double dEtotSurf[3] = {0., 0., 0.};
-     dEtotSurf[0] = (ep + pCp) * uC_p[0] * dVEff - pCp * dsigma[0]; // projectile
-     dEtotSurf[1] = (et + pCt) * uC_t[0] * dVEff - pCt * dsigma[0]; // target
-     dEtotSurf[2] = (ef + pCf) * uC_f[0] * dVEff - pCf * dsigma[0]; // fireball
+     dEtotSurf[0] = (ep + pCp) * uC_p[0] * dVEff_p - pCp * dsigma[0]; // projectile
+     dEtotSurf[1] = (et + pCt) * uC_t[0] * dVEff_t - pCt * dsigma[0]; // target
+     dEtotSurf[2] = (ef + pCf) * uC_f[0] * dVEff_f - pCf * dsigma[0]; // fireball
      EtotSurf[0] += dEtotSurf[0];
      EtotSurf[1] += dEtotSurf[1];
      EtotSurf[2] += dEtotSurf[2];
