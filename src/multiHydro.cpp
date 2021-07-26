@@ -206,7 +206,9 @@ void MultiHydro::frictionSubstep()
    c_p->getQ(_Q_p);
    c_t->getQ(_Q_t);
    c_f->getQ(_Q_f);
-   if (_Q_p[0] + flux_p[0]*taup >= 0.2*_Q_p[0] && _Q_t[0] + flux_t[0]*taut >= 0.2*_Q_t[0] && _Q_f[0] + (-flux_p[0]-flux_t[0])*tauf >= 0) {
+   if (_Q_p[0] + flux_p[0]*taup >= 0.2*_Q_p[0] &&
+       _Q_t[0] + flux_t[0]*taut >= 0.2*_Q_t[0] &&
+       _Q_f[0] + (-flux_p[0]-flux_t[0])*tauf >= 0) {
     c_p->addFlux(flux_p[0]*taup, flux_p[1]*taup, flux_p[2]*taup, flux_p[3]*taup, 0., 0., 0.);
     c_t->addFlux(flux_t[0]*taut, flux_t[1]*taut, flux_t[2]*taut, flux_t[3]*taut, 0., 0., 0.);
     c_f->addFlux((-flux_p[0]-flux_t[0])*tauf, (-flux_p[1]-flux_t[1])*tauf,
@@ -264,6 +266,11 @@ void MultiHydro::getEnergyDensity()
     c_p->getQ(Q_p);
     c_f->getQ(Q_f);
     c_t->getQ(Q_t);
+    for (int i = 0; i < 7; i++) {
+     Q_p[i] = Q_p[i]/h_p->getTau();
+     Q_t[i] = Q_t[i]/h_t->getTau();
+     Q_f[i] = Q_f[i]/h_f->getTau();
+    }
     getEnergyMomentumTensor(Ttemp, Q_p, Q_f, Q_t);
 
     // calculation of the energy-momentum tensor
@@ -392,6 +399,11 @@ void MultiHydro::findFreezeout()
        cc_p->getQ(QCube_p[1][jx][jy][jz]);
        cc_f->getQ(QCube_f[1][jx][jy][jz]);
        cc_t->getQ(QCube_t[1][jx][jy][jz]);
+       for (int i = 0; i < 7; i++) {
+        QCube_p[1][jx][jy][jz][i] = QCube_p[1][jx][jy][jz][i]/h_p->getTau();
+        QCube_t[1][jx][jy][jz][i] = QCube_t[1][jx][jy][jz][i]/h_t->getTau();
+        QCube_f[1][jx][jy][jz][i] = QCube_f[1][jx][jy][jz][i]/h_f->getTau();
+       }
        getEnergyMomentumTensor(Ttemp, QCube_p[1][jx][jy][jz], QCube_f[1][jx][jy][jz], QCube_t[1][jx][jy][jz]);
        for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++) {
@@ -400,6 +412,11 @@ void MultiHydro::findFreezeout()
        cc_p->getQprev(QCube_p[0][jx][jy][jz]);
        cc_f->getQprev(QCube_f[0][jx][jy][jz]);
        cc_t->getQprev(QCube_t[0][jx][jy][jz]);
+       for (int i = 0; i < 7; i++) {
+        QCube_p[0][jx][jy][jz][i] = QCube_p[0][jx][jy][jz][i]/h_p->getTau();
+        QCube_t[0][jx][jy][jz][i] = QCube_t[0][jx][jy][jz][i]/h_t->getTau();
+        QCube_f[0][jx][jy][jz][i] = QCube_f[0][jx][jy][jz][i]/h_f->getTau();
+       }
        getEnergyMomentumTensor(Ttemp, QCube_p[0][jx][jy][jz], QCube_f[0][jx][jy][jz], QCube_t[0][jx][jy][jz]);
        for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++) {
@@ -470,14 +487,14 @@ void MultiHydro::findFreezeout()
          }
      }
 
-     for (int i = 0; i < 4; i++)
+     /*for (int i = 0; i < 4; i++)
       for (int j = 0; j < 4; j++)
        TmunuC[i][j] = TmunuC[i][j] / (h_p->getTau() - h_p->getDtau() + cornelius->get_centroid_elem(isegm, 0));
      for (int i = 0; i < 7; i++) {
       QC_p[i] = QC_p[i] / (h_p->getTau() - h_p->getDtau() + cornelius->get_centroid_elem(isegm, 0));
       QC_t[i] = QC_t[i] / (h_t->getTau() - h_t->getDtau() + cornelius->get_centroid_elem(isegm, 0));
       QC_f[i] = QC_f[i] / (h_f->getTau() - h_f->getDtau() + cornelius->get_centroid_elem(isegm, 0));
-     }
+     }*/
      double _ns = 0.0;
      double ep, pp, nbp, nqp, nsp, vxp, vyp, vzp;
      double et, pt, nbt, nqt, nst, vxt, vyt, vzt;
