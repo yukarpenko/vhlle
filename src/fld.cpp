@@ -604,7 +604,7 @@ void Fluid::outputSurface(double tau) {
      transformPV(eos, QC, eC, pC, nbC, nqC, _ns, vxC, vyC, vzC);
      eos->eos(eC, nbC, nqC, _ns, TC, mubC, muqC, musC, pC);
      if (TC > 0.4 || fabs(mubC) > 0.85) {
-      cout << "#### Error (surface): high T/mu_b (T=" << TC << "/mu_b=" << mubC << ") ####\n";
+      //cout << "#### Error (surface): high T/mu_b (T=" << TC << "/mu_b=" << mubC << ") ####\n";
      }
      if (eC > ecrit * 2.0 || eC < ecrit * 0.5) nsusp++;
      for (int jx = 0; jx < 2; jx++)

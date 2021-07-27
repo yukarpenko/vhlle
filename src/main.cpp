@@ -287,7 +287,7 @@ int main(int argc, char **argv) {
  if (dx > dtau && 0.1*dx < dtau) {
   cout << "OK" << endl;
  } else {
-  nx = (int)0.5*(xmax - xmin) / dtau;
+  nx = (int)(0.5*(xmax - xmin) / dtau);
   if (nx % 2 == 0) nx++;
   cout << "Not OK, resizing nx to " << nx << endl;
  }
@@ -296,7 +296,7 @@ int main(int argc, char **argv) {
  if (dy > dtau && 0.1*dy < dtau) {
   cout << "OK" << endl;
  } else {
-  ny = (int)0.5*(ymax - ymin) / dtau;
+  ny = (int)(0.5*(ymax - ymin) / dtau);
   if (ny % 2 == 0) ny++;
   cout << "Not OK, resizing ny to " << ny << endl;
  }
@@ -305,7 +305,7 @@ int main(int argc, char **argv) {
  if (deta*tau0 > dtau && 0.1*deta*tau0 < dtau) {
   cout << "OK" << endl;
  } else {
-  nz = (int)0.5*(etamax - etamin)*tau0 / dtau;
+  nz = (int)(0.5*(etamax - etamin)*tau0 / dtau);
   if (nz % 2 == 0) nz++;
   cout << "Not OK, resizing nz to " << nz << endl;
  }
