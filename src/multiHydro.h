@@ -35,6 +35,7 @@ public:
  void getEnergyDensity();
  void updateEnergyDensity();
  void findFreezeout();
+ void printFreezeout(std::ofstream &fout, double t, double x, double y, double z, double dsigma[4], double uC[4], double TC, double mub, double muq, double mus, double picart[10], double PiC, double dVEff);
  void outputEnergyDensity();
  void resizeMHeps();
  void setFluids(Fluid *f_p, Fluid *f_t, Fluid *f_f, Hydro *h_p, Hydro *h_t,
