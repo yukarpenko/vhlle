@@ -431,7 +431,7 @@ void MultiHydro::findFreezeout()
     const int Nsegm = cornelius->get_Nelements();
     for (int isegm = 0; isegm < Nsegm; isegm++) {
      nelements++;
-     fmhfreeze_p.precision(15);
+     /*fmhfreeze_p.precision(15);
      fmhfreeze_p << setw(24) << h_p->getTau() - h_p->getDtau() + cornelius->get_centroid_elem(isegm, 0)
                << setw(24) << f_p->getX(ix) + cornelius->get_centroid_elem(isegm, 1)
                << setw(24) << f_p->getY(iy) + cornelius->get_centroid_elem(isegm, 2)
@@ -445,7 +445,7 @@ void MultiHydro::findFreezeout()
      fmhfreeze_f << setw(24) << h_p->getTau() - h_p->getDtau() + cornelius->get_centroid_elem(isegm, 0)
                << setw(24) << f_p->getX(ix) + cornelius->get_centroid_elem(isegm, 1)
                << setw(24) << f_p->getY(iy) + cornelius->get_centroid_elem(isegm, 2)
-               << setw(24) << f_p->getZ(iz) + cornelius->get_centroid_elem(isegm, 3);
+               << setw(24) << f_p->getZ(iz) + cornelius->get_centroid_elem(isegm, 3);*/
 
      // interpolation procedure
      double vxC = 0., vyC = 0., vzC = 0., TC = 0., mubC = 0., muqC = 0.,
@@ -574,7 +574,7 @@ void MultiHydro::findFreezeout()
      double uC_t[4] = {gammaC_t, gammaC_t * vxt, gammaC_t * vyt, gammaC_t * vzt};
      double uC_f[4] = {gammaC_f, gammaC_f * vxf, gammaC_f * vyf, gammaC_f * vzf};
      const double tauC = h_p->getTau() - h_p->getDtau() + cornelius->get_centroid_elem(isegm, 0);
-     double dsigma[4];
+     double dsigma[4], dsds;
      // ---- transform dsigma to lab.frame :
      const double ch = cosh(etaC);
      const double sh = sinh(etaC);
@@ -584,6 +584,7 @@ void MultiHydro::findFreezeout()
                          ch / tauC * cornelius->get_normal_elem(0, 3));
      dsigma[1] = tauC * cornelius->get_normal_elem(0, 1);
      dsigma[2] = tauC * cornelius->get_normal_elem(0, 2);
+     dsds = dsigma[0]*dsigma[0] - dsigma[1]*dsigma[1] - dsigma[2]*dsigma[2] - dsigma[3]*dsigma[3];
      double dVEff_p = 0.0, dVEff_t = 0.0, dVEff_f = 0.0;
      for (int ii = 0; ii < 4; ii++) {
       dVEff_p += dsigma[ii] * uC_p[ii];  // normalize for Delta eta=1
@@ -594,60 +595,79 @@ void MultiHydro::findFreezeout()
      vEff_p += dVEff_p;
      vEff_t += dVEff_t;
      vEff_f += dVEff_f;
-     for (int ii = 0; ii < 4; ii++) {
-      fmhfreeze_p << setw(24) << dsigma[ii];
-      fmhfreeze_t << setw(24) << dsigma[ii];
-      fmhfreeze_f << setw(24) << dsigma[ii];
-     }
-     for (int ii = 0; ii < 4; ii++) {
-      fmhfreeze_p << setw(24) << uC_p[ii];
-      fmhfreeze_t << setw(24) << uC_t[ii];
-      fmhfreeze_f << setw(24) << uC_f[ii];
-     }
-     fmhfreeze_p << setw(24) << TCp << setw(24) << mubCp << setw(24) << muqCp
-             << setw(24) << musCp;
-     fmhfreeze_t << setw(24) << TCt << setw(24) << mubCt << setw(24) << muqCt
-             << setw(24) << musCt;
-     fmhfreeze_f << setw(24) << TCf << setw(24) << mubCf << setw(24) << muqCf
-             << setw(24) << musCf;
+
+     // exclude segments which fulfills dSigma_0 < 0 & dSigma^2 > 0 - those cells have energy flow into the fireball
+     if (dsigma[0] > 0 || dsds < 0) {
+      fmhfreeze_p.precision(15);
+      fmhfreeze_p << setw(24) << h_p->getTau() - h_p->getDtau() + cornelius->get_centroid_elem(isegm, 0)
+                << setw(24) << f_p->getX(ix) + cornelius->get_centroid_elem(isegm, 1)
+                << setw(24) << f_p->getY(iy) + cornelius->get_centroid_elem(isegm, 2)
+                << setw(24) << f_p->getZ(iz) + cornelius->get_centroid_elem(isegm, 3);
+      fmhfreeze_t.precision(15);
+      fmhfreeze_t << setw(24) << h_p->getTau() - h_p->getDtau() + cornelius->get_centroid_elem(isegm, 0)
+                << setw(24) << f_p->getX(ix) + cornelius->get_centroid_elem(isegm, 1)
+                << setw(24) << f_p->getY(iy) + cornelius->get_centroid_elem(isegm, 2)
+                << setw(24) << f_p->getZ(iz) + cornelius->get_centroid_elem(isegm, 3);
+      fmhfreeze_f.precision(15);
+      fmhfreeze_f << setw(24) << h_p->getTau() - h_p->getDtau() + cornelius->get_centroid_elem(isegm, 0)
+                << setw(24) << f_p->getX(ix) + cornelius->get_centroid_elem(isegm, 1)
+                << setw(24) << f_p->getY(iy) + cornelius->get_centroid_elem(isegm, 2)
+                << setw(24) << f_p->getZ(iz) + cornelius->get_centroid_elem(isegm, 3);
+      for (int ii = 0; ii < 4; ii++) {
+       fmhfreeze_p << setw(24) << dsigma[ii];
+       fmhfreeze_t << setw(24) << dsigma[ii];
+       fmhfreeze_f << setw(24) << dsigma[ii];
+      }
+      for (int ii = 0; ii < 4; ii++) {
+       fmhfreeze_p << setw(24) << uC_p[ii];
+       fmhfreeze_t << setw(24) << uC_t[ii];
+       fmhfreeze_f << setw(24) << uC_f[ii];
+      }
+      fmhfreeze_p << setw(24) << TCp << setw(24) << mubCp << setw(24) << muqCp
+              << setw(24) << musCp;
+      fmhfreeze_t << setw(24) << TCt << setw(24) << mubCt << setw(24) << muqCt
+              << setw(24) << musCt;
+      fmhfreeze_f << setw(24) << TCf << setw(24) << mubCf << setw(24) << muqCf
+              << setw(24) << musCf;
 #ifdef OUTPI
-     double picart[10];
-     /*pi00*/ picart[index44(0, 0)] = ch * ch * piC[index44(0, 0)] +
-                                      2. * ch * sh * piC[index44(0, 3)] +
-                                      sh * sh * piC[index44(3, 3)];
-     /*pi01*/ picart[index44(0, 1)] =
-         ch * piC[index44(0, 1)] + sh * piC[index44(3, 1)];
-     /*pi02*/ picart[index44(0, 2)] =
-         ch * piC[index44(0, 2)] + sh * piC[index44(3, 2)];
-     /*pi03*/ picart[index44(0, 3)] =
-         ch * sh * (piC[index44(0, 0)] + piC[index44(3, 3)]) +
-         (ch * ch + sh * sh) * piC[index44(0, 3)];
-     /*pi11*/ picart[index44(1, 1)] = piC[index44(1, 1)];
-     /*pi12*/ picart[index44(1, 2)] = piC[index44(1, 2)];
-     /*pi13*/ picart[index44(1, 3)] =
-         sh * piC[index44(0, 1)] + ch * piC[index44(3, 1)];
-     /*pi22*/ picart[index44(2, 2)] = piC[index44(2, 2)];
-     /*pi23*/ picart[index44(2, 3)] =
-         sh * piC[index44(0, 2)] + ch * piC[index44(3, 2)];
-     /*pi33*/ picart[index44(3, 3)] = sh * sh * piC[index44(0, 0)] +
-                                      ch * ch * piC[index44(3, 3)] +
-                                      2. * sh * ch * piC[index44(0, 3)];
-     for (int ii = 0; ii < 10; ii++) {
-      fmhfreeze_p << setw(24) << picart[ii];
-      fmhfreeze_t << setw(24) << picart[ii];
-      fmhfreeze_f << setw(24) << picart[ii];
-     }
-     fmhfreeze_p << setw(24) << PiC;
-     fmhfreeze_t << setw(24) << PiC;
-     fmhfreeze_f << setw(24) << PiC;
+      double picart[10];
+      /*pi00*/ picart[index44(0, 0)] = ch * ch * piC[index44(0, 0)] +
+                                       2. * ch * sh * piC[index44(0, 3)] +
+                                       sh * sh * piC[index44(3, 3)];
+      /*pi01*/ picart[index44(0, 1)] =
+          ch * piC[index44(0, 1)] + sh * piC[index44(3, 1)];
+      /*pi02*/ picart[index44(0, 2)] =
+          ch * piC[index44(0, 2)] + sh * piC[index44(3, 2)];
+      /*pi03*/ picart[index44(0, 3)] =
+          ch * sh * (piC[index44(0, 0)] + piC[index44(3, 3)]) +
+          (ch * ch + sh * sh) * piC[index44(0, 3)];
+      /*pi11*/ picart[index44(1, 1)] = piC[index44(1, 1)];
+      /*pi12*/ picart[index44(1, 2)] = piC[index44(1, 2)];
+      /*pi13*/ picart[index44(1, 3)] =
+          sh * piC[index44(0, 1)] + ch * piC[index44(3, 1)];
+      /*pi22*/ picart[index44(2, 2)] = piC[index44(2, 2)];
+      /*pi23*/ picart[index44(2, 3)] =
+          sh * piC[index44(0, 2)] + ch * piC[index44(3, 2)];
+      /*pi33*/ picart[index44(3, 3)] = sh * sh * piC[index44(0, 0)] +
+                                       ch * ch * piC[index44(3, 3)] +
+                                       2. * sh * ch * piC[index44(0, 3)];
+      for (int ii = 0; ii < 10; ii++) {
+       fmhfreeze_p << setw(24) << picart[ii];
+       fmhfreeze_t << setw(24) << picart[ii];
+       fmhfreeze_f << setw(24) << picart[ii];
+      }
+      fmhfreeze_p << setw(24) << PiC;
+      fmhfreeze_t << setw(24) << PiC;
+      fmhfreeze_f << setw(24) << PiC;
 #else
-     fmhfreeze_p << setw(24) << dVEff;
-     fmhfreeze_t << setw(24) << dVEff;
-     fmhfreeze_f << setw(24) << dVEff;
+      fmhfreeze_p << setw(24) << dVEff;
+      fmhfreeze_t << setw(24) << dVEff;
+      fmhfreeze_f << setw(24) << dVEff;
 #endif
-     fmhfreeze_p << endl;
-     fmhfreeze_t << endl;
-     fmhfreeze_f << endl;
+      fmhfreeze_p << endl;
+      fmhfreeze_t << endl;
+      fmhfreeze_f << endl;
+     }
      double dEtotSurf[3] = {0., 0., 0.};
      dEtotSurf[0] = (ep + pCp) * uC_p[0] * dVEff_p - pCp * dsigma[0]; // projectile
      dEtotSurf[1] = (et + pCt) * uC_t[0] * dVEff_t - pCt * dsigma[0]; // target
