@@ -620,33 +620,6 @@ void MultiHydro::findFreezeout()
                                       2. * sh * ch * piC[index44(0, 3)];
 #endif
 
-     // exclude segments which fulfills dSigma_0 < 0 & dSigma^2 > 0 - those cells have energy flow into the fireball
-     if (dsigma[0] > 0 || dsds < 0) {
-      printFreezeout(
-       fmhfreeze_p,
-       h_p->getTau() - h_p->getDtau() + cornelius->get_centroid_elem(isegm, 0),
-       f_p->getX(ix) + cornelius->get_centroid_elem(isegm, 1),
-       f_p->getY(iy) + cornelius->get_centroid_elem(isegm, 2),
-       f_p->getZ(iz) + cornelius->get_centroid_elem(isegm, 3),
-       dsigma, uC_p, TCp, mubCp, muqCp, musCp, picart, PiC, dVEff_p
-      );
-      printFreezeout(
-       fmhfreeze_t,
-       h_t->getTau() - h_t->getDtau() + cornelius->get_centroid_elem(isegm, 0),
-       f_t->getX(ix) + cornelius->get_centroid_elem(isegm, 1),
-       f_t->getY(iy) + cornelius->get_centroid_elem(isegm, 2),
-       f_t->getZ(iz) + cornelius->get_centroid_elem(isegm, 3),
-       dsigma, uC_t, TCt, mubCt, muqCt, musCt, picart, PiC, dVEff_t
-      );
-      printFreezeout(
-       fmhfreeze_f,
-       h_f->getTau() - h_f->getDtau() + cornelius->get_centroid_elem(isegm, 0),
-       f_f->getX(ix) + cornelius->get_centroid_elem(isegm, 1),
-       f_f->getY(iy) + cornelius->get_centroid_elem(isegm, 2),
-       f_f->getZ(iz) + cornelius->get_centroid_elem(isegm, 3),
-       dsigma, uC_f, TCf, mubCf, muqCf, musCf, picart, PiC, dVEff_f
-      );
-     }
      double dEtotSurf[3] = {0., 0., 0.};
      dEtotSurf[0] = (ep + pCp) * uC_p[0] * dVEff_p - pCp * dsigma[0]; // projectile
      dEtotSurf[1] = (et + pCt) * uC_t[0] * dVEff_t - pCt * dsigma[0]; // target
@@ -660,6 +633,63 @@ void MultiHydro::findFreezeout()
      else EtotSurf_negative[1] += dEtotSurf[1];
      if (dEtotSurf[2] > 0) EtotSurf_positive[2] += dEtotSurf[2];
      else EtotSurf_negative[2] += dEtotSurf[2];
+
+     // exclude segments which fulfills dSigma_0 < 0 & dSigma^2 > 0 - those cells have energy flow into >
+     double param_T = 0;
+     if (dsds > 0) {
+      if (dsigma[0] > 0) {
+       printFreezeout(
+        fmhfreeze_p,
+        h_p->getTau() - h_p->getDtau() + cornelius->get_centroid_elem(isegm, 0),
+        f_p->getX(ix) + cornelius->get_centroid_elem(isegm, 1),
+        f_p->getY(iy) + cornelius->get_centroid_elem(isegm, 2),
+        f_p->getZ(iz) + cornelius->get_centroid_elem(isegm, 3),
+        dsigma, uC_p, TCp, mubCp, muqCp, musCp, picart, PiC, dVEff_p
+       );
+       printFreezeout(
+        fmhfreeze_t,
+        h_t->getTau() - h_t->getDtau() + cornelius->get_centroid_elem(isegm, 0),
+        f_t->getX(ix) + cornelius->get_centroid_elem(isegm, 1),
+        f_t->getY(iy) + cornelius->get_centroid_elem(isegm, 2),
+        f_t->getZ(iz) + cornelius->get_centroid_elem(isegm, 3),
+        dsigma, uC_t, TCt, mubCt, muqCt, musCt, picart, PiC, dVEff_t
+       );
+       printFreezeout(
+        fmhfreeze_f,
+        h_f->getTau() - h_f->getDtau() + cornelius->get_centroid_elem(isegm, 0),
+        f_f->getX(ix) + cornelius->get_centroid_elem(isegm, 1),
+        f_f->getY(iy) + cornelius->get_centroid_elem(isegm, 2),
+        f_f->getZ(iz) + cornelius->get_centroid_elem(isegm, 3),
+        dsigma, uC_f, TCf, mubCf, muqCf, musCf, picart, PiC, dVEff_f
+       );
+      }
+     } else {
+      if (dEtotSurf[0] > 0 && dVEff_p > param_T * sqrt(-dsds)) printFreezeout(
+       fmhfreeze_p,
+       h_p->getTau() - h_p->getDtau() + cornelius->get_centroid_elem(isegm, 0),
+       f_p->getX(ix) + cornelius->get_centroid_elem(isegm, 1),
+       f_p->getY(iy) + cornelius->get_centroid_elem(isegm, 2),
+       f_p->getZ(iz) + cornelius->get_centroid_elem(isegm, 3),
+       dsigma, uC_p, TCp, mubCp, muqCp, musCp, picart, PiC, dVEff_p
+      );
+      if (dEtotSurf[1] > 0 && dVEff_t > param_T * sqrt(-dsds)) printFreezeout(
+       fmhfreeze_t,
+       h_t->getTau() - h_t->getDtau() + cornelius->get_centroid_elem(isegm, 0),
+       f_t->getX(ix) + cornelius->get_centroid_elem(isegm, 1),
+       f_t->getY(iy) + cornelius->get_centroid_elem(isegm, 2),
+       f_t->getZ(iz) + cornelius->get_centroid_elem(isegm, 3),
+       dsigma, uC_t, TCt, mubCt, muqCt, musCt, picart, PiC, dVEff_t
+      );
+      if (dEtotSurf[2] > 0 && dVEff_f > param_T * sqrt(-dsds)) printFreezeout(
+       fmhfreeze_f,
+       h_f->getTau() - h_f->getDtau() + cornelius->get_centroid_elem(isegm, 0),
+       f_f->getX(ix) + cornelius->get_centroid_elem(isegm, 1),
+       f_f->getY(iy) + cornelius->get_centroid_elem(isegm, 2),
+       f_f->getZ(iz) + cornelius->get_centroid_elem(isegm, 3),
+       dsigma, uC_f, TCf, mubCf, muqCf, musCf, picart, PiC, dVEff_f
+      );
+     }
+
     }
  }
 
