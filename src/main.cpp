@@ -243,7 +243,7 @@ int main(int argc, char **argv) {
  if (eosTypeHadron == 0) {
    eosH = new EoSHadron((char*)"eos/eosHadronLog.dat"); //PDG hadronic EoS
  } else if (eosTypeHadron == 1) {
-   eosH = new EoSSmash((char*)"eos/hadgas_eos_SMASH.dat", 101, 101, 101); //SMASH hadronic EoS
+   eosH = new EoSSmash((char*)"eos/hadgas_eos_SMASH.dat", 101, 51, 51); //SMASH hadronic EoS
  } else {
    cout << "Unknown haronic EoS type for hypersurface creation.\n" <<
            "eosTypeHadron should be either \"0\" (PDG hadronic EoS) or " <<
