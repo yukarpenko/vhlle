@@ -655,7 +655,7 @@ void Hydro::ISformal() {
      // mainly to protect against division by zero in the eta=0 case.
      for(int i=0; i<4; i++)
      for(int j=0; j<4; j++) {
-      sigNS[i][j] = 0.5 * piNS[i][j] / eta;
+      sigNS[i][j] = 0.5 * piNS[i][j] / eta * 5.068;
       if(eta<=0.0) sigNS[i][j] = 0.0;
      }
      //############# get relaxation times
