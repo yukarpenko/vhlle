@@ -374,10 +374,11 @@ void Hydro::visc_source_step(int ix, int iy, int iz) {
 // dv/dx_i ~ v^{x+dx}-v{x-dx},
 // which makes sense after non-viscous step
 void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
-                    double dmu[4][4], double &du) {
+                    double dmu[4][4], double dbeta[4][4], double &du) {
  const double VMIN = 1e-2;
  const double UDIFF = 3.0;
  double e0, e1, p, nb, nq, ns, vx1, vy1, vz1, vx0, vy0, vz0, vxH, vyH, vzH;
+  double T, T0, T1, mub, muq, mus;
  double ut0, ux0, uy0, uz0, ut1, ux1, uy1, uz1;
  //	double dmu [4][4] ; // \partial_\mu u^\nu matrix
  // coordinates: 0=tau, 1=x, 2=y, 3=eta
@@ -402,6 +403,7 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
    for (int j = 0; j < 4; j++) {
     pi[i][j] = 0.;
     dmu[i][j] = 0.;
+    dbeta[i][j] = 0.;
    }
   Pi = du = 0.;
   return;
@@ -411,10 +413,11 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
  // centered differences with respect to the values at (it+1/2, ix, iy, iz)
  // d_tau u^\mu
  c->getPrimVarPrev(eos, tau - dt, e0, p, nb, nq, ns, vx0, vy0, vz0);
+  eos->eos(e0, nb, nq, ns, T0, mub, muq, mus, p);
  c->getPrimVar(eos, tau, e1, p, nb, nq, ns, vx1, vy1, vz1);
+  eos->eos(e1, nb, nq, ns, T1, mub, muq, mus, p);
  c->getPrimVarHCenter(eos, tau - 0.5 * dt, e1, p, nb, nq, ns, vxH, vyH, vzH);
  //############## get transport coefficients
- double T, mub, muq, mus;
  double etaS, zetaS;
  double s = eos->s(e1, nb, nq, ns);  // entropy density in the current cell
  eos->eos(e1, nb, nq, ns, T, mub, muq, mus, p);
@@ -438,6 +441,10 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
  dmu[0][1] = (ux1 * ux1 - ux0 * ux0) / 2. / uuu[1] / dt;
  dmu[0][2] = (uy1 * uy1 - uy0 * uy0) / 2. / uuu[2] / dt;
  dmu[0][3] = (uz1 * uz1 - uz0 * uz0) / 2. / uuu[3] / dt;
+ dbeta[0][0] = (ut1 / T1 - ut0 / T0) / dt;
+ dbeta[0][1] = (ux1 / T1 - ux0 / T0) / dt;
+ dbeta[0][2] = (uy1 / T1 - uy0 / T0) / dt;
+ dbeta[0][3] = (uz1 / T1 - uz0 / T0) / dt;
  if (fabs(0.5 * (ut1 + ut0) / ut1) > UDIFF) dmu[0][0] = (ut1 - ut0) / dt;
  if (fabs(uuu[1]) < VMIN || fabs(0.5 * (ux1 + ux0) / ux1) > UDIFF)
   dmu[0][1] = (ux1 - ux0) / dt;
@@ -448,11 +455,16 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
  if (e1 <= 0. || e0 <= 0.) {  // matter-vacuum
   dmu[0][0] = dmu[0][1] = dmu[0][2] = dmu[0][3] = 0.;
  }
+ if(e1 <= 0. || e0 <= 0. || T1<=0. || T0<=0.) {
+  dbeta[0][0] = dbeta[0][1] = dbeta[0][2] = dbeta[0][3] = 0.;
+ }
  // d_x u^\mu
  f->getCell(ix + 1, iy, iz)
      ->getPrimVarHCenter(eos, tau, e1, p, nb, nq, ns, vx1, vy1, vz1);
+ eos->eos(e1, nb, nq, ns, T1, mub, muq, mus, p);
  f->getCell(ix - 1, iy, iz)
      ->getPrimVarHCenter(eos, tau, e0, p, nb, nq, ns, vx0, vy0, vz0);
+  eos->eos(e0, nb, nq, ns, T0, mub, muq, mus, p);
  if (e1 > 0. && e0 > 0.) {
   ut0 = 1.0 / sqrt(1.0 - vx0 * vx0 - vy0 * vy0 - vz0 * vz0);
   ux0 = ut0 * vx0;
@@ -466,6 +478,10 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
   dmu[1][1] = 0.25 * (ux1 * ux1 - ux0 * ux0) / uuu[1] / dx;
   dmu[1][2] = 0.25 * (uy1 * uy1 - uy0 * uy0) / uuu[2] / dx;
   dmu[1][3] = 0.25 * (uz1 * uz1 - uz0 * uz0) / uuu[3] / dx;
+  dbeta[1][0] = 0.5 * (ut1 / T1 - ut0 / T0) / dx;
+  dbeta[1][1] = 0.5 * (ux1 / T1 - ux0 / T0) / dx;
+  dbeta[1][2] = 0.5 * (uy1 / T1 - uy0 / T0) / dx;
+  dbeta[1][3] = 0.5 * (uz1 / T1 - uz0 / T0) / dx;
   if (fabs(0.5 * (ut1 + ut0) / uuu[0]) > UDIFF)
    dmu[1][0] = 0.5 * (ut1 - ut0) / dx;
   if (fabs(uuu[1]) < VMIN || fabs(0.5 * (ux1 + ux0) / uuu[1]) > UDIFF)
@@ -477,13 +493,18 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
  } else {  // matter-vacuum
   dmu[1][0] = dmu[1][1] = dmu[1][2] = dmu[1][3] = 0.;
  }
+ if(e1 <= 0. || e0 <= 0. || T1<=0. || T0<=0.) {
+  dbeta[1][0] = dbeta[1][1] = dbeta[1][2] = dbeta[1][3] = 0.;
+ }
  if (fabs(dmu[1][3]) > 1e+10)
   cout << "dmu[1][3]:  " << uz1 << "  " << uz0 << "  " << uuu[3] << endl;
  // d_y u^\mu
  f->getCell(ix, iy + 1, iz)
      ->getPrimVarHCenter(eos, tau, e1, p, nb, nq, ns, vx1, vy1, vz1);
+  eos->eos(e1, nb, nq, ns, T1, mub, muq, mus, p);
  f->getCell(ix, iy - 1, iz)
      ->getPrimVarHCenter(eos, tau, e0, p, nb, nq, ns, vx0, vy0, vz0);
+  eos->eos(e0, nb, nq, ns, T0, mub, muq, mus, p);
  if (e1 > 0. && e0 > 0.) {
   ut0 = 1.0 / sqrt(1.0 - vx0 * vx0 - vy0 * vy0 - vz0 * vz0);
   ux0 = ut0 * vx0;
@@ -497,6 +518,10 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
   dmu[2][1] = 0.25 * (ux1 * ux1 - ux0 * ux0) / uuu[1] / dy;
   dmu[2][2] = 0.25 * (uy1 * uy1 - uy0 * uy0) / uuu[2] / dy;
   dmu[2][3] = 0.25 * (uz1 * uz1 - uz0 * uz0) / uuu[3] / dy;
+  dbeta[2][0] = 0.5 * (ut1 / T1 - ut0 / T0) / dy;
+  dbeta[2][1] = 0.5 * (ux1 / T1 - ux0 / T0) / dy;
+  dbeta[2][2] = 0.5 * (uy1 / T1 - uy0 / T0) / dy;
+  dbeta[2][3] = 0.5 * (uz1 / T1 - uz0 / T0) / dy;
   if (fabs(0.5 * (ut1 + ut0) / uuu[0]) > UDIFF)
    dmu[2][0] = 0.5 * (ut1 - ut0) / dy;
   if (fabs(uuu[1]) < VMIN || fabs(0.5 * (ux1 + ux0) / uuu[1]) > UDIFF)
@@ -508,11 +533,16 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
  } else {  // matter-vacuum
   dmu[2][0] = dmu[2][1] = dmu[2][2] = dmu[2][3] = 0.;
  }
+ if(e1 <= 0. || e0 <= 0. || T1<=0. || T0<=0.){
+  dbeta[2][0] = dbeta[2][1] = dbeta[2][2] = dbeta[2][3] = 0.;
+ }
  // d_z u^\mu
  f->getCell(ix, iy, iz + 1)
      ->getPrimVarHCenter(eos, tau, e1, p, nb, nq, ns, vx1, vy1, vz1);
+  eos->eos(e1, nb, nq, ns, T1, mub, muq, mus, p);
  f->getCell(ix, iy, iz - 1)
      ->getPrimVarHCenter(eos, tau, e0, p, nb, nq, ns, vx0, vy0, vz0);
+  eos->eos(e0, nb, nq, ns, T0, mub, muq, mus, p);
  if (e1 > 0. && e0 > 0.) {
   ut0 = 1.0 / sqrt(1.0 - vx0 * vx0 - vy0 * vy0 - vz0 * vz0);
   ux0 = ut0 * vx0;
@@ -526,6 +556,10 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
   dmu[3][1] = 0.25 * (ux1 * ux1 - ux0 * ux0) / uuu[1] / dz / (tau + 0.5 * dt);
   dmu[3][2] = 0.25 * (uy1 * uy1 - uy0 * uy0) / uuu[2] / dz / (tau + 0.5 * dt);
   dmu[3][3] = 0.25 * (uz1 * uz1 - uz0 * uz0) / uuu[3] / dz / (tau + 0.5 * dt);
+  dbeta[3][0] = 0.5 * (ut1 / T1 - ut0 / T0) / (dz * (tau + 0.5 * dt));
+  dbeta[3][1] = 0.5 * (ux1 / T1 - ux0 / T0) / (dz * (tau + 0.5 * dt));
+  dbeta[3][2] = 0.5 * (uy1 / T1 - uy0 / T0) / (dz * (tau + 0.5 * dt));
+  dbeta[3][3] = 0.5 * (uz1 / T1 - uz0 / T0) / (dz * (tau + 0.5 * dt));
   if (fabs(0.5 * (ut1 + ut0) / uuu[0]) > UDIFF)
    dmu[3][0] = 0.5 * (ut1 - ut0) / dz / (tau + 0.5 * dt);
   if (fabs(uuu[1]) < VMIN || fabs(0.5 * (ux1 + ux0) / uuu[1]) > UDIFF)
@@ -537,9 +571,16 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
  } else {  // matter-vacuum
   dmu[3][0] = dmu[3][1] = dmu[3][2] = dmu[3][3] = 0.;
  }
+ if(e1 <= 0. || e0 <= 0. || T1<=0. || T0<=0.){
+  dbeta[3][0] = dbeta[3][1] = dbeta[3][2] = dbeta[3][3] = 0.;
+ }
  // additional terms from Christoffel symbols :)
  dmu[3][0] += uuu[3] / (tau - 0.5 * dt);
  dmu[3][3] += uuu[0] / (tau - 0.5 * dt);
+ if(T>0.){
+  dbeta[3][0] += uuu[3] / (T * (tau - 0.5 * dt));
+  dbeta[3][3] += uuu[0] / (T * (tau - 0.5 * dt));
+ }
  // calculation of Z[mu][nu][lambda][rho]
  for (int i = 0; i < 4; i++)
   for (int j = 0; j < 4; j++)
@@ -613,6 +654,7 @@ void Hydro::setNSvalues() {
 void Hydro::ISformal() {
  double e, p, nb, nq, ns, vx, vy, vz, T, mub, muq, mus;
  double piNS[4][4], sigNS[4][4], PiNS, dmu[4][4], du, pi[4][4], piH[4][4], Pi, PiH;
+ double dbeta[4][4];
  const double gmumu[4] = {1., -1., -1., -1.};
 
  // loop #1 (relaxation+source terms)
@@ -630,6 +672,7 @@ void Hydro::ISformal() {
       }
      c->setPiH0(0.0);
      c->setPi0(0.0);
+     c->resetDbeta();
     } else {  // non-empty cell
      // 1) relaxation(pi)+source(pi) terms for half-step
      double gamma = 1.0 / sqrt(1.0 - vx * vx - vy * vy - vz * vz);
@@ -645,7 +688,8 @@ void Hydro::ISformal() {
      flux[0] += -(tau - dt) * c->getPi();
      c->addFlux(flux[0], flux[1], flux[2], flux[3], 0., 0., 0.);
      // now calculating viscous terms in NS limit
-     NSquant(ix, iy, iz, piNS, PiNS, dmu, du);
+     NSquant(ix, iy, iz, piNS, PiNS, dmu, dbeta, du);
+     c->setDbeta(dbeta);
      eos->eos(e, nb, nq, ns, T, mub, muq, mus, p);
      double etaS, zetaS;
      trcoeff->getEta(e, T, etaS, zetaS);
