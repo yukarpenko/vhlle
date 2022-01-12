@@ -250,7 +250,7 @@ void IcTrento::makeSmoothTable(int npart) {
     double fEta = 0.;
     if(fabs(eta)<eta0) fEta = 1.0;
     else if (fabs(eta)<ybeam) fEta = exp(-0.5*pow((fabs(eta)-eta0)/sigEta,2));
-    rho[ix][iy][iz] = source[ix][iy] * fEta;
+    rho[ix][iy][iz] = interpolateGrid(x,y) * fEta;
  } // Z(eta) loop
 }
 
