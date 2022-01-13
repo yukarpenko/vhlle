@@ -172,7 +172,7 @@ IcTrento::IcTrento(Fluid* f, const char* filename, double _tau0, const char* set
   makeSmoothTable(npart);
 
   // delete source array
-  for (int ix = 0; ix < nx; ix++) {
+  for (int ix = 0; ix < n_grid; ix++) {
    delete[] source[ix];
   }
   delete[] source;
