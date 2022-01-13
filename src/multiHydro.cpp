@@ -732,3 +732,32 @@ void MultiHydro::printFreezeout(std::ofstream &fout, double t, double x, double 
 #endif
  fout << endl;
 }
+
+
+double MultiHydro::calculateScatRates(double T, double mu)
+{
+ /*
+   This function calculates scattering rates of nucleon on nucleons in fluids
+ */
+ double mN = 0.938; // nucelon mass
+ double p = 0.3; // momentum of particle, for which we calculate scattering rate
+ double R;
+ double ds = 0.1;
+ double smin = pow(2*mN,2);
+ double smax = 10;
+ double g = 2;
+ for (double s = smin + ds/2; s < smax; s += ds)
+ {
+  double sigmaT, sigmaE, sigmaP;
+  double Ekin = s/(2.0*mN) - 2.0*mN;
+  xsect->NN(Ekin, sigmaT, sigmaE, sigmaP);
+  double dR = sigmaT * sqrt(pow(s - mN*mN - mN*mN,2) - 4*pow(mN,2)*pow(mN,2)) *
+              sinh(sqrt(pow(s - mN*mN - mN*mN,2) - 4*pow(mN,2)*pow(mN,2))*p / (2*T*mN*mN)) *
+              exp(-sqrt(mN*mN+p*p)*(s - mN*mN - mN*mN)/(2*T*mN*mN));
+  cout << s << " " << dR << endl;
+  R += dR * ds;
+ }
+ R *= g*T*exp(mu/T)/(8*pow(M_PI,2)*sqrt(mN*mN+p*p));
+ //exit(1);
+ return R;
+}
