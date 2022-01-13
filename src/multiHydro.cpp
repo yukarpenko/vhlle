@@ -255,7 +255,7 @@ void MultiHydro::getEnergyMomentumTensor(double (&T)[4][4], double Q_p[7], doubl
  }
 }
 
-void MultiHydro::getEnergyDensity()
+void MultiHydro::getDiagonalizedEnergyDensity()
 {
  double Q_p[7], Q_f[7], Q_t[7];
  double Ttemp[4][4];
@@ -315,6 +315,46 @@ void MultiHydro::getEnergyDensity()
      MHeps[ix][iy][iz] = energyDensity;
     }
    }
+}
+
+void MultiHydro::getMaxEnergyDensity()
+{
+ double Q_p[7], Q_f[7], Q_t[7];
+ double Ttemp[4][4];
+ for (int iy = 0; iy < f_p->getNY(); iy++)
+  for (int iz = 0; iz < f_p->getNZ(); iz++)
+   for (int ix = 0; ix < f_p->getNX(); ix++) {
+    Cell *c_p = f_p->getCell(ix, iy, iz);
+    Cell *c_t = f_t->getCell(ix, iy, iz);
+    Cell *c_f = f_f->getCell(ix, iy, iz);
+    c_p->getQ(Q_p);
+    c_f->getQ(Q_f);
+    c_t->getQ(Q_t);
+    for (int i = 0; i < 7; i++) {
+     Q_p[i] = Q_p[i]/h_p->getTau();
+     Q_t[i] = Q_t[i]/h_t->getTau();
+     Q_f[i] = Q_f[i]/h_f->getTau();
+    }
+    double ep, pp, nbp, nqp, nsp, vxp, vyp, vzp;
+    double et, pt, nbt, nqt, nst, vxt, vyt, vzt;
+    double ef, pf, nbf, nqf, nsf, vxf, vyf, vzf;
+    transformPV(eos, Q_p, ep, pp, nbp, nqp, nsp, vxp, vyp, vzp);
+    transformPV(eos, Q_t, et, pt, nbt, nqt, nst, vxt, vyt, vzt);
+    transformPV(eos, Q_f, ef, pf, nbf, nqf, nsf, vxf, vyf, vzf);
+
+    MHeps[ix][iy][iz] = max(ep, max(et, ef));
+   }
+}
+
+void MultiHydro::getEnergyDensity()
+{
+ // In this function we decide which energy density will be used
+ // to find the freezeout hypersurface.
+ // - use getMaxEnergyDensity() to use maximum energy of the three fluids
+ // - use getDiagonalizedEnergyDensity() to use energy density obtained
+ //   by diagonalization of sum of the three energy-momentum tensors
+ // getMaxEnergyDensity();
+ getDiagonalizedEnergyDensity();
 }
 
 void MultiHydro::updateEnergyDensity()

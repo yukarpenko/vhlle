@@ -32,6 +32,8 @@ public:
  void performStep();
  void frictionSubstep();
  void getEnergyMomentumTensor(double (&T)[4][4], double Q_p[7], double Q_f[7], double Q_t[7]);
+ void getDiagonalizedEnergyDensity();
+ void getMaxEnergyDensity();
  void getEnergyDensity();
  void updateEnergyDensity();
  void findFreezeout();
