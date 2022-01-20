@@ -42,5 +42,5 @@ public:
  void resizeMHeps();
  void setFluids(Fluid *f_p, Fluid *f_t, Fluid *f_f, Hydro *h_p, Hydro *h_t,
   Hydro* h_f);
- double calculateScatRates(double T, double mu);
+ double calculateScatRates(double px, double T, double mu, double u[4]);
 };

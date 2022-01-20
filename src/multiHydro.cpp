@@ -774,17 +774,21 @@ void MultiHydro::printFreezeout(std::ofstream &fout, double t, double x, double 
 }
 
 
-double MultiHydro::calculateScatRates(double T, double mu)
+double MultiHydro::calculateScatRates(double px, double T, double mu, double u[4])
 {
  /*
    This function calculates scattering rates of nucleon on nucleons in fluids
  */
  double mN = 0.938; // nucelon mass
- double p = 0.3; // momentum of particle, for which we calculate scattering rate
+ TLorentzVector pLV;
+ pLV.SetPxPyPzE(px, 0, 0, sqrt(px*px+mN*mN));
+ pLV.Boost(-u[1]/u[0], -u[2]/u[0], -u[3]/u[0]);
+ double p = sqrt(pow(pLV.Px(),2) + pow(pLV.Py(),2) + pow(pLV.Pz(),2));
+ double gamma = u[0];
  double R;
  double ds = 0.1;
  double smin = pow(2*mN,2);
- double smax = 10;
+ double smax = 20;
  double g = 2;
  for (double s = smin + ds/2; s < smax; s += ds)
  {
@@ -794,10 +798,11 @@ double MultiHydro::calculateScatRates(double T, double mu)
   double dR = sigmaT * sqrt(pow(s - mN*mN - mN*mN,2) - 4*pow(mN,2)*pow(mN,2)) *
               sinh(sqrt(pow(s - mN*mN - mN*mN,2) - 4*pow(mN,2)*pow(mN,2))*p / (2*T*mN*mN)) *
               exp(-sqrt(mN*mN+p*p)*(s - mN*mN - mN*mN)/(2*T*mN*mN));
-  cout << s << " " << dR << endl;
+  //cout << s << " " << dR << endl;
   R += dR * ds;
  }
  R *= g*T*exp(mu/T)/(8*pow(M_PI,2)*sqrt(mN*mN+p*p));
+ R *= gamma;
  //exit(1);
  return R;
 }
