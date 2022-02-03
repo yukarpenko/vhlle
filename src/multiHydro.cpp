@@ -64,6 +64,13 @@ MultiHydro::MultiHydro(Fluid *_f_p, Fluid *_f_t, Fluid *_f_f, Hydro *_h_p,
    }
   }
  }
+
+ /* Debug of scattering rates calculation
+ double u[4] = {1, 0, 0, 0};
+ for (double p = 0.1; p <= 2; p+=0.1) {
+  cout << p << " " << totalScatRate(p, 0.12, 0.3, u) << endl;
+ }
+ exit(1);*/
 }
 
 MultiHydro::~MultiHydro() {
@@ -774,35 +781,73 @@ void MultiHydro::printFreezeout(std::ofstream &fout, double t, double x, double 
 }
 
 
-double MultiHydro::calculateScatRates(double px, double T, double mu, double u[4])
+double MultiHydro::totalScatRate(double px, double T, double mu, double u[4])
+{
+ return 2*calculateScatRates(px, T, mu, u, 1) + 3*calculateScatRates(px, T, mu, u, 0);
+}
+
+
+double MultiHydro::calculateScatRates(double px, double T, double mu, double u[4], int particle)
 {
  /*
    This function calculates scattering rates of nucleon on nucleons in fluids
  */
- double mN = 0.938; // nucelon mass
+ double m1 = 0.938; // scattered particle
+ double m2 = particle == 0 ? 0.1396 : 0.938; // scatterers in cloud
  TLorentzVector pLV;
- pLV.SetPxPyPzE(px, 0, 0, sqrt(px*px+mN*mN));
+ pLV.SetPxPyPzE(px, 0, 0, sqrt(px*px+m1*m1));
  pLV.Boost(-u[1]/u[0], -u[2]/u[0], -u[3]/u[0]);
  double p = sqrt(pow(pLV.Px(),2) + pow(pLV.Py(),2) + pow(pLV.Pz(),2));
  double gamma = u[0];
  double R;
+ double Epi = sqrt(m1*m1+p*p);
+ double scrit = m1*m1 + m2*m2 + 2*Epi*m2;
  double ds = 0.1;
- double smin = pow(2*mN,2);
- double smax = 20;
+ double smin = pow(m1 + m2,2);
+ double smax = 10;
  double g = 2;
  for (double s = smin + ds/2; s < smax; s += ds)
  {
-  double sigmaT, sigmaE, sigmaP;
-  double Ekin = s/(2.0*mN) - 2.0*mN;
-  xsect->NN(Ekin, sigmaT, sigmaE, sigmaP);
-  double dR = sigmaT * sqrt(pow(s - mN*mN - mN*mN,2) - 4*pow(mN,2)*pow(mN,2)) *
-              sinh(sqrt(pow(s - mN*mN - mN*mN,2) - 4*pow(mN,2)*pow(mN,2))*p / (2*T*mN*mN)) *
-              exp(-sqrt(mN*mN+p*p)*(s - mN*mN - mN*mN)/(2*T*mN*mN));
-  //cout << s << " " << dR << endl;
-  R += dR * ds;
+  //double Ekin = s/(2.0*mN) - 2.0*mN;
+  //double pLab = sqrt(s*(s-4*mN*mN)) / (2.0*mN);
+  double sa = pow(m1+m2,2);
+  double sb = pow(m1-m2,2);
+  double sprime = s - m1*m1 - m2*m2;
+  double ebar, deltaE;
+  if (s <= scrit) {
+   ebar = 0.5*((Epi*sprime+p*sqrt(sprime*sprime-4*m1*m1*m2*m2))/(2*m1*m1)+2*Epi*m2*m2/sprime);
+   deltaE = 0.5*((Epi*sprime+p*sqrt(sprime*sprime-4*m1*m1*m2*m2))/(2*m1*m1)-2*Epi*m2*m2/sprime);
+  } else {
+   ebar = Epi*sprime/(2*m1*m1);
+   deltaE = p*sqrt(sprime*sprime-4*m1*m1*m2*m2)/(2*m1*m1);
+  }
+  double dR = sqrt(s-sa)*sqrt(s-sb)*exp(-ebar/T)*sinh(deltaE/T)/pow(0.197,3);
+  // case of proton-proton scattering
+  if (particle == 1) dR *= 0.1 * pp_total(s);
+  // case of pion-proton scattering
+  if (particle == 0) dR *= xsect->piN(s);
+  //cout << s << " " << exp(ebar/T) << " " << exp(-sqrt(m1*m1+p*p)*(s - m1*m1 - m2*m2)/(2*T*m1*m1)) << " " << dR << endl;
+  if (dR > 1e-20 && dR < 1e20) R += dR * ds;
  }
- R *= g*T*exp(mu/T)/(8*pow(M_PI,2)*sqrt(mN*mN+p*p));
+ R *= g*T*exp(mu/T)/(8*pow(M_PI,2)*p*Epi);
  R *= gamma;
  //exit(1);
  return R;
+}
+
+double MultiHydro::pp_total(double mandelstam_s) {
+  double mN = 0.938;
+  const double p_lab = sqrt(mandelstam_s*(mandelstam_s-4*mN*mN)) / (2.0*mN);
+  if (p_lab < 0.4) {
+    return 34 * pow(p_lab / 0.4, -2.104);
+  } else if (p_lab < 0.8) {
+    return 23.5 + 1000 * pow(p_lab - 0.7, 4);
+  } else if (p_lab < 1.5) {
+    return 23.5 + 24.6 / (1 + exp(-(p_lab - 1.2) / 0.1));
+  } else if (p_lab < 5.0) {
+    return 41 + 60 * (p_lab - 0.9) * exp(-1.2 * p_lab);
+  } else {
+    const auto logp = log(p_lab);
+    return 48.0 + 0.522 * logp * logp - 4.51 * logp;
+  }
 }

@@ -82,5 +82,11 @@ void CrossSections::NN(double Ekin, double& sigmaT,
 
 double CrossSections::piN(double s)
 {
+ double mN = 0.938;
+ double mPi = 0.1396;
+ double plab = sqrt((s-pow(mN+mPi,2))*(s-pow(mN-mPi,2))) / (2.0*mN);
+ if (plab < 0.2) {
+  return 60.6*plab*plab;
+ }
  return gSigmaPiN->Eval(s);
 }
