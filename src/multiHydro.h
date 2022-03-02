@@ -17,8 +17,8 @@ class MultiHydro {
  double ***MHeps, ***MHepsPrev;
  double ecrit, vEff_p, vEff_t, vEff_f;
  int nx, ny, nz;
- double dx, dy, dz, dtau;
- double lambda = 5;
+ double dx, dy, dz, dtau, sNN;
+ double lambda = 3;
  const double gmunu[4][4] = {
      {1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, -1, 0}, {0, 0, 0, -1}};
  double EtotSurf[3] = {0., 0., 0.}, EtotSurf_positive[3] = {0., 0., 0.},
@@ -26,7 +26,7 @@ class MultiHydro {
 
 public:
  MultiHydro(Fluid *f_p, Fluid *f_t, Fluid *f_f, Hydro *h_p, Hydro *h_t,
-  Hydro* h_f, EoS *eos, TransportCoeff *trcoeff, double dtau, double eCrit);
+  Hydro* h_f, EoS *eos, TransportCoeff *trcoeff, double dtau, double eCrit, double sNN);
  ~MultiHydro(void);
  void initOutput(const char *dir);
  void performStep();
@@ -35,6 +35,7 @@ public:
  void getDiagonalizedEnergyDensity();
  void getMaxEnergyDensity();
  void getEnergyDensity();
+ void getSumEnergyDensity();
  void updateEnergyDensity();
  void findFreezeout();
  void printFreezeout(std::ofstream &fout, double t, double x, double y, double z, double dsigma[4], double uC[4], double TC, double mub, double muq, double mus, double picart[10], double PiC, double dVEff);

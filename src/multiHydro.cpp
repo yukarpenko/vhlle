@@ -21,7 +21,7 @@ using namespace std;
 
 MultiHydro::MultiHydro(Fluid *_f_p, Fluid *_f_t, Fluid *_f_f, Hydro *_h_p,
  Hydro *_h_t, Hydro *_h_f, EoS *_eos, TransportCoeff *_trcoeff, double _dtau,
- double eCrit)
+ double eCrit, double _sNN)
 {
  f_p = _f_p;
  f_t = _f_t;
@@ -39,6 +39,7 @@ MultiHydro::MultiHydro(Fluid *_f_p, Fluid *_f_t, Fluid *_f_f, Hydro *_h_p,
  dy = f_p->getDy();
  dz = f_p->getDz();
  dtau = _dtau;
+ sNN = _sNN;
 
  //---- Cornelius init
  double arrayDx[4] = {h_p->getDtau(), f_p->getDx(), f_p->getDy(), f_p->getDz()};
@@ -172,8 +173,25 @@ void MultiHydro::frictionSubstep()
     upLV.Boost(-vxt, -vyt, -vzt);
     utLV.Boost(-vxp, -vyp, -vzp);
     for(int i=0; i<4; i++){
+     // Ivanov's friction terms
      //flux_p[i] += -nbp*nbt*(D_P*(up[i] - ut[i]) + D_E*(up[i] + ut[i]))*h_p->getDtau();
      //flux_t[i] += -nbp*nbt*(D_P*(ut[i] - up[i]) + D_E*(up[i] + ut[i]))*h_p->getDtau();
+     // simplified and parametrized friction terms
+     double vpAbs = sqrt(pow(upLV[0],2) + pow(upLV[1],2) + pow(upLV[2],2))/upLV[3];
+     double vtAbs = sqrt(pow(utLV[0],2) + pow(utLV[1],2) + pow(utLV[2],2))/utLV[3];
+     double vLimit = sqrt(1-pow(2*0.938/sNN,2));
+     if (vpAbs > vLimit) {
+       upLV[3] = 1.0/sqrt(1.0-vLimit*vLimit);
+       upLV[0] = upLV[0]*(vLimit/vpAbs)*sqrt((1.0-vpAbs*vpAbs)/(1.0-vLimit*vLimit));
+       upLV[1] = upLV[1]*(vLimit/vpAbs)*sqrt((1.0-vpAbs*vpAbs)/(1.0-vLimit*vLimit));
+       upLV[2] = upLV[2]*(vLimit/vpAbs)*sqrt((1.0-vpAbs*vpAbs)/(1.0-vLimit*vLimit));
+     }
+     if (vtAbs > vLimit) {
+       utLV[3] = 1.0/sqrt(1.0-vLimit*vLimit);
+       utLV[0] = utLV[0]*(vLimit/vtAbs)*sqrt((1.0-vtAbs*vtAbs)/(1.0-vLimit*vLimit));
+       utLV[1] = utLV[1]*(vLimit/vtAbs)*sqrt((1.0-vtAbs*vtAbs)/(1.0-vLimit*vLimit));
+       utLV[2] = utLV[2]*(vLimit/vtAbs)*sqrt((1.0-vtAbs*vtAbs)/(1.0-vLimit*vLimit));
+     }
      flux_p[i] += -upLV[(i+3)%4]*sqrt(ep*et)*h_p->getDtau()/lambda;
      flux_t[i] += -utLV[(i+3)%4]*sqrt(ep*et)*h_p->getDtau()/lambda;
     }
@@ -346,6 +364,35 @@ void MultiHydro::getMaxEnergyDensity()
    }
 }
 
+void MultiHydro::getSumEnergyDensity()
+{
+ double Q_p[7], Q_f[7], Q_t[7];
+ double Ttemp[4][4];
+ for (int iy = 0; iy < f_p->getNY(); iy++)
+  for (int iz = 0; iz < f_p->getNZ(); iz++)
+   for (int ix = 0; ix < f_p->getNX(); ix++) {
+    Cell *c_p = f_p->getCell(ix, iy, iz);
+    Cell *c_t = f_t->getCell(ix, iy, iz);
+    Cell *c_f = f_f->getCell(ix, iy, iz);
+    c_p->getQ(Q_p);
+    c_f->getQ(Q_f);
+    c_t->getQ(Q_t);
+    for (int i = 0; i < 7; i++) {
+     Q_p[i] = Q_p[i]/h_p->getTau();
+     Q_t[i] = Q_t[i]/h_t->getTau();
+     Q_f[i] = Q_f[i]/h_f->getTau();
+    }
+    double ep, pp, nbp, nqp, nsp, vxp, vyp, vzp;
+    double et, pt, nbt, nqt, nst, vxt, vyt, vzt;
+    double ef, pf, nbf, nqf, nsf, vxf, vyf, vzf;
+    transformPV(eos, Q_p, ep, pp, nbp, nqp, nsp, vxp, vyp, vzp);
+    transformPV(eos, Q_t, et, pt, nbt, nqt, nst, vxt, vyt, vzt);
+    transformPV(eos, Q_f, ef, pf, nbf, nqf, nsf, vxf, vyf, vzf);
+
+    MHeps[ix][iy][iz] = ep + et + ef;
+   }
+}
+
 void MultiHydro::getEnergyDensity()
 {
  // In this function we decide which energy density will be used
@@ -355,6 +402,7 @@ void MultiHydro::getEnergyDensity()
  //   by diagonalization of sum of the three energy-momentum tensors
  // getMaxEnergyDensity();
  getDiagonalizedEnergyDensity();
+ // getSumEnergyDensity();
 }
 
 void MultiHydro::updateEnergyDensity()
