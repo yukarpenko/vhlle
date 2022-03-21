@@ -58,6 +58,7 @@ IcTrento::IcTrento(Fluid* f, const char* filename, double _tau0, const char* set
   cout << "IcTrento: setup for 200 GeV RHIC\n";
  } else if(strcmp(setup,"LHC5020")==0) {
   sNN = 5020;
+  eta0 = 3.7; //2.3; // midrapidity plateau
   sigEta = 1.4; // diffuseness of rapidity profile
   etaM = 4.5;
   ybeam = 8.585; // beam rapidity
@@ -265,7 +266,7 @@ void IcTrento::makeSmoothTable(int npart) {
     double fEta = 0.;
     if(fabs(eta)<eta0) fEta = 1.0;
     else if (fabs(eta)<ybeam) fEta = exp(-0.5*pow((fabs(eta)-eta0)/sigEta,2));
-    rho[ix][iy][iz] = interpolateGrid(x,y) * fEta;
+    rho[ix][iy][iz] += interpolateGrid(x,y) * fEta;
  } // Z(eta) loop
 }
 
