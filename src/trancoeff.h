@@ -4,12 +4,13 @@ class EoS;
 // of the fluid: eta/s, zeta/s and the corresponding relaxation times,
 // taupi (\tau_\pi) and tauPi (\tau_\Pi)
 class TransportCoeff {
+ int zetaSparam;
  double etaS, zetaS0, taupi, tauPi;
  EoS *eos;  // EoS instance is needed optionally for zeta/s parametrization,
             // which depends on the speed of sound
  double zetaS(double e, double T);
 public:
- TransportCoeff(double _etaS, double _zetaS, EoS *_eos);
+ TransportCoeff(double _etaS, double _zetaS, int _zetaSparam, EoS *_eos);
  ~TransportCoeff(){};
  void printZetaT();
  // returns (optionally temperature dependent) eta/s and zeta/s

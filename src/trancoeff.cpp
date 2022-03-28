@@ -4,9 +4,10 @@
 #include "trancoeff.h"
 #include "inc.h"
 
-TransportCoeff::TransportCoeff(double _etaS, double _zetaS, EoS *_eos) {
+TransportCoeff::TransportCoeff(double _etaS, double _zetaS, int _zetaSparam, EoS *_eos) {
  etaS = _etaS;
  zetaS0 = _zetaS;
+ zetaSparam = _zetaSparam; //0 - basic ,1 ,2 - arxiv:1910.12930, 3 arxiv:2103.09848
  eos = _eos;
 }
 
@@ -23,8 +24,6 @@ void TransportCoeff::printZetaT()
 
 double TransportCoeff::zetaS(double e, double T)
 {
- int param=1; //0 - basic ,1 ,2 - arxiv:1910.12930, 3 arxiv:2103.09848
-
  double T_p=0.180;
 
  double T_peak=0.165;
@@ -36,9 +35,9 @@ double TransportCoeff::zetaS(double e, double T)
  double B1=0.01;
  double B2=0.12;
  
- if(param==0)
+ if(zetaSparam==0)
     return zetaS0 * (1. / 3. - eos->cs2(e)) / (exp((0.16 - T) / 0.001) + 1.);
- else if(param==1)
+ else if(zetaSparam==1)
  {
     if(T<0.180)
        return 0.03+(0.08*exp(((T/T_p)-1.)/(0.0025)))+(0.22*exp(((T/T_p)-1)/(0.0022)));
@@ -47,14 +46,14 @@ double TransportCoeff::zetaS(double e, double T)
     else if(T>=0.200)
        return 0.001+(0.9*exp(-((T/T_p)-1.)/(0.0025)))+(0.25*exp(-((T/T_p)-1.)/(0.13)));
  }
- else if(param==2)
+ else if(zetaSparam==2)
  {
     if(T>T_peak)
        return B_norm*((B_width*B_width)/((((T/T_peak)-1.)*((T/T_peak)-1.))+(B_width*B_width)));
     else if(T<=T_peak)
        return B_norm*(exp(-((T-T_peak)/T_width)*((T-T_peak)/T_width)));
  }
- else if(param==3)
+ else if(zetaSparam==3)
  {
     if(T<T_peak2)
        return B_norm2*exp(-((T-T_peak2)*(T-T_peak2)/(B1*B1)));
