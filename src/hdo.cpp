@@ -891,8 +891,8 @@ void Hydro::ISformal() {
      rescaled = true;
     }
     if (fabs(Pi) > p) {
-     if (Pi != 0.) Pi = 0.1 * Pi / fabs(Pi) * p;
-     if (PiH != 0.) PiH = 0.1 * PiH / fabs(PiH) * p;
+     if (Pi != 0.) Pi = 1 * Pi / fabs(Pi) * p;     //modified .1 -> 1
+     if (PiH != 0.) PiH = 1 * PiH / fabs(PiH) * p; //modified .1 -> 1
      rescaled = true;
     }
     if (rescaled)
