@@ -15,9 +15,11 @@ class MultiHydro {
  CrossSections *xsect;
  std::ofstream fmhfreeze_p, fmhfreeze_f, fmhfreeze_t;
  double ***MHeps, ***MHepsPrev;
+ std::vector<std::vector<double>> retardedFriction;
  double ecrit, vEff_p, vEff_t, vEff_f;
  int nx, ny, nz;
  double dx, dy, dz, dtau, sNN;
+ double formationTime = 0;
  double lambda = 3;
  const double gmunu[4][4] = {
      {1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, -1, 0}, {0, 0, 0, -1}};
@@ -43,6 +45,9 @@ public:
  void resizeMHeps();
  void setFluids(Fluid *f_p, Fluid *f_t, Fluid *f_f, Hydro *h_p, Hydro *h_t,
   Hydro* h_f);
+ void addRetardedFriction(double flux, double x, double y, double z, double t, int i);
+ double calculateRetardedFriction(double x, double y, double z, double t, int i);
+ void clearRetardedFriction();
  double totalScatRate(double px, double T, double mu, double u[4]);
  double calculateScatRates(double px, double T, double mu, double u[4], int particle);
  double pp_total(double mandelstam_s);

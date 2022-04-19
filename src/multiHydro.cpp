@@ -4,6 +4,7 @@
 #include <TMatrixDEigen.h>
 #include <TMatrixD.h>
 #include <TLorentzVector.h>
+#include <vector>
 
 #include "multiHydro.h"
 #include "hdo.h"
@@ -162,7 +163,10 @@ void MultiHydro::frictionSubstep()
     TLorentzVector upLV(up[1], up[2], up[3], up[0]);
     TLorentzVector utLV(ut[1], ut[2], ut[3], ut[0]);
     TLorentzVector ufLV(uf[1], uf[2], uf[3], uf[0]);
-    double flux_p [4] = {0.}, flux_t [4] = {0.};
+    double upt_abs = sqrt(pow(up[0]+ut[0],2)-pow(up[1]+ut[1],2)-pow(up[2]+ut[2],2)-pow(up[3]+ut[3],2));
+    double U_F[4] = {(up[0]+ut[0])/upt_abs, (up[1]+ut[1])/upt_abs, (up[2]+ut[2])/upt_abs, (up[3]+ut[3])/upt_abs};
+    double flux_p [4] = {0.}, flux_t [4] = {0.}, flux_f [4] = {0.},
+           flux_pf [4] = {0.}, flux_tf [4] = {0.};
      // 1. projectile-target friction
     if (ep>0. && et>0.) {
     // u_p^\mu u_t_\mu
@@ -201,6 +205,15 @@ void MultiHydro::frictionSubstep()
      }
      flux_p[i] += -upLV[(i+3)%4]*sqrt(ep*et)*h_p->getDtau()/lambda;
      flux_t[i] += -utLV[(i+3)%4]*sqrt(ep*et)*h_p->getDtau()/lambda;
+     if (formationTime > 0) {
+      addRetardedFriction((-flux_p[i]-flux_t[i])*f_p->getDx()*f_p->getDy()*f_p->getDz()*h_p->getTau(),
+        f_p->getX(ix)+U_F[1]*formationTime, f_p->getY(iy)+U_F[2]*formationTime,
+        f_p->getZ(iz)+U_F[3]*formationTime, h_p->getTau()+U_F[0]*formationTime, i);
+      flux_f[i] += calculateRetardedFriction(f_p->getX(ix), f_p->getY(iy), f_p->getZ(iz),
+                  h_p->getTau(), i)/(f_p->getDx()*f_p->getDy()*f_p->getDz()*h_p->getTau());
+     } else {
+      flux_f[i] += -flux_p[i]-flux_t[i];
+     }
     }
    }
    // 2. projectile-fireball friction
@@ -211,9 +224,9 @@ void MultiHydro::frictionSubstep()
      - 4.*mN*mN*mpi*mpi);
     double D = Vrel*xsect->piN(s);
     for(int i=0; i<4; i++){
-     flux_p[i] += D*nbp*(ef + pf)*uf[i]*h_p->getDtau();
+     flux_pf[i] += D*nbp*(ef + pf)*uf[i]*h_p->getDtau();
     }
-    flux_p[0] += -D*nbp*pf/uf[0]*h_p->getDtau();
+    flux_pf[0] += -D*nbp*pf/uf[0]*h_p->getDtau();
    }
    if(et>0. && ef>0.) { // target-fireball friction
     double s = mpi*mpi + mN*mN + 2.*mpi*mN*gammaf*gammat*
@@ -222,9 +235,9 @@ void MultiHydro::frictionSubstep()
      - 4.*mN*mN*mpi*mpi);
     double D = Vrel*xsect->piN(s);
     for(int i=0; i<4; i++){
-     flux_t[i] += D*nbt*(ef + pf)*uf[i]*h_p->getDtau();
+     flux_tf[i] += D*nbt*(ef + pf)*uf[i]*h_p->getDtau();
     }
-    flux_t[0] += -D*nbt*pf/uf[0]*h_p->getDtau();
+    flux_tf[0] += -D*nbt*pf/uf[0]*h_p->getDtau();
    }
    double taup = h_p->getTau();
    double taut = h_t->getTau();
@@ -233,13 +246,15 @@ void MultiHydro::frictionSubstep()
    c_p->getQ(_Q_p);
    c_t->getQ(_Q_t);
    c_f->getQ(_Q_f);
-   if (_Q_p[0] + flux_p[0]*taup >= 0.2*_Q_p[0] &&
-       _Q_t[0] + flux_t[0]*taut >= 0.2*_Q_t[0] &&
-       _Q_f[0] + (-flux_p[0]-flux_t[0])*tauf >= 0) {
-    c_p->addFlux(flux_p[0]*taup, flux_p[1]*taup, flux_p[2]*taup, flux_p[3]*taup, 0., 0., 0.);
-    c_t->addFlux(flux_t[0]*taut, flux_t[1]*taut, flux_t[2]*taut, flux_t[3]*taut, 0., 0., 0.);
-    c_f->addFlux((-flux_p[0]-flux_t[0])*tauf, (-flux_p[1]-flux_t[1])*tauf,
-     (-flux_p[2]-flux_t[2])*tauf, (-flux_p[3]-flux_t[3])*tauf, 0., 0., 0.);
+   if (_Q_p[0] + (flux_p[0]+flux_pf[0])*taup >= 0.2*_Q_p[0] &&
+       _Q_t[0] + (flux_t[0]+flux_tf[0])*taut >= 0.2*_Q_t[0] &&
+       _Q_f[0] + (-flux_pf[0]-flux_tf[0]+flux_f[0])*tauf >= 0) {
+    c_p->addFlux((flux_p[0]+flux_pf[0])*taup, (flux_p[1]+flux_pf[1])*taup,
+     (flux_p[2]+flux_pf[2])*taup, (flux_p[3]+flux_pf[3])*taup, 0., 0., 0.);
+    c_t->addFlux((flux_t[0]+flux_tf[0])*taut, (flux_t[1]+flux_tf[1])*taut,
+     (flux_t[2]+flux_tf[2])*taut, (flux_t[3]+flux_tf[3])*taut, 0., 0., 0.);
+    c_f->addFlux((-flux_pf[0]-flux_tf[0]+flux_f[0])*tauf, (-flux_pf[1]-flux_tf[1]+flux_f[1])*tauf,
+     (-flux_pf[2]-flux_tf[2]+flux_f[2])*tauf, (-flux_pf[3]-flux_tf[3]+flux_f[3])*tauf, 0., 0., 0.);
     c_p->updateByFlux();
     c_t->updateByFlux();
     c_f->updateByFlux();
@@ -250,6 +265,62 @@ void MultiHydro::frictionSubstep()
    if(-flux_p[0]-flux_t[0] > 0. && c_f->getMaxM()<0.01)
     c_f->setAllM(1.0);
    } // end cell loop
+ clearRetardedFriction();
+}
+
+void MultiHydro::addRetardedFriction(double flux, double x, double y, double z, double t, int i)
+{
+ vector<double> v = {flux, x, y, z, t, (double)i};
+ retardedFriction.push_back(v);
+}
+
+
+double MultiHydro::calculateRetardedFriction(double x, double y, double z, double t, int i)
+{
+ double total_flux = 0.;
+ for (int it = 0; it < retardedFriction.size(); it++)
+ {
+  if ((abs(retardedFriction[it][1]-x) < dx) && (abs(retardedFriction[it][2]-y) < dy) &&
+   (abs(retardedFriction[it][3]-z) < dz) && (abs(retardedFriction[it][4]-t) < dtau) &&
+   (retardedFriction[it][5] == (double)i))
+   {
+    double wCenX = 1-abs(retardedFriction[it][1]-x)/dx;
+    double wCenY = 1-abs(retardedFriction[it][2]-y)/dy;
+    double wCenZ = 1-abs(retardedFriction[it][3]-z)/dz;
+    double wCenT = 1-abs(retardedFriction[it][4]-t)/dtau;
+    total_flux += retardedFriction[it][0] * wCenX * wCenY * wCenZ * wCenT;
+   }
+ }
+ return total_flux;
+}
+
+void MultiHydro::clearRetardedFriction()
+{
+ retardedFriction.erase(
+  remove_if(
+   retardedFriction.begin(),
+   retardedFriction.end(),
+   [&](vector<double> element){
+    if (element[4] < h_p->getTau()) return true;
+    else return false;
+   }
+  ),
+  retardedFriction.end()
+ );
+ // next part is only for printing energy stored in the retardedFriction vector
+ /*double storedEnergy = 0.;
+ for (int it = 0; it < retardedFriction.size(); it++)
+ {
+  if (abs(retardedFriction[it][4]-h_p->getTau()) < dtau)
+  {
+   storedEnergy += retardedFriction[it][0]*(abs(retardedFriction[it][4]-h_p->getTau())/dtau);
+  }
+  else
+  {
+   storedEnergy += retardedFriction[it][0];
+  }
+ }
+ cout << "Stored energy: " << storedEnergy << endl;*/
 }
 
 void MultiHydro::getEnergyMomentumTensor(double (&T)[4][4], double Q_p[7], double Q_f[7], double Q_t[7])
