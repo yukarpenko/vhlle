@@ -184,27 +184,30 @@ void MultiHydro::frictionSubstep()
     upLV.Boost(-vxt, -vyt, -vzt);
     utLV.Boost(-vxp, -vyp, -vzp);
     for(int i=0; i<4; i++){
-     // Ivanov's friction terms
-     //flux_p[i] += -nbp*nbt*(D_P*(up[i] - ut[i]) + D_E*(up[i] + ut[i]))*h_p->getDtau();
-     //flux_t[i] += -nbp*nbt*(D_P*(ut[i] - up[i]) + D_E*(up[i] + ut[i]))*h_p->getDtau();
-     // simplified and parametrized friction terms
-     double vpAbs = sqrt(pow(upLV[0],2) + pow(upLV[1],2) + pow(upLV[2],2))/upLV[3];
-     double vtAbs = sqrt(pow(utLV[0],2) + pow(utLV[1],2) + pow(utLV[2],2))/utLV[3];
-     double vLimit = sqrt(1-pow(2*0.938/sNN,2));
-     if (vpAbs > vLimit) {
-       upLV[3] = 1.0/sqrt(1.0-vLimit*vLimit);
-       upLV[0] = upLV[0]*(vLimit/vpAbs)*sqrt((1.0-vpAbs*vpAbs)/(1.0-vLimit*vLimit));
-       upLV[1] = upLV[1]*(vLimit/vpAbs)*sqrt((1.0-vpAbs*vpAbs)/(1.0-vLimit*vLimit));
-       upLV[2] = upLV[2]*(vLimit/vpAbs)*sqrt((1.0-vpAbs*vpAbs)/(1.0-vLimit*vLimit));
+     if (lambda == 0) {
+      // Ivanov's friction terms
+      flux_p[i] += -nbp*nbt*(D_P*(up[i] - ut[i]) + D_E*(up[i] + ut[i]))*h_p->getDtau();
+      flux_t[i] += -nbp*nbt*(D_P*(ut[i] - up[i]) + D_E*(up[i] + ut[i]))*h_p->getDtau();
+     } else {
+      // simplified and parametrized friction terms
+      double vpAbs = sqrt(pow(upLV[0],2) + pow(upLV[1],2) + pow(upLV[2],2))/upLV[3];
+      double vtAbs = sqrt(pow(utLV[0],2) + pow(utLV[1],2) + pow(utLV[2],2))/utLV[3];
+      double vLimit = sqrt(1-pow(2*0.938/sNN,2));
+      if (vpAbs > vLimit) {
+        upLV[3] = 1.0/sqrt(1.0-vLimit*vLimit);
+        upLV[0] = upLV[0]*(vLimit/vpAbs)*sqrt((1.0-vpAbs*vpAbs)/(1.0-vLimit*vLimit));
+        upLV[1] = upLV[1]*(vLimit/vpAbs)*sqrt((1.0-vpAbs*vpAbs)/(1.0-vLimit*vLimit));
+        upLV[2] = upLV[2]*(vLimit/vpAbs)*sqrt((1.0-vpAbs*vpAbs)/(1.0-vLimit*vLimit));
+      }
+      if (vtAbs > vLimit) {
+        utLV[3] = 1.0/sqrt(1.0-vLimit*vLimit);
+        utLV[0] = utLV[0]*(vLimit/vtAbs)*sqrt((1.0-vtAbs*vtAbs)/(1.0-vLimit*vLimit));
+        utLV[1] = utLV[1]*(vLimit/vtAbs)*sqrt((1.0-vtAbs*vtAbs)/(1.0-vLimit*vLimit));
+        utLV[2] = utLV[2]*(vLimit/vtAbs)*sqrt((1.0-vtAbs*vtAbs)/(1.0-vLimit*vLimit));
+      }
+      flux_p[i] += -upLV[(i+3)%4]*sqrt(ep*et)*h_p->getDtau()/lambda;
+      flux_t[i] += -utLV[(i+3)%4]*sqrt(ep*et)*h_p->getDtau()/lambda;
      }
-     if (vtAbs > vLimit) {
-       utLV[3] = 1.0/sqrt(1.0-vLimit*vLimit);
-       utLV[0] = utLV[0]*(vLimit/vtAbs)*sqrt((1.0-vtAbs*vtAbs)/(1.0-vLimit*vLimit));
-       utLV[1] = utLV[1]*(vLimit/vtAbs)*sqrt((1.0-vtAbs*vtAbs)/(1.0-vLimit*vLimit));
-       utLV[2] = utLV[2]*(vLimit/vtAbs)*sqrt((1.0-vtAbs*vtAbs)/(1.0-vLimit*vLimit));
-     }
-     flux_p[i] += -upLV[(i+3)%4]*sqrt(ep*et)*h_p->getDtau()/lambda;
-     flux_t[i] += -utLV[(i+3)%4]*sqrt(ep*et)*h_p->getDtau()/lambda;
      if (formationTime > 0) {
       addRetardedFriction((-flux_p[i]-flux_t[i])*f_p->getDx()*f_p->getDy()*f_p->getDz()*h_p->getTau(),
         f_p->getX(ix)+U_F[1]*formationTime, f_p->getY(iy)+U_F[2]*formationTime,
