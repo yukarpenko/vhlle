@@ -153,6 +153,10 @@ void MultiHydro::frictionSubstep()
     c_p->getPrimVar(eos, h_p->getTau(), ep, pp, nbp, nqp, nsp, vxp, vyp, vzp);
     c_t->getPrimVar(eos, h_t->getTau(), et, pt, nbt, nqt, nst, vxt, vyt, vzt);
     c_f->getPrimVar(eos, h_f->getTau(), ef, pf, nbf, nqf, nsf, vxf, vyf, vzf);
+    double TCp, mubCp, muqCp, musCp, pCp;
+    double TCt, mubCt, muqCt, musCt, pCt;
+    eos->eos(ep, nbp, nqp, nsp, TCp, mubCp, muqCp, musCp, pCp);
+    eos->eos(et, nbt, nqt, nst, TCt, mubCt, muqCt, musCt, pCt);
     // 4-velocities, u_p and u_t
     double gammap = 1.0/sqrt(1.0-vxp*vxp-vyp*vyp-vzp*vzp);
     double up [4] = {gammap,gammap*vxp,gammap*vyp,gammap*vzp};
@@ -181,13 +185,16 @@ void MultiHydro::frictionSubstep()
     // friction coefficient
     double D_P = mN*Vrel*sigmaP;
     double D_E = mN*Vrel*sigmaE; // SAME cross section moment for testing
+    double maxVal = max(max(Fermi(nbp)/mN, 3*TCp/(2*mN)), max(Fermi(nbt)/mN, 3*TCt/(2*mN)));
+    double deltaV = sqrt(1-pow(maxVal+1,-2));
+    double theta = 1 - exp(-pow(Vrel/deltaV,4));
     upLV.Boost(-vxt, -vyt, -vzt);
     utLV.Boost(-vxp, -vyp, -vzp);
     for(int i=0; i<4; i++){
      if (lambda == 0) {
       // Ivanov's friction terms
-      flux_p[i] += -nbp*nbt*(D_P*(up[i] - ut[i]) + D_E*(up[i] + ut[i]))*h_p->getDtau();
-      flux_t[i] += -nbp*nbt*(D_P*(ut[i] - up[i]) + D_E*(up[i] + ut[i]))*h_p->getDtau();
+      flux_p[i] += -theta*nbp*nbt*(D_P*(up[i] - ut[i]) + D_E*(up[i] + ut[i]))*h_p->getDtau();
+      flux_t[i] += -theta*nbp*nbt*(D_P*(ut[i] - up[i]) + D_E*(up[i] + ut[i]))*h_p->getDtau();
      } else {
       // simplified and parametrized friction terms
       double vpAbs = sqrt(pow(upLV[0],2) + pow(upLV[1],2) + pow(upLV[2],2))/upLV[3];
@@ -972,4 +979,8 @@ double MultiHydro::pp_total(double mandelstam_s) {
     const auto logp = log(p_lab);
     return 48.0 + 0.522 * logp * logp - 4.51 * logp;
   }
+}
+
+double MultiHydro::Fermi(double nb) {
+ return pow(0.197,2)*pow(6*nb/M_PI,2/3)*M_PI*M_PI/(2*0.938);
 }

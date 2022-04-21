@@ -20,7 +20,7 @@ class MultiHydro {
  int nx, ny, nz;
  double dx, dy, dz, dtau, sNN;
  double formationTime = 0;
- double lambda = 3;
+ double lambda = 0; // set 0 to use Ivanov's friction and >0 to use simplified friction
  const double gmunu[4][4] = {
      {1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, -1, 0}, {0, 0, 0, -1}};
  double EtotSurf[3] = {0., 0., 0.}, EtotSurf_positive[3] = {0., 0., 0.},
@@ -51,4 +51,5 @@ public:
  double totalScatRate(double px, double T, double mu, double u[4]);
  double calculateScatRates(double px, double T, double mu, double u[4], int particle);
  double pp_total(double mandelstam_s);
+ double Fermi(double nb);
 };
