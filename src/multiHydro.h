@@ -13,10 +13,10 @@ class MultiHydro {
  Cornelius *cornelius;
  TransportCoeff *trcoeff;
  CrossSections *xsect;
- std::ofstream fmhfreeze_p, fmhfreeze_f, fmhfreeze_t;
+ std::ofstream fmhfreeze_p, fmhfreeze_f, fmhfreeze_t, fmhfreeze_all;
  double ***MHeps, ***MHepsPrev;
  std::vector<std::vector<double>> retardedFriction;
- double ecrit, vEff_p, vEff_t, vEff_f;
+ double ecrit, vEff, vEff_p, vEff_t, vEff_f;
  int nx, ny, nz;
  double dx, dy, dz, dtau, sNN;
  double formationTime = 0;

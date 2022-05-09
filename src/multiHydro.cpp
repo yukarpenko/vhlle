@@ -47,6 +47,7 @@ MultiHydro::MultiHydro(Fluid *_f_p, Fluid *_f_t, Fluid *_f_f, Hydro *_h_p,
  cornelius = new Cornelius;
  cornelius->init(4, eCrit, arrayDx);
  ecrit = eCrit;
+ vEff = 0.;
  vEff_p = 0.;
  vEff_t = 0.;
  vEff_f = 0.;
@@ -113,13 +114,15 @@ void MultiHydro::setFluids(Fluid *_f_p, Fluid *_f_t, Fluid *_f_f, Hydro *_h_p,
 }
 
 void MultiHydro::initOutput(const char *dir) {
- string outfreeze_p = dir, outfreeze_f = dir, outfreeze_t = dir;
+ string outfreeze_p = dir, outfreeze_f = dir, outfreeze_t = dir, outfreeze_all = dir;
  outfreeze_p.append("/freezeout_p.dat");
  outfreeze_t.append("/freezeout_t.dat");
  outfreeze_f.append("/freezeout_f.dat");
+ outfreeze_all.append("/freezeout_all.dat");
  fmhfreeze_p.open(outfreeze_p.c_str());
  fmhfreeze_t.open(outfreeze_t.c_str());
  fmhfreeze_f.open(outfreeze_f.c_str());
+ fmhfreeze_all.open(outfreeze_all.c_str());
 }
 
 void MultiHydro::performStep()
@@ -761,13 +764,15 @@ void MultiHydro::findFreezeout()
      dsigma[1] = tauC * cornelius->get_normal_elem(0, 1);
      dsigma[2] = tauC * cornelius->get_normal_elem(0, 2);
      dsds = dsigma[0]*dsigma[0] - dsigma[1]*dsigma[1] - dsigma[2]*dsigma[2] - dsigma[3]*dsigma[3];
-     double dVEff_p = 0.0, dVEff_t = 0.0, dVEff_f = 0.0;
+     double dVEff_p = 0.0, dVEff_t = 0.0, dVEff_f = 0.0, dVEff = 0.0;
      for (int ii = 0; ii < 4; ii++) {
+      dVEff += dsigma[ii] * uC[ii];
       dVEff_p += dsigma[ii] * uC_p[ii];  // normalize for Delta eta=1
       dVEff_t += dsigma[ii] * uC_t[ii];
       dVEff_f += dsigma[ii] * uC_f[ii];
      }
      if (dVEff_p > 0) ne_pos++;
+     vEff += dVEff;
      vEff_p += dVEff_p;
      vEff_t += dVEff_t;
      vEff_f += dVEff_f;
@@ -838,6 +843,14 @@ void MultiHydro::findFreezeout()
         f_f->getZ(iz) + cornelius->get_centroid_elem(isegm, 3),
         dsigma, uC_f, TCf, mubCf, muqCf, musCf, picart, PiC, dVEff_f
        );
+       printFreezeout(
+        fmhfreeze_all,
+        h_f->getTau() - h_f->getDtau() + cornelius->get_centroid_elem(isegm, 0),
+        f_f->getX(ix) + cornelius->get_centroid_elem(isegm, 1),
+        f_f->getY(iy) + cornelius->get_centroid_elem(isegm, 2),
+        f_f->getZ(iz) + cornelius->get_centroid_elem(isegm, 3),
+        dsigma, uC, TC, mubC, muqC, musC, picart, PiC, dVEff
+       );
       }
      } else {
       if (dEtotSurf[0] > 0 && dVEff_p > param_T * sqrt(-dsds)) printFreezeout(
@@ -864,6 +877,14 @@ void MultiHydro::findFreezeout()
        f_f->getZ(iz) + cornelius->get_centroid_elem(isegm, 3),
        dsigma, uC_f, TCf, mubCf, muqCf, musCf, picart, PiC, dVEff_f
       );
+      if (dEtotSurf[2] > 0 && dVEff > param_T * sqrt(-dsds)) printFreezeout(
+        fmhfreeze_all,
+        h_f->getTau() - h_f->getDtau() + cornelius->get_centroid_elem(isegm, 0),
+        f_f->getX(ix) + cornelius->get_centroid_elem(isegm, 1),
+        f_f->getY(iy) + cornelius->get_centroid_elem(isegm, 2),
+        f_f->getZ(iz) + cornelius->get_centroid_elem(isegm, 3),
+        dsigma, uC, TC, mubC, muqC, musC, picart, PiC, dVEff
+       );
      }
 
     }
