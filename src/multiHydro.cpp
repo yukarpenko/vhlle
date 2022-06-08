@@ -284,7 +284,7 @@ void MultiHydro::frictionSubstep()
 void MultiHydro::addRetardedFriction(double flux, double x, double y, double z, double t, int i)
 {
  vector<double> v = {flux, x, y, z, t, (double)i};
- retardedFriction.push_back(v);
+ if (abs(flux) > 1e-3) retardedFriction.push_back(v);
 }
 
 
