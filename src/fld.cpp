@@ -37,7 +37,7 @@ using namespace std;
 
 namespace output{  // a namespace containing all the output streams
   ofstream fkw, fkw_dim, fxvisc, fyvisc, fdiagvisc, fx,
-     fy, fdiag, fz, faniz, f2d, ffreeze, fbeta;
+     fy, fdiag, fz, faniz, f2d, f3d, ffreeze, fbeta;
 }
 
 // returns the velocities in cartesian coordinates, fireball rest frame.
@@ -134,6 +134,8 @@ void Fluid::initOutput(const char *dir, double tau0) {
  outaniz.append("/out.aniz.dat");
  string out2d = dir;
  out2d.append("/out2D.dat");
+ string out3d = dir;
+ out3d.append("/3D.dat");
  string outfreeze = dir;
  outfreeze.append("/freezeout.dat");
  string outbeta = dir;
@@ -143,6 +145,7 @@ void Fluid::initOutput(const char *dir, double tau0) {
  output::fz.open(outz.c_str());
  output::fdiag.open(outdiag.c_str());
  output::f2d.open(out2d.c_str());
+ output::f3d.open(out3d.c_str());
  output::fxvisc.open(outxvisc.c_str());
  output::fyvisc.open(outyvisc.c_str());
  output::fdiagvisc.open(outdiagvisc.c_str());
@@ -425,6 +428,32 @@ void Fluid::outputGnuplot(double tau) {
         << c->getViscCorrCutFlag() << endl;
  }
  output::fz << endl;
+}
+
+void Fluid::outputSnapshot(double tau) {
+  double e, p, nb, nq, ns, T, mub, muq, mus, vx, vy, vz;
+
+  // X direction
+  for (int ix = 0; ix < nx; ix++)
+  for (int iy = 0; iy < ny; iy++)
+  for (int iz = 0; iz < nz; iz++) {
+    double x = getX(ix);
+    double y = getY(iy);
+    double eta = getZ(iz);
+    Cell *c = getCell(ix, iy, iz);
+    getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
+    eos->eos(e, nb, nq, ns, T, mub, muq, mus, p);
+    if(T<0.01) T = 100.0;
+    double gam = 1.0/sqrt(1.0 - vx*vx - vy*vy - tanh(vz)*tanh(vz));
+    output::f3d << setw(14) << tau << setw(14) << x << setw(14) << y << setw(14)
+          << eta << setw(14) << e << setw(14) << vx << setw(14) << vy << setw(14)
+          << vz;
+    for(int i=0; i<4; i++)
+    for(int j=0; j<4; j++)
+     output::f3d << setw(14) << c->getDbeta(i,j);
+    output::f3d << endl;
+  }
+  output::f3d << endl;
 }
 
 // unput: geom. rapidity + velocities in Bjorken frame, --> output: velocities

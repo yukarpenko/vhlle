@@ -312,6 +312,7 @@ int main(int argc, char **argv) {
  f->outputCorona(tau0);
 
  bool resized = false; // flag if the grid has been resized
+ int istep=0;
  do {
   // small tau: decrease timestep by makins substeps, in order
   // to avoid instabilities in eta direction (signal velocity ~1/tau)
@@ -330,11 +331,14 @@ int main(int argc, char **argv) {
    h->performStep();
   f->outputGnuplot(h->getTau());
   f->outputSurface(h->getTau());
+  if(istep%20==0)  // 3D debug output: disk space comsuming
+   f->outputSnapshot(h->getTau());
   if(h->getTau()>=tauResize and resized==false) {
    cout << "grid resize\n";
    f = expandGrid2x(h, eos, eosH, trcoeff);
    resized = true;
   }
+  istep++;
  } while(h->getTau()<tauMax+0.0001);
 
  end = 0;

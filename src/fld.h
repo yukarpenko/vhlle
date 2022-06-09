@@ -64,6 +64,7 @@ public:
  void updateM(double tau, double dt);
 
  void outputGnuplot(double tau);
+ void outputSnapshot(double tau);
  void outputSurface(double tau);
  void outputCorona(double tau);
  void InitialAnisotropies(double tau0);
