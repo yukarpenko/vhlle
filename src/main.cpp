@@ -39,6 +39,7 @@
 #include "eoHadron.h"
 #include "eoSmash.h"
 #include "trancoeff.h"
+#include "vtk.h"
 
 using namespace std;
 
@@ -310,11 +311,19 @@ int main(int argc, char **argv) {
 
  f->initOutput(outputDir.c_str(), tau0);
  f->outputCorona(tau0);
-
+ bool vtk=true;
  bool resized = false; // flag if the grid has been resized
+ std::string a="test";
+ std::string b="test";
+ std::string c="test";
+ VtkOutput vtk_out=VtkOutput(a,b,c);
+
  do {
   // small tau: decrease timestep by makins substeps, in order
   // to avoid instabilities in eta direction (signal velocity ~1/tau)
+  if(vtk) {
+    vtk_out.write(*h);
+  }
   int nSubSteps = 1;
   while (dtau / nSubSteps >
          1.0 * h->getTau() * (etamax - etamin) / (nz - 1)) {
