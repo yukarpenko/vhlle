@@ -537,11 +537,11 @@ void MultiHydro::resizeMHeps()
    }
 }
 
-void MultiHydro::findFreezeout()
+void MultiHydro::findFreezeout(EoS* eosH)
 {
  updateEnergyDensity();
  getEnergyDensity();
-
+ swap(eos, eosH);
  int nelements = 0;
  int ne_pos = 0;
  double E=0., Efull = 0.;
@@ -894,7 +894,7 @@ void MultiHydro::findFreezeout()
       << EtotSurf[0] << "\t" << EtotSurf_positive[0] << "\t" << EtotSurf_negative[0] << "\t"
       << EtotSurf[1] << "\t" << EtotSurf_positive[1] << "\t" << EtotSurf_negative[1] << "\t"
       << EtotSurf[2] << "\t" << EtotSurf_positive[2] << "\t" << EtotSurf_negative[2] << endl;
-
+ swap(eos, eosH); // get back to the hydrodynamic EoS
  for (int i1 = 0; i1 < 2; i1++) {
   for (int i2 = 0; i2 < 2; i2++) {
    for (int i3 = 0; i3 < 2; i3++) {

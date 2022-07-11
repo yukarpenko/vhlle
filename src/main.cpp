@@ -401,7 +401,7 @@ int main(int argc, char **argv) {
   f_p->outputSurface(h_p->getTau());
   f_t->outputSurface(h_t->getTau());
   f_f->outputSurface(h_f->getTau());
-  mh->findFreezeout();
+  mh->findFreezeout(eosH);
   cout << "step done, tau=" << h_p->getTau() << endl;
   if (0.1*f_p->getDz()*h_p->getTau() > h_p->getDtau()) {
    cout << "grid resize" << endl;
