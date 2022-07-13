@@ -125,7 +125,7 @@ void EoSCMF::get(double e, double nb, double& p, double& T, double& mub,
  double we[2] = {1. - Tm / dT, Tm / dT};
  double wn[2] = {1. - nm / dN, nm / dN};
 
- T = mub = mus = p = 0.0;
+ mub = mus = p = 0.0;
  for (int je = 0; je < 2; je++)
   for (int jn = 0; jn < 2; jn++) {
    p += we[je] * wn[jn] * ptab[i_T + je][i_nB + jn];
