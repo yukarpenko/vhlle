@@ -22,7 +22,8 @@ using namespace std;
 
 MultiHydro::MultiHydro(Fluid *_f_p, Fluid *_f_t, Fluid *_f_f, Hydro *_h_p,
  Hydro *_h_t, Hydro *_h_f, EoS *_eos, TransportCoeff *_trcoeff, double _dtau,
- double eCrit, double _sNN)
+ double eCrit, double _sNN, double _frictionScale, double _lambda, double _formationTime,
+ int _frictionModel, int _decreasingFormTime)
 {
  f_p = _f_p;
  f_t = _f_t;
@@ -41,6 +42,12 @@ MultiHydro::MultiHydro(Fluid *_f_p, Fluid *_f_t, Fluid *_f_f, Hydro *_h_p,
  dz = f_p->getDz();
  dtau = _dtau;
  sNN = _sNN;
+ frictionScale = _frictionScale;
+ lambda = _lambda;
+ formationTime = _formationTime;
+ frictionModel = _frictionModel;
+ decreasingFormTime = _decreasingFormTime;
+ dtauf = formationTime / 10.0;
 
  //---- Cornelius init
  double arrayDx[4] = {h_p->getDtau(), f_p->getDx(), f_p->getDy(), f_p->getDz()};
@@ -194,10 +201,10 @@ void MultiHydro::frictionSubstep()
     upLV.Boost(-vxt, -vyt, -vzt);
     utLV.Boost(-vxp, -vyp, -vzp);
     for(int i=0; i<4; i++){
-     if (lambda == 0) {
+     if (frictionModel == 1) {
       // Ivanov's friction terms
-      flux_p[i] += -theta*nbp*nbt*(D_P*(up[i] - ut[i]) + D_E*(up[i] + ut[i]))*h_p->getDtau();
-      flux_t[i] += -theta*nbp*nbt*(D_P*(ut[i] - up[i]) + D_E*(up[i] + ut[i]))*h_p->getDtau();
+      flux_p[i] += -frictionScale*theta*nbp*nbt*(D_P*(up[i] - ut[i]) + D_E*(up[i] + ut[i]))*h_p->getDtau();
+      flux_t[i] += -frictionScale*theta*nbp*nbt*(D_P*(ut[i] - up[i]) + D_E*(up[i] + ut[i]))*h_p->getDtau();
      } else {
       // simplified and parametrized friction terms
       double vpAbs = sqrt(pow(upLV[0],2) + pow(upLV[1],2) + pow(upLV[2],2))/upLV[3];
@@ -215,8 +222,8 @@ void MultiHydro::frictionSubstep()
         utLV[1] = utLV[1]*(vLimit/vtAbs)*sqrt((1.0-vtAbs*vtAbs)/(1.0-vLimit*vLimit));
         utLV[2] = utLV[2]*(vLimit/vtAbs)*sqrt((1.0-vtAbs*vtAbs)/(1.0-vLimit*vLimit));
       }
-      flux_p[i] += -upLV[(i+3)%4]*sqrt(ep*et)*h_p->getDtau()/lambda;
-      flux_t[i] += -utLV[(i+3)%4]*sqrt(ep*et)*h_p->getDtau()/lambda;
+      flux_p[i] += -frictionScale*upLV[(i+3)%4]*sqrt(ep*et)*h_p->getDtau()/lambda;
+      flux_t[i] += -frictionScale*utLV[(i+3)%4]*sqrt(ep*et)*h_p->getDtau()/lambda;
      }
      if (formationTime > 0) {
       addRetardedFriction((-flux_p[i]-flux_t[i])*f_p->getDx()*f_p->getDy()*f_p->getDz()*h_p->getTau(),
@@ -235,7 +242,7 @@ void MultiHydro::frictionSubstep()
      (1.0 - vxf*vxp - vyf*vyp - vzf*vzp);
     double Vrel = 0.5/(mN*mpi)*sqrt(pow(s - mN*mN - mpi*mpi,2)
      - 4.*mN*mN*mpi*mpi);
-    double D = Vrel*xsect->piN(s);
+    double D = frictionScale*Vrel*xsect->piN(s);
     for(int i=0; i<4; i++){
      flux_pf[i] += D*nbp*(ef + pf)*uf[i]*h_p->getDtau();
     }
@@ -246,7 +253,7 @@ void MultiHydro::frictionSubstep()
      (1.0 - vxf*vxt - vyf*vyt - vzf*vzt);
     double Vrel = 0.5/(mN*mpi)*sqrt(pow(s - mN*mN - mpi*mpi,2)
      - 4.*mN*mN*mpi*mpi);
-    double D = Vrel*xsect->piN(s);
+    double D = frictionScale*Vrel*xsect->piN(s);
     for(int i=0; i<4; i++){
      flux_tf[i] += D*nbt*(ef + pf)*uf[i]*h_p->getDtau();
     }
@@ -279,6 +286,10 @@ void MultiHydro::frictionSubstep()
     c_f->setAllM(1.0);
    } // end cell loop
  clearRetardedFriction();
+ if (decreasingFormTime == 1) {
+  formationTime -= dtau * dtauf;
+  if (formationTime < 0) formationTime = 0;
+ }
 }
 
 void MultiHydro::addRetardedFriction(double flux, double x, double y, double z, double t, int i)

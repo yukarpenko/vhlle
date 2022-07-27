@@ -19,8 +19,9 @@ class MultiHydro {
  double ecrit, vEff, vEff_p, vEff_t, vEff_f;
  int nx, ny, nz;
  double dx, dy, dz, dtau, sNN;
- double formationTime = 0;
- double lambda = 0; // set 0 to use Ivanov's friction and >0 to use simplified friction
+ double frictionScale, formationTime, lambda;
+ int frictionModel, decreasingFormTime;
+ double dtauf;
  const double gmunu[4][4] = {
      {1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, -1, 0}, {0, 0, 0, -1}};
  double EtotSurf[3] = {0., 0., 0.}, EtotSurf_positive[3] = {0., 0., 0.},
@@ -28,7 +29,8 @@ class MultiHydro {
 
 public:
  MultiHydro(Fluid *f_p, Fluid *f_t, Fluid *f_f, Hydro *h_p, Hydro *h_t,
-  Hydro* h_f, EoS *eos, TransportCoeff *trcoeff, double dtau, double eCrit, double sNN);
+  Hydro* h_f, EoS *eos, TransportCoeff *trcoeff, double dtau, double eCrit, double sNN,
+  double frictionScale, double lambda, double formationTime, int frictionModel, int decreasingFormTime);
  ~MultiHydro(void);
  void initOutput(const char *dir);
  void performStep();

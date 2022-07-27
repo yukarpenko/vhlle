@@ -46,9 +46,9 @@ IC3F::IC3F(Fluid *f_p, Fluid *f_t, double tau, int _nevents, double _snn, double
  Rgx = _Rg;
  Rgy = _Rg;
  Rgz = _Rg;
- nsmoothx = (int)(6.0 * Rgx / dx);
- nsmoothy = (int)(6.0 * Rgy / dy);
- nsmoothz = (int)(6.0 * Rgz / dz);
+ nsmoothx = (int)(3.0 * Rgx / dx);
+ nsmoothy = (int)(3.0 * Rgy / dy);
+ nsmoothz = (int)(3.0 * Rgz / dz);
 
  // allocate tensor field for projectile
  T00_p = new double**[nx];
