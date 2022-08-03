@@ -50,6 +50,7 @@ int eosTypeHadron = 0;
 double xmin, xmax, ymin, ymax, etamin, etamax, tau0, tauMax, tauResize, dtau;
 string collSystem, outputDir, isInputFile;
 double etaS, zetaS, eCrit;
+bool vtk_cartesian=false;
 int icModel, glauberVariable = 1;  // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
 double epsilon0, Rgt, Rgz, impactPar, s0ScaleFactor;
 std::string vtk_values;
@@ -126,6 +127,8 @@ void readParameters(char *parFile) {
    vtk = atoi(parValue);
   else if (strcmp(parName, "VTK_output_values") == 0)
    vtk_values = parValue;
+  else if (strcmp(parName, "VTK_cartesian") == 0)
+   vtk_cartesian = parValue;
   else if (parName[0] == '!')
    cout << "CCC " << sline.str() << endl;
   else
@@ -164,6 +167,7 @@ void printParameters() {
  cout << "s0ScaleFactor = " << s0ScaleFactor << endl;
  cout << "VTK output = " << vtk << endl;
  cout << "VTK output values = " << vtk_values << endl;
+ cout << "VTK cartesian = " << vtk_cartesian << endl;
  cout << "======= end parameters =======\n";
 }
 
@@ -322,7 +326,7 @@ int main(int argc, char **argv) {
  bool resized = false; // flag if the grid has been resized
  
  std::string dir=outputDir.c_str();
- VtkOutput vtk_out=VtkOutput(dir,eos,xmin,ymin,etamin);
+ VtkOutput vtk_out=VtkOutput(dir,eos,xmin,ymin,etamin, vtk_cartesian);
 
  do {
   // small tau: decrease timestep by makins substeps, in order
