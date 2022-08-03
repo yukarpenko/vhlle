@@ -6,11 +6,23 @@
 #include <string>
 #include <utility>
 
+class Cell;
+class Fluid;
+class EoS;
 class Hydro;
 
-
-
 class VtkOutput {
+
+ private:
+
+ std::string  path_;
+ /// Number of vtk output in current event
+ int vtk_output_counter_ = -1;
+ EoS* eos_;
+ bool cartesian_;
+ double xmin_, ymin_,zmin_;
+
+
  public:
   /**
    * Create a new VTK output.
@@ -19,18 +31,19 @@ class VtkOutput {
    * \param name Name of the output.
    * \param out_par Additional information on the configured output.
    */
-  VtkOutput(const std::string &path, const std::string &name,
-            const std::string &out_par);
-  ~VtkOutput();
+  VtkOutput( std::string  path, EoS* eos, double xmin,double ymin,double zmin, bool cartesian=false):
+              path_(path),
+              eos_(eos),
+              cartesian_(cartesian),
+              xmin_(xmin),
+              ymin_(ymin),
+              zmin_(zmin)
+            {}
 
-  void write(Hydro &h);
-  void write_header(std::ofstream &file, Hydro &h, const std::string &description);
+  void write(const Hydro h, std::string &quantity);
+  void write_header(std::ofstream &file, const Hydro h,  const std::string &description);
+  void write_vtk_scalar(std::ofstream &file, const Hydro h, std::string &quantity);
   std::string make_filename (const std::string &descr, int counter);
 
-  private:
-
-  const std::string base_path_;
-  const std::string name;
-  /// Number of vtk output in current event
-  int vtk_output_counter_ = -1;
+  
 };

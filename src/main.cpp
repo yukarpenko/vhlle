@@ -41,17 +41,18 @@
 #include "trancoeff.h"
 #include "vtk.h"
 
+
 using namespace std;
 
 // program parameters, to be read from file
-int nx, ny, nz, eosType, zetaSparam = 0;
+int nx, ny, nz, eosType, zetaSparam,vtk = 0;
 int eosTypeHadron = 0;
 double xmin, xmax, ymin, ymax, etamin, etamax, tau0, tauMax, tauResize, dtau;
 string collSystem, outputDir, isInputFile;
 double etaS, zetaS, eCrit;
 int icModel, glauberVariable = 1;  // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
 double epsilon0, Rgt, Rgz, impactPar, s0ScaleFactor;
-
+std::string vtk_values;
 void setDefaultParameters() {
  tauResize = 4.0;
 }
@@ -121,6 +122,10 @@ void readParameters(char *parFile) {
    impactPar = atof(parValue);
   else if (strcmp(parName, "s0ScaleFactor") == 0)
    s0ScaleFactor = atof(parValue);
+  else if (strcmp(parName, "VTK_output") == 0)
+   vtk = atoi(parValue);
+  else if (strcmp(parName, "VTK_output_values") == 0)
+   vtk_values = parValue;
   else if (parName[0] == '!')
    cout << "CCC " << sline.str() << endl;
   else
@@ -157,6 +162,8 @@ void printParameters() {
  cout << "Rgt = " << Rgt << "  Rgz = " << Rgz << endl;
  cout << "impactPar = " << impactPar << endl;
  cout << "s0ScaleFactor = " << s0ScaleFactor << endl;
+ cout << "VTK output = " << vtk << endl;
+ cout << "VTK output values = " << vtk_values << endl;
  cout << "======= end parameters =======\n";
 }
 
@@ -311,18 +318,17 @@ int main(int argc, char **argv) {
 
  f->initOutput(outputDir.c_str(), tau0);
  f->outputCorona(tau0);
- bool vtk=true;
+
  bool resized = false; // flag if the grid has been resized
- std::string a="test";
- std::string b="test";
- std::string c="test";
- VtkOutput vtk_out=VtkOutput(a,b,c);
+ 
+ std::string dir=outputDir.c_str();
+ VtkOutput vtk_out=VtkOutput(dir,eos,xmin,ymin,etamin);
 
  do {
   // small tau: decrease timestep by makins substeps, in order
   // to avoid instabilities in eta direction (signal velocity ~1/tau)
-  if(vtk) {
-    vtk_out.write(*h);
+  if(vtk>0) {
+    vtk_out.write(*h,vtk_values);
   }
   int nSubSteps = 1;
   while (dtau / nSubSteps >
