@@ -17,7 +17,7 @@ private:
  int targA;
  int projZ;
  int targZ;
- double WSdelta = 0.5; // diffuseness in Wood-Saxon
+ double WSdelta = 0.54; // diffuseness in Wood-Saxon
  const double nucleon_mass = 0.938;
  double tau0;
 
