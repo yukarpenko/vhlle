@@ -43,14 +43,12 @@
 using namespace std;
 
 // program parameters, to be read from file
-int nx, ny, nz, eosType, etaSparam = 0;
+int nx, ny, nz, eosType, etaSparam = 0,zetaSparam = 0;
 int eosTypeHadron = 0;
 double xmin, xmax, ymin, ymax, etamin, etamax, tau0, tauMax, tauResize, dtau;
 string collSystem, outputDir, isInputFile;
 double etaS, zetaS, eCrit, eEtaSMin, al, ah, aRho, T0, etaSMin;
-int icModel,
-    glauberVariable =
-        1;  // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
+int icModel,glauberVariable =1;  // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
 double epsilon0, Rgt, Rgz, impactPar, s0ScaleFactor;
 
 void setDefaultParameters() {
@@ -110,6 +108,8 @@ void readParameters(char *parFile) {
    etaS = atof(parValue);
   else if (strcmp(parName, "zetaS") == 0)
    zetaS = atof(parValue);
+  else if (strcmp(parName, "zetaSparam") == 0)
+   zetaSparam = atoi(parValue);
   else if (strcmp(parName, "epsilon0") == 0)
    epsilon0 = atof(parValue);
   else if (strcmp(parName, "Rg") == 0)
@@ -163,6 +163,7 @@ void printParameters() {
  cout << "tauGridResize = " << tauResize << endl;
  cout << "dtau = " << dtau << endl;
  cout << "e_crit = " << eCrit << endl;
+ cout << "zeta/s param : " << zetaSparam << endl;
  cout << "etaSparam = " << etaSparam << endl;
  if (etaSparam == 0){
     cout << "eta/s = " << etaS << endl;
@@ -283,7 +284,7 @@ int main(int argc, char **argv) {
 
 
  // transport coefficients
- trcoeff = new TransportCoeff(etaS, zetaS, eos, etaSparam, ah, al, aRho, T0, etaSMin, eEtaSMin);
+ trcoeff = new TransportCoeff(etaS, zetaS, zetaSparam, eos, etaSparam, ah, al, aRho, T0, etaSMin, eEtaSMin);
 
  f = new Fluid(eos, eosH, trcoeff, nx, ny, nz, xmin, xmax, ymin, ymax, etamin,
                etamax, dtau, eCrit);
