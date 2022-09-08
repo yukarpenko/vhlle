@@ -105,66 +105,68 @@ IC3F::IC3F(Fluid *f_p, Fluid *f_t, double tau, int _nevents, double _snn, double
  uniform_real_distribution<> dis_targ(- Rtarg - 4.0, Rtarg + 4.0);
  uniform_real_distribution<> dis_uniform(0.0, 1.0);
 
- // generating impact parameter
- bool generated = false;
- double bx, by, b;
- if (b_max > Rproj + Rtarg) b_max = Rproj + Rtarg;
- if (b_min < 0) b_min = 0;
- if (b_min > b_max) {
-  cout << "b_min has to be smaller than b_max" << endl;
-  exit(1);
- }
- if (b_min == b_max) {
-  b = b_min;
-  generated = true;
- }
- uniform_real_distribution<> dis_impact(- b_max, b_max);
- while (!generated) {
-  bx = dis_impact(gen);
-  by = dis_impact(gen);
-  b = sqrt(bx*bx + by*by);
-  if (b < b_max && b > b_min) generated = true;
- }
-
- // output for debugging
- //ofstream fout("nucleons.dat");
-
- // generating nucleons of projectile nucleus
- for (int i = 0; i < projA * nevents; i++) {
-  generated = false;
-  double x, y, z, r;
-  while (!generated) {
-   x = dis_proj(gen);
-   y = dis_proj(gen);
-   z = dis_proj(gen);
-   r = sqrt(x*x + y*y + z*z);
-   if (dis_uniform(gen) < 1/(1 + exp((r - Rproj) / WSdelta))) generated = true;
+ for (int iev = 0; iev < nevents; iev++) {
+  // generating impact parameter
+  bool generated = false;
+  double bx, by, b;
+  if (b_max > Rproj + Rtarg) b_max = Rproj + Rtarg;
+  if (b_min < 0) b_min = 0;
+  if (b_min > b_max) {
+   cout << "b_min has to be smaller than b_max" << endl;
+   exit(1);
   }
-  x += b / 2;
-  z = z / gamma + z0_proj;
-  double eta = asinh(z * cosh(rap_beam) / tau0 - sinh(rap_beam)) + rap_beam;
-  int charge = i < projZ * nevents ? 1 : 0;
-  makeSmoothPart(x, y, eta, charge, rap_beam, true);
-  //fout << x << " " << y << " " << z << " " << r << " " << eta << endl;
- }
-
- // generating nucleons of target nucleus
- for (int i = 0; i < targA * nevents; i++) {
-  generated = false;
-  double x, y, z, r;
-  while (!generated) {
-   x = dis_targ(gen);
-   y = dis_targ(gen);
-   z = dis_targ(gen);
-   r = sqrt(x*x + y*y + z*z);
-   if (dis_uniform(gen) < 1/(1 + exp((r - Rtarg) / WSdelta))) generated = true;
+  if (b_min == b_max) {
+   b = b_min;
+   generated = true;
   }
-  x -= b / 2;
-  z = z / gamma + z0_targ;
-  double eta = asinh(z * cosh(rap_beam) / tau0 + sinh(rap_beam)) - rap_beam;
-  int charge = i < targZ ? 1 : 0;
-  makeSmoothPart(x, y, eta, charge, -rap_beam, false);
-  //fout << x << " " << y << " " << z << " " << r << " " << eta << endl;
+  uniform_real_distribution<> dis_impact(- b_max, b_max);
+  while (!generated) {
+   bx = dis_impact(gen);
+   by = dis_impact(gen);
+   b = sqrt(bx*bx + by*by);
+   if (b < b_max && b > b_min) generated = true;
+  }
+
+  // output for debugging
+  //ofstream fout("nucleons.dat");
+
+  // generating nucleons of projectile nucleus
+  for (int i = 0; i < projA; i++) {
+   generated = false;
+   double x, y, z, r;
+   while (!generated) {
+    x = dis_proj(gen);
+    y = dis_proj(gen);
+    z = dis_proj(gen);
+    r = sqrt(x*x + y*y + z*z);
+    if (dis_uniform(gen) < 1/(1 + exp((r - Rproj) / WSdelta))) generated = true;
+   }
+   x += b / 2;
+   z = z / gamma + z0_proj;
+   double eta = asinh(z * cosh(rap_beam) / tau0 - sinh(rap_beam)) + rap_beam;
+   int charge = i < projZ ? 1 : 0;
+   makeSmoothPart(x, y, eta, charge, rap_beam, true);
+   //fout << x << " " << y << " " << z << " " << r << " " << eta << endl;
+  }
+
+  // generating nucleons of target nucleus
+  for (int i = 0; i < targA; i++) {
+   generated = false;
+   double x, y, z, r;
+   while (!generated) {
+    x = dis_targ(gen);
+    y = dis_targ(gen);
+    z = dis_targ(gen);
+    r = sqrt(x*x + y*y + z*z);
+    if (dis_uniform(gen) < 1/(1 + exp((r - Rtarg) / WSdelta))) generated = true;
+   }
+   x -= b / 2;
+   z = z / gamma + z0_targ;
+   double eta = asinh(z * cosh(rap_beam) / tau0 + sinh(rap_beam)) - rap_beam;
+   int charge = i < targZ ? 1 : 0;
+   makeSmoothPart(x, y, eta, charge, -rap_beam, false);
+   //fout << x << " " << y << " " << z << " " << r << " " << eta << endl;
+  }
  }
  //fout.close();
 }
