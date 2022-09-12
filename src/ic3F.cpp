@@ -38,8 +38,8 @@ IC3F::IC3F(Fluid *f_p, Fluid *f_t, double tau, int _nevents, double _snn, double
  const double vcoll = sqrt(1-pow(2*nucleon_mass/snn, 2)); // velocity of the beam
  const double gamma = 1/sqrt(1 - vcoll * vcoll); // gamma factor of nuclei
  const double rap_beam = 0.5 * log((1 + vcoll) / (1-vcoll)); // beam rapidity
- const double Rproj = 1.12 * pow(projA, 0.333) - 0.86 * pow(projA, -0.333); // projectile nucleus radius
- const double Rtarg = 1.12 * pow(targA, 0.333) - 0.86 * pow(targA, -0.333); // target nucleus radius
+ const double Rproj = 1.1 * pow(projA, 0.333) - 0.656 * pow(projA, -0.333); // projectile nucleus radius
+ const double Rtarg = 1.1 * pow(targA, 0.333) - 0.656 * pow(targA, -0.333); // target nucleus radius
  const double z0_proj = - 2 * Rproj / gamma;
  const double z0_targ = 2 * Rtarg / gamma;
  tau0 = _tau0;
