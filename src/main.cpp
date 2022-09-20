@@ -43,12 +43,12 @@
 using namespace std;
 
 // program parameters, to be read from file
-int nx, ny, nz, eosType, zetaSparam = 0;
+int nx, ny, nz, eosType, etaSparam = 0,zetaSparam = 0;
 int eosTypeHadron = 0;
 double xmin, xmax, ymin, ymax, etamin, etamax, tau0, tauMax, tauResize, dtau;
 string collSystem, outputDir, isInputFile;
-double etaS, zetaS, eCrit;
-int icModel, glauberVariable = 1;  // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
+double etaS, zetaS, eCrit, eEtaSMin, al, ah, aRho, T0, etaSMin;
+int icModel,glauberVariable =1;  // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
 double epsilon0, Rgt, Rgz, impactPar, s0ScaleFactor;
 
 void setDefaultParameters() {
@@ -120,6 +120,20 @@ void readParameters(char *parFile) {
    impactPar = atof(parValue);
   else if (strcmp(parName, "s0ScaleFactor") == 0)
    s0ScaleFactor = atof(parValue);
+  else if (strcmp(parName, "etaSparam") == 0)
+   etaSparam = atoi(parValue);
+  else if (strcmp(parName, "aRho") == 0)
+   aRho = atof(parValue);
+  else if (strcmp(parName, "ah") == 0)
+   ah = atof(parValue);
+  else if (strcmp(parName, "al") == 0)
+   al = atof(parValue);
+  else if (strcmp(parName, "T0") == 0)
+   T0 = atof(parValue);
+  else if (strcmp(parName, "eEtaSMin") == 0)
+   eEtaSMin = atof(parValue);
+  else if (strcmp(parName, "etaSMin") == 0)
+   etaSMin = atof(parValue);
   else if (parName[0] == '!')
    cout << "CCC " << sline.str() << endl;
   else
@@ -149,8 +163,24 @@ void printParameters() {
  cout << "tauGridResize = " << tauResize << endl;
  cout << "dtau = " << dtau << endl;
  cout << "e_crit = " << eCrit << endl;
- cout << "eta/s = " << etaS << endl;
  cout << "zeta/s param : " << zetaSparam << endl;
+ cout << "etaSparam = " << etaSparam << endl;
+ if (etaSparam == 0){
+    cout << "eta/s = " << etaS << endl;
+ }
+ else if (etaSparam == 1){
+    cout << "al = " << al << endl;
+    cout << "ah = " << ah << endl;
+    cout << "etaSMin = " << etaSMin << endl;
+    cout << "T0 = " << T0 << endl;
+ }
+ else if (etaSparam == 2){
+    cout << "al = " << al << endl;
+    cout << "ah = " << ah << endl;
+    cout << "aRho = " << aRho << endl;
+    cout << "etaSMin = " << etaSMin << endl;
+    cout << "eEtaSMin = " << eEtaSMin << endl;
+ }
  cout << "zeta/s = " << zetaS << endl;
  cout << "epsilon0 = " << epsilon0 << endl;
  cout << "Rgt = " << Rgt << "  Rgz = " << Rgz << endl;
@@ -254,7 +284,7 @@ int main(int argc, char **argv) {
 
 
  // transport coefficients
- trcoeff = new TransportCoeff(etaS, zetaS, zetaSparam, eos);
+ trcoeff = new TransportCoeff(etaS, zetaS, zetaSparam, eos, etaSparam, ah, al, aRho, T0, etaSMin, eEtaSMin);
 
  f = new Fluid(eos, eosH, trcoeff, nx, ny, nz, xmin, xmax, ymin, ymax, etamin,
                etamax, dtau, eCrit);
