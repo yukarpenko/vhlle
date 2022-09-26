@@ -793,34 +793,36 @@ void Fluid::outputCorona(double tau) {
        cc->getPrimVar(eos, tau, e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
        cc->getQ(QCube[jx][jy][jz]);
        if (e > ecrit) isCorona = false;
-       if (e > 0.0001) isTail = false;
        // ---- get viscous tensor
        for (int ii = 0; ii < 4; ii++)
         for (int jj = 0; jj <= ii; jj++)
          piSquare[jx][jy][jz][index44(ii, jj)] = cc->getpi(ii, jj);
        PiSquare[jx][jy][jz] = cc->getPi();
       }
+
+    // ---- interpolation procedure
+    double vxC = 0., vyC = 0., vzC = 0., TC = 0., mubC = 0., muqC = 0.,
+           musC = 0., piC[10], PiC = 0., nbC = 0.,
+           nqC = 0.;  // values at the centre, to be interpolated
+    double QC[7] = {0., 0., 0., 0., 0., 0., 0.};
+    double eC = 0., pC = 0.;
+    for (int ii = 0; ii < 10; ii++) piC[ii] = 0.0;
+    for (int jx = 0; jx < 2; jx++)
+     for (int jy = 0; jy < 2; jy++)
+      for (int jz = 0; jz < 2; jz++)
+       for (int i = 0; i < 7; i++) {
+        QC[i] += QCube[jx][jy][jz][i] * 0.125;
+       }
+    for (int i = 0; i < 7; i++) QC[i] = QC[i] / tau;
+    double _ns = 0.0;
+    transformPV(eos, QC, eC, pC, nbC, nqC, _ns, vxC, vyC, vzC);
+    if (eC >= 0.01) isTail = false;
+
     if (isCorona && !isTail) {
      nelements++;
      ffreeze.precision(15);
      ffreeze << setw(24) << tau << setw(24) << getX(ix) + 0.5 * dx << setw(24)
              << getY(iy) + 0.5 * dy << setw(24) << getZ(iz) + 0.5 * dz;
-     // ---- interpolation procedure
-     double vxC = 0., vyC = 0., vzC = 0., TC = 0., mubC = 0., muqC = 0.,
-            musC = 0., piC[10], PiC = 0., nbC = 0.,
-            nqC = 0.;  // values at the centre, to be interpolated
-     double QC[7] = {0., 0., 0., 0., 0., 0., 0.};
-     double eC = 0., pC = 0.;
-     for (int ii = 0; ii < 10; ii++) piC[ii] = 0.0;
-     for (int jx = 0; jx < 2; jx++)
-      for (int jy = 0; jy < 2; jy++)
-       for (int jz = 0; jz < 2; jz++)
-        for (int i = 0; i < 7; i++) {
-         QC[i] += QCube[jx][jy][jz][i] * 0.125;
-        }
-     for (int i = 0; i < 7; i++) QC[i] = QC[i] / tau;
-     double _ns = 0.0;
-     transformPV(eos, QC, eC, pC, nbC, nqC, _ns, vxC, vyC, vzC);
      eos->eos(eC, nbC, nqC, _ns, TC, mubC, muqC, musC, pC);
      if (TC > 0.4 || fabs(mubC) > 0.99) {
       cout << "#### Error (surface): high T/mu_b ####\n";

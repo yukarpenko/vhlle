@@ -58,7 +58,7 @@ IcGlissando::IcGlissando(Fluid* f, const char* filename, double _tau0, const cha
   cout << "IcGlissando: setup for 200 GeV RHIC\n";
  } else if(strcmp(setup,"LHC5020")==0) {
   sNN = 5020;
-  eta0 = 2.3; // midrapidity plateau
+  eta0 = 3.7; //2.3 // midrapidity plateau
   sigEta = 1.4; // diffuseness of rapidity profile
   etaM = 4.5;
   ybeam = 8.585; // beam rapidity
@@ -148,7 +148,7 @@ IcGlissando::IcGlissando(Fluid* f, const char* filename, double _tau0, const cha
    // cout<<"readF14:instream: failure reading data\n" ;
    // cout<<"stream = "<<instream.str()<<endl ;
    if (nevents % 1 == 0) {
-    cout << "event = " << nevents << "  np = " << np << "\n";
+    //cout << "event = " << nevents << "  np = " << np << "\n";
     //cout << flush;
    }
    makeSmoothTable(np);
@@ -202,10 +202,10 @@ void IcGlissando::makeSmoothTable(int npart) {
   neta0 = 1.332 - 0.319*cent;
   nsigma = 0.788 - 0.213*cent;
  }
- cout << "eta0 = " << eta0 << endl;
- cout << "sigEta = " << sigEta << endl;
- cout << "neta0 = " << neta0 << endl;
- cout << "nsigma = " << nsigma << endl;
+ //cout << "eta0 = " << eta0 << endl;
+ //cout << "sigEta = " << sigEta << endl;
+ //cout << "neta0 = " << neta0 << endl;
+ //cout << "nsigma = " << nsigma << endl;
  for (int ip = 0; ip < npart; ip++) {  // particle loop
   int ixc = (int)((X[ip] - xmin) / dx);
   int iyc = (int)((Y[ip] - ymin) / dy);

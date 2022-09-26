@@ -418,7 +418,7 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
  double etaS, zetaS;
  double s = eos->s(e1, nb, nq, ns);  // entropy density in the current cell
  eos->eos(e1, nb, nq, ns, T, mub, muq, mus, p);
- trcoeff->getEta(e1, T, etaS, zetaS);
+ trcoeff->getEta(e1, nb, T, etaS, zetaS);
  //##############
  // if(e1<0.00004) s=0. ; // negative pressure due to pi^zz for small e
  ut0 = 1.0 / sqrt(1.0 - vx0 * vx0 - vy0 * vy0 - vz0 * vz0);
@@ -597,7 +597,7 @@ void Hydro::setNSvalues() {
     double etaS, zetaS;
     double s = eos->s(e, nb, nq, ns);  // entropy density in the current cell
     eos->eos(e, nb, nq, ns, T, mub, muq, mus, p);
-    trcoeff->getEta(e, T, etaS, zetaS);
+    trcoeff->getEta(e,nb, T, etaS, zetaS);
     for (int i = 0; i < 4; i++)
      for (int j = 0; j < 4; j++) piNS[i][j] = 0.0;  // reset piNS
     piNS[1][1] = piNS[2][2] = 2.0 / 3.0 * etaS * s / tau / 5.068;
@@ -648,19 +648,19 @@ void Hydro::ISformal() {
      NSquant(ix, iy, iz, piNS, PiNS, dmu, du);
      eos->eos(e, nb, nq, ns, T, mub, muq, mus, p);
      double etaS, zetaS;
-     trcoeff->getEta(e, T, etaS, zetaS);
+     trcoeff->getEta(e,nb, T, etaS, zetaS);
      const double s = eos->s(e, nb, nq, ns);
      const double eta = etaS * s;
      // auxiliary variable sigmaNS = piNS / (2*eta), 
      // mainly to protect against division by zero in the eta=0 case.
      for(int i=0; i<4; i++)
      for(int j=0; j<4; j++) {
-      sigNS[i][j] = 0.5 * piNS[i][j] / eta;
+      sigNS[i][j] = 0.5 * piNS[i][j] / eta * 5.068;
       if(eta<=0.0) sigNS[i][j] = 0.0;
      }
      //############# get relaxation times
      double taupi, tauPi;
-     trcoeff->getTau(e, T, taupi, tauPi);
+     trcoeff->getTau(e, nb, T, taupi, tauPi);
      double deltapipi, taupipi, lambdapiPi, phi7, delPiPi, lamPipi;
      trcoeff->getOther(e, nb, nq, ns, deltapipi, taupipi, lambdapiPi, phi7);
      phi7 = phi7/taupi;  // dividing by tau_pi here, to avoid NaNs when tau_pi==0
@@ -847,8 +847,8 @@ void Hydro::ISformal() {
      rescaled = true;
     }
     if (fabs(Pi) > p) {
-     if (Pi != 0.) Pi = 0.1 * Pi / fabs(Pi) * p;
-     if (PiH != 0.) PiH = 0.1 * PiH / fabs(PiH) * p;
+     if (Pi != 0.) Pi = 1 * Pi / fabs(Pi) * p;     //modified .1 -> 1
+     if (PiH != 0.) PiH = 1 * PiH / fabs(PiH) * p; //modified .1 -> 1
      rescaled = true;
     }
     if (rescaled)

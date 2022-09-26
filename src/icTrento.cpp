@@ -58,7 +58,7 @@ IcTrento::IcTrento(Fluid* f, const char* filename, double _tau0, const char* set
   cout << "IcTrento: setup for 200 GeV RHIC\n";
  } else if(strcmp(setup,"LHC5020")==0) {
   sNN = 5020;
-  eta0 = 2.3; // midrapidity plateau
+  eta0 = 3.7; //2.3; // midrapidity plateau
   sigEta = 1.4; // diffuseness of rapidity profile
   etaM = 4.5;
   ybeam = 8.585; // beam rapidity
@@ -117,6 +117,7 @@ IcTrento::IcTrento(Fluid* f, const char* filename, double _tau0, const char* set
    }
   }
  }
+
  // ---- read the events
  nevents = 0;
  ifstream fin(filename);
@@ -124,48 +125,59 @@ IcTrento::IcTrento(Fluid* f, const char* filename, double _tau0, const char* set
   cout << "I/O error with " << filename << endl;
   exit(1);
  }
- int npart = 0;  // particle counter
+ int npart = 0;  // number of participants
  string line;
  istringstream instream;
- for (int i = 0; i < 3; i++) { // read first 3 lines - the 3rd line contains npart
-  getline(fin, line);
- }
- instream.str(line);
- instream.seekg(9);
- instream >> npart; // read npart
- for (int i = 0; i < 5; i++) { // read the rest 5 lines from header
-  getline(fin, line);
- }
- getline(fin, line); // read grid-step
- getline(fin, line); // read grid-nsteps
- instream.str(line);
- instream.seekg(15);
- instream >> n_grid;
-
- // create array for the source
- source = new double*[n_grid];
- for (int ix = 0; ix < n_grid; ix++) {
-  source[ix] = new double[n_grid];
-  for (int iy = 0; iy < n_grid; iy++) {
-   source[ix][iy] = 0.0;
+ while (!fin.eof()) {
+  for (int i = 0; i < 3; i++) { // read first 3 lines - the 3rd line contains npart
+   getline(fin, line);
   }
- }
+  if (line == "") break;
+  instream.str(line);
+  instream.seekg(9);
+  instream >> npart; // read npart
+  for (int i = 0; i < 5; i++) { // read the rest 5 lines from header
+   getline(fin, line);
+  }
+  getline(fin, line); // read grid-step
+  getline(fin, line); // read grid-nsteps
+  instream.str(line);
+  instream.seekg(15);
+  instream >> n_grid;
 
- getline(fin, line); // read grid-max
- instream.str(line);
- instream.seekg(12);
- instream >> xmaxG;
- ymaxG = xmaxG;
- xminG = -xmaxG;
- yminG = -xmaxG;
- cout << "Trento IS grid: x,ymaxG = " << xmaxG << "  n_grid = " << n_grid << endl;
- for (int iy = 0; iy < n_grid; iy++) {
+  // allocate source array
+  source = new double*[n_grid];
   for (int ix = 0; ix < n_grid; ix++) {
-   fin >> source[ix][iy];
+   source[ix] = new double[n_grid];
+   for (int iy = 0; iy < n_grid; iy++) {
+    source[ix][iy] = 0.0;
+   }
   }
+
+  getline(fin, line); // read grid-max
+  instream.str(line);
+  instream.seekg(12);
+  instream >> xmaxG;
+  ymaxG = xmaxG;
+  xminG = -xmaxG;
+  yminG = -xmaxG;
+  if (nevents == 0) cout << "Trento IS grid: x,ymaxG = " << xmaxG << "  n_grid = " << n_grid << endl;
+  for (int iy = 0; iy < n_grid; iy++) {
+   for (int ix = 0; ix < n_grid; ix++) {
+    fin >> source[ix][iy];
+   }
+  }
+  nevents += 1;
+  cout << "event " << nevents << "  npart = " << npart << "\n";
+  makeSmoothTable(npart);
+
+  // delete source array
+  for (int ix = 0; ix < n_grid; ix++) {
+   delete[] source[ix];
+  }
+  delete[] source;
+  getline(fin, line);
  }
- cout << "npart = " << npart << "\n";
- makeSmoothTable(npart);
 
  // autocalculation of sNorm and nNorm
  sNorm = 1.0;
@@ -228,12 +240,16 @@ void IcTrento::makeSmoothTable(int npart) {
   sigEta = 1.088 - 0.213*cent;
   neta0 = 1.332 - 0.319*cent;
   nsigma = 0.788 - 0.213*cent;
+  cout << "eta0 = " << eta0 << endl;
+  cout << "sigEta = " << sigEta << endl;
+  cout << "neta0 = " << neta0 << endl;
+  cout << "nsigma = " << nsigma << endl;
  }
- cout << "eta0 = " << eta0 << endl;
- cout << "sigEta = " << sigEta << endl;
- cout << "neta0 = " << neta0 << endl;
- cout << "nsigma = " << nsigma << endl;
-
+ if (sNN == 5020) {
+  double cent = (double)npart/(2.*208.); // our measure of centrality
+  eta0 = 3.85165 - 0.49095*cent;
+  cout << "eta0 = " << eta0 << endl;
+ }
  for (int ix = 0; ix < nx; ix++)
   for (int iy = 0; iy < ny; iy++)
    for (int iz = 0; iz < nz; iz++) {
@@ -245,12 +261,12 @@ void IcTrento::makeSmoothTable(int npart) {
     if (sNN < 100) {
      baryonGaussian = eta>0 ? exp(-pow(eta - neta0, 2)/(2. * nsigma * nsigma)) : exp(-pow(eta + neta0, 2)/(2. * nsigma * nsigma)) ;
      baryonGaussian /= nsigma*sqrt(2*C_PI);
-     nrho[ix][iy][iz] = interpolateGrid(x,y) * baryonGaussian;
+     nrho[ix][iy][iz] += interpolateGrid(x,y) * baryonGaussian;
     }
     double fEta = 0.;
     if(fabs(eta)<eta0) fEta = 1.0;
     else if (fabs(eta)<ybeam) fEta = exp(-0.5*pow((fabs(eta)-eta0)/sigEta,2));
-    rho[ix][iy][iz] = source[ix][iy] * fEta;
+    rho[ix][iy][iz] += interpolateGrid(x,y) * fEta;
  } // Z(eta) loop
 }
 
@@ -264,9 +280,9 @@ void IcTrento::setIC(Fluid* f, EoS* eos) {
  for (int ix = 0; ix < nx; ix++)
   for (int iy = 0; iy < ny; iy++)
    for (int iz = 0; iz < nz; iz++) {
-    e = s95p::s95p_e(sNorm * rho[ix][iy][iz] / dx / dy);
+    e = s95p::s95p_e(sNorm * rho[ix][iy][iz] / nevents / dx / dy);
     if (sNN < 100) {
-      nb = nNorm * nrho[ix][iy][iz] / dx / dy / dz;
+      nb = nNorm * nrho[ix][iy][iz] / nevents / dx / dy / dz;
     } else {
       nb = 0.;
     }
@@ -334,7 +350,7 @@ double IcTrento::setNormalization(int npart) {
  for (int ix = 0; ix < nx; ix++)
   for (int iy = 0; iy < ny; iy++)
    for (int iz = 0; iz < nz; iz++) {
-    e = s95p::s95p_e(sNorm * rho[ix][iy][iz] / dx / dy);
+    e = s95p::s95p_e(sNorm * rho[ix][iy][iz] / nevents / dx / dy);
     double eta = zmin + iz * dz;
     double coshEta = cosh(eta);
     total_energy += tau0*e*dx*dy*dz*coshEta;
@@ -348,7 +364,7 @@ double IcTrento::setBaryonNorm(int npart) {
  for (int ix = 0; ix < nx; ix++)
   for (int iy = 0; iy < ny; iy++)
    for (int iz = 0; iz < nz; iz++) {
-    nb = nNorm * nrho[ix][iy][iz] / dx / dy / dz;
+    nb = nNorm * nrho[ix][iy][iz] / nevents / dx / dy / dz;
     Nb += nb*tau0*dx*dy*dz;
    }
  return npart/Nb;
