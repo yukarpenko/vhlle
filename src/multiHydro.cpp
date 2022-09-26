@@ -41,6 +41,7 @@ MultiHydro::MultiHydro(Fluid *_f_p, Fluid *_f_t, Fluid *_f_f, Hydro *_h_p,
  dy = f_p->getDy();
  dz = f_p->getDz();
  dtau = _dtau;
+ tau0 = h_p->getTau();
  sNN = _sNN;
  frictionScale = _frictionScale;
  lambda = _lambda;
@@ -916,7 +917,7 @@ void MultiHydro::findFreezeout(EoS* eosH)
   delete[] ccube[i1];
  }
  delete[] ccube;
- if (nelements == 0 && h_p->getTau() > 5) exit(0);
+ if (nelements == 0 && h_p->getTau() > 5 + tau0) exit(0);
 }
 
 void MultiHydro::printFreezeout(std::ofstream &fout, double t, double x, double y, double z, double dsigma[4], double uC[4], double TC, double mub, double muq, double mus, double picart[10], double PiC, double dVEff)
