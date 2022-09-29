@@ -127,6 +127,8 @@ IC3F::IC3F(Fluid *f_p, Fluid *f_t, double tau, int _nevents, double _snn, double
    if (b < b_max && b > b_min) generated = true;
   }
 
+  cout << "generated impact parameter: " << b << endl;
+
   // output for debugging
   //ofstream fout("nucleons.dat");
 
