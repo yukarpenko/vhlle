@@ -52,7 +52,7 @@ string collSystem, outputDir, isInputFile;
 double etaS, zetaS, eCrit, eEtaSMin, al, ah, aRho, T0, etaSMin;
 int icModel,glauberVariable =1;  // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
 double epsilon0, Rgt, Rgz, impactPar, s0ScaleFactor;
-double frictionScale = 1.0, lambda = 1.0, formationTime = 0.0;
+double xi_fa = 1.0, lambda = 1.0, formationTime = 0.0, xi_q = 1.0, xi_h = 1.0;
 int frictionModel = 1, decreasingFormTime = 0;
 
 double snn, b_min, b_max;
@@ -143,8 +143,12 @@ void readParameters(char *parFile) {
    projZ = atoi(parValue);
   else if (strcmp(parName, "targZ") ==0)
    targZ = atoi(parValue);
-  else if (strcmp(parName, "frictionScale") ==0)
-   frictionScale = atof(parValue);
+  else if (strcmp(parName, "xi_fa") ==0)
+   xi_fa = atof(parValue);
+  else if (strcmp(parName, "xi_q") ==0)
+   xi_q = atof(parValue);
+  else if (strcmp(parName, "xi_h") ==0)
+   xi_h = atof(parValue);
   else if (strcmp(parName, "lambda") ==0)
    lambda = atof(parValue);
   else if (strcmp(parName, "formationTime") ==0)
@@ -225,7 +229,9 @@ void printParameters() {
  cout << "Rgt = " << Rgt << "  Rgz = " << Rgz << endl;
  cout << "impactPar = " << impactPar << endl;
  cout << "s0ScaleFactor = " << s0ScaleFactor << endl;
- cout << "frictionScale = " << frictionScale << endl;
+ cout << "xi_fa = " << xi_fa << endl;
+ cout << "xi_q = " << xi_q << endl;
+ cout << "xi_h = " << xi_h << endl;
  cout << "lambda = " << lambda << endl;
  cout << "formationTime = " << formationTime << endl;
  cout << "======= end parameters =======\n";
@@ -428,7 +434,7 @@ int main(int argc, char **argv) {
  time(&start);
  // h->setNSvalues() ; // initialize viscous terms
 
- mh = new MultiHydro(f_p, f_t, f_f, h_p, h_t, h_f, eos, trcoeff, dtau, eCrit, snn, frictionScale, lambda, formationTime, frictionModel, decreasingFormTime);
+ mh = new MultiHydro(f_p, f_t, f_f, h_p, h_t, h_f, eos, trcoeff, dtau, eCrit, snn, xi_fa, lambda, formationTime, frictionModel, decreasingFormTime, xi_q, xi_h);
 
  f_p->initOutput(outputDir.c_str(), tau0, "proj");
  f_t->initOutput(outputDir.c_str(), tau0, "targ");

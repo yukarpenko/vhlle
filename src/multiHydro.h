@@ -19,7 +19,7 @@ class MultiHydro {
  double ecrit, vEff, vEff_p, vEff_t, vEff_f;
  int nx, ny, nz;
  double dx, dy, dz, dtau, tau0, sNN;
- double frictionScale, formationTime, lambda;
+ double xi_fa, formationTime, lambda, xi_q, xi_h;
  int frictionModel, decreasingFormTime;
  double dtauf;
  const double gmunu[4][4] = {
@@ -30,7 +30,8 @@ class MultiHydro {
 public:
  MultiHydro(Fluid *f_p, Fluid *f_t, Fluid *f_f, Hydro *h_p, Hydro *h_t,
   Hydro* h_f, EoS *eos, TransportCoeff *trcoeff, double dtau, double eCrit, double sNN,
-  double frictionScale, double lambda, double formationTime, int frictionModel, int decreasingFormTime);
+  double xi_fa, double lambda, double formationTime, int frictionModel, int decreasingFormTime,
+  double xi_q, double xi_h);
  ~MultiHydro(void);
  void initOutput(const char *dir);
  void performStep();

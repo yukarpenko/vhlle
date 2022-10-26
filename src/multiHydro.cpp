@@ -22,8 +22,8 @@ using namespace std;
 
 MultiHydro::MultiHydro(Fluid *_f_p, Fluid *_f_t, Fluid *_f_f, Hydro *_h_p,
  Hydro *_h_t, Hydro *_h_f, EoS *_eos, TransportCoeff *_trcoeff, double _dtau,
- double eCrit, double _sNN, double _frictionScale, double _lambda, double _formationTime,
- int _frictionModel, int _decreasingFormTime)
+ double eCrit, double _sNN, double _xi_fa, double _lambda, double _formationTime,
+ int _frictionModel, int _decreasingFormTime, double _xi_q, double _xi_h)
 {
  f_p = _f_p;
  f_t = _f_t;
@@ -43,11 +43,13 @@ MultiHydro::MultiHydro(Fluid *_f_p, Fluid *_f_t, Fluid *_f_f, Hydro *_h_p,
  dtau = _dtau;
  tau0 = h_p->getTau();
  sNN = _sNN;
- frictionScale = _frictionScale;
+ xi_fa = _xi_fa;
  lambda = _lambda;
  formationTime = _formationTime;
  frictionModel = _frictionModel;
  decreasingFormTime = _decreasingFormTime;
+ xi_q = _xi_q;
+ xi_h = _xi_h;
  dtauf = formationTime / 10.0;
 
  //---- Cornelius init
@@ -199,13 +201,32 @@ void MultiHydro::frictionSubstep()
     double maxVal = max(max(Fermi(nbp)/mN, 3*TCp/(2*mN)), max(Fermi(nbt)/mN, 3*TCt/(2*mN)));
     double deltaV = sqrt(1-pow(maxVal+1,-2));
     double theta = 1 - exp(-pow(Vrel/deltaV,4));
+    // qgb densities
+    double zeta3 = 1.20205690315959;
+    double nquark_p = 18 * zeta3 * pow(TCp, 3) / pow(M_PI, 2) + 2*pow(mubCp/3, 3);
+    double ngluon_p = 16 * zeta3 * pow(TCp, 3) / pow(M_PI, 2);
+    double nquark_t = 18 * zeta3 * pow(TCt, 3) / pow(M_PI, 2) + 2*pow(mubCt/3, 3);
+    double ngluon_t = 16 * zeta3 * pow(TCt, 3) / pow(M_PI, 2);
+    double dens_p, dens_t;
+    if (ep < 0.7) {
+     dens_p = xi_h*pow(2*mN/sqrt(s), 0.5)*nbp;
+    } else {
+     dens_p = xi_q*pow(2*mN/sqrt(s), 0.5)*(nquark_p+ngluon_p)/3;
+    }
+    if (et < 0.7) {
+     dens_t = xi_h*pow(2*mN/sqrt(s), 0.5)*nbt;
+    } else {
+     dens_t = xi_q*pow(2*mN/sqrt(s), 0.5)*(nquark_t+ngluon_t)/3;
+    }
+    //double sigma_gg = 0.3; // fm^2
+    //double D_QGP = mN*Vrel*sigma_gg;
     upLV.Boost(-vxt, -vyt, -vzt);
     utLV.Boost(-vxp, -vyp, -vzp);
     for(int i=0; i<4; i++){
      if (frictionModel == 1) {
       // Ivanov's friction terms
-      flux_p[i] += -frictionScale*theta*nbp*nbt*(D_P*(up[i] - ut[i]) + D_E*(up[i] + ut[i]))*h_p->getDtau();
-      flux_t[i] += -frictionScale*theta*nbp*nbt*(D_P*(ut[i] - up[i]) + D_E*(up[i] + ut[i]))*h_p->getDtau();
+      flux_p[i] += -theta*dens_p*dens_t*(D_P*(up[i] - ut[i]) + D_E*(up[i] + ut[i]))*h_p->getDtau();
+      flux_t[i] += -theta*dens_p*dens_t*(D_P*(ut[i] - up[i]) + D_E*(up[i] + ut[i]))*h_p->getDtau();
      } else {
       // simplified and parametrized friction terms
       double vpAbs = sqrt(pow(upLV[0],2) + pow(upLV[1],2) + pow(upLV[2],2))/upLV[3];
@@ -223,8 +244,8 @@ void MultiHydro::frictionSubstep()
         utLV[1] = utLV[1]*(vLimit/vtAbs)*sqrt((1.0-vtAbs*vtAbs)/(1.0-vLimit*vLimit));
         utLV[2] = utLV[2]*(vLimit/vtAbs)*sqrt((1.0-vtAbs*vtAbs)/(1.0-vLimit*vLimit));
       }
-      flux_p[i] += -frictionScale*upLV[(i+3)%4]*sqrt(ep*et)*h_p->getDtau()/lambda;
-      flux_t[i] += -frictionScale*utLV[(i+3)%4]*sqrt(ep*et)*h_p->getDtau()/lambda;
+      flux_p[i] += -xi_h*upLV[(i+3)%4]*sqrt(ep*et)*h_p->getDtau()/lambda;
+      flux_t[i] += -xi_h*utLV[(i+3)%4]*sqrt(ep*et)*h_p->getDtau()/lambda;
      }
      if (formationTime > 0) {
       addRetardedFriction((-flux_p[i]-flux_t[i])*f_p->getDx()*f_p->getDy()*f_p->getDz()*h_p->getTau(),
@@ -243,7 +264,7 @@ void MultiHydro::frictionSubstep()
      (1.0 - vxf*vxp - vyf*vyp - vzf*vzp);
     double Vrel = 0.5/(mN*mpi)*sqrt(pow(s - mN*mN - mpi*mpi,2)
      - 4.*mN*mN*mpi*mpi);
-    double D = frictionScale*Vrel*xsect->piN(s);
+    double D = xi_fa*pow(mN/sqrt(s), 2)*Vrel*xsect->piN(s);
     for(int i=0; i<4; i++){
      flux_pf[i] += D*nbp*(ef + pf)*uf[i]*h_p->getDtau();
     }
@@ -254,7 +275,7 @@ void MultiHydro::frictionSubstep()
      (1.0 - vxf*vxt - vyf*vyt - vzf*vzt);
     double Vrel = 0.5/(mN*mpi)*sqrt(pow(s - mN*mN - mpi*mpi,2)
      - 4.*mN*mN*mpi*mpi);
-    double D = frictionScale*Vrel*xsect->piN(s);
+    double D = xi_fa*pow(mN/sqrt(s), 2)*Vrel*xsect->piN(s);
     for(int i=0; i<4; i++){
      flux_tf[i] += D*nbt*(ef + pf)*uf[i]*h_p->getDtau();
     }
