@@ -52,7 +52,7 @@ string collSystem, outputDir, isInputFile;
 double etaS, zetaS, eCrit, eEtaSMin, al, ah, aRho, T0, etaSMin;
 int icModel,glauberVariable =1;  // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
 double epsilon0, Rgt, Rgz, impactPar, s0ScaleFactor;
-double xi_fa = 1.0, lambda = 1.0, formationTime = 0.0, xi_q = 1.0, xi_h = 1.0;
+double xi_fa = 0.15, lambda = 1.0, formationTime = 0.0, xi_q = 30.0, xi_h = 1.8;
 int frictionModel = 1, decreasingFormTime = 0;
 
 double snn, b_min, b_max;
