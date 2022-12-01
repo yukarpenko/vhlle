@@ -9,17 +9,7 @@ targZ  79
 
 ! EoS type: 0 = complex EoS, 1 = simple table (eosFile)
 eosType       1
-eosFile         Laine_nf3.dat
 eosTypeHadron 1
-chiBfile        chiB.txt
-chiSfile        chiS.txt
-T_ch          0.165
-mu_b          0.0285
-mu_q         -0.001
-mu_s          0.007
-gammaS        0.935
-gammaFactor   0.75
-exclVolume    0.0
 
 etaS      0.0
 zetaS     0.0
@@ -35,11 +25,7 @@ ymax      18.0
 etamin     -1.5
 etamax      1.5
 
-glauberVar 1
-s0ScaleFactor  53.55
-epsilon0   30.0
-impactPar  0.0
-Rg      1.0
+Rg         1.0
 tau0       5.0
 tauMax     30.0
 dtau       0.05

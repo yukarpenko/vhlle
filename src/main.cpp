@@ -45,22 +45,19 @@
 using namespace std;
 
 // program parameters, to be read from file
-int nx, ny, nz, nevents, eosType, etaSparam = 0,zetaSparam = 0;
-int eosTypeHadron = 0;
-double xmin, xmax, ymin, ymax, etamin, etamax, tau0, tauMax, tauResize, dtau;
+int nx = 121, ny = 121, nz = 161, nevents, eosType = 1, etaSparam = 0,zetaSparam = 0;
+int eosTypeHadron = 1;
+double xmin = -18.0, xmax = 18.0, ymin = -18.0, ymax = 18.0, etamin = -1.5, etamax = 1.5;
+double tau0 = 5.0, tauMax = 30.0, dtau = 0.05;
 string collSystem, outputDir, isInputFile;
-double etaS, zetaS, eCrit, eEtaSMin, al, ah, aRho, T0, etaSMin;
+double etaS, zetaS, eCrit = 0.5, eEtaSMin, al, ah, aRho, T0, etaSMin;
 int icModel,glauberVariable =1;  // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
-double epsilon0, Rgt, Rgz, impactPar, s0ScaleFactor;
+double Rgt = 1.0, Rgz;
 double xi_fa = 0.15, lambda = 1.0, formationTime = 0.0, xi_q = 30.0, xi_h = 1.8;
 int frictionModel = 1, decreasingFormTime = 0;
 
 double snn, b_min, b_max;
 int projA, targA, projZ, targZ;
-
-void setDefaultParameters() {
- tauResize = 4.0;
-}
 
 void readParameters(char *parFile) {
  char parName[255], parValue[255];
@@ -85,10 +82,10 @@ void readParameters(char *parFile) {
    ny = atoi(parValue);
   else if (strcmp(parName, "nz") == 0)
    nz = atoi(parValue);
-  else if (strcmp(parName, "icModel") == 0)
+  /*else if (strcmp(parName, "icModel") == 0)
    icModel = atoi(parValue);
   else if (strcmp(parName, "glauberVar") == 0)
-   glauberVariable = atoi(parValue);
+   glauberVariable = atoi(parValue);*/
   else if (strcmp(parName, "xmin") == 0)
    xmin = atof(parValue);
   else if (strcmp(parName, "xmax") == 0)
@@ -105,8 +102,8 @@ void readParameters(char *parFile) {
    tau0 = atof(parValue);
   else if (strcmp(parName, "tauMax") == 0)
    tauMax = atof(parValue);
-  else if (strcmp(parName, "tauGridResize") == 0)
-   tauResize = atof(parValue);
+  /*else if (strcmp(parName, "tauGridResize") == 0)
+   tauResize = atof(parValue);*/
   else if (strcmp(parName, "dtau") == 0)
    dtau = atof(parValue);
   else if (strcmp(parName, "e_crit") == 0)
@@ -117,16 +114,16 @@ void readParameters(char *parFile) {
    zetaS = atof(parValue);
   else if (strcmp(parName, "zetaSparam") == 0)
    zetaSparam = atoi(parValue);
-  else if (strcmp(parName, "epsilon0") == 0)
-   epsilon0 = atof(parValue);
+  /*else if (strcmp(parName, "epsilon0") == 0)
+   epsilon0 = atof(parValue);*/
   else if (strcmp(parName, "Rg") == 0)
    Rgt = atof(parValue);
-  else if (strcmp(parName, "Rgz") == 0)
-   Rgz = atof(parValue);
-  else if (strcmp(parName, "impactPar") == 0)
-   impactPar = atof(parValue);
-  else if (strcmp(parName, "s0ScaleFactor") == 0)
-   s0ScaleFactor = atof(parValue);
+  /*else if (strcmp(parName, "Rgz") == 0)
+   Rgz = atof(parValue);*/
+  /*else if (strcmp(parName, "impactPar") == 0)
+   impactPar = atof(parValue);*/
+  /*else if (strcmp(parName, "s0ScaleFactor") == 0)
+   s0ScaleFactor = atof(parValue);*/
   else if (strcmp(parName, "nevents") == 0)
    nevents = atoi(parValue);
   else if (strcmp(parName, "snn") == 0)
@@ -192,9 +189,9 @@ void printParameters() {
  cout << "nx = " << nx << endl;
  cout << "ny = " << ny << endl;
  cout << "nz = " << nz << endl;
- cout << "icModel = " << icModel << endl;
- cout << "glauberVar = " << glauberVariable << "   ! 0=epsilon,1=entropy"
-      << endl;
+ //cout << "icModel = " << icModel << endl;
+ /*cout << "glauberVar = " << glauberVariable << "   ! 0=epsilon,1=entropy"
+      << endl;*/
  cout << "xmin = " << xmin << endl;
  cout << "xmax = " << xmax << endl;
  cout << "ymin = " << ymin << endl;
@@ -203,7 +200,7 @@ void printParameters() {
  cout << "etamax = " << etamax << endl;
  cout << "tau0 = " << tau0 << endl;
  cout << "tauMax = " << tauMax << endl;
- cout << "tauGridResize = " << tauResize << endl;
+ //cout << "tauGridResize = " << tauResize << endl;
  cout << "dtau = " << dtau << endl;
  cout << "e_crit = " << eCrit << endl;
  cout << "zeta/s param : " << zetaSparam << endl;
@@ -225,10 +222,10 @@ void printParameters() {
     cout << "eEtaSMin = " << eEtaSMin << endl;
  }
  cout << "zeta/s = " << zetaS << endl;
- cout << "epsilon0 = " << epsilon0 << endl;
- cout << "Rgt = " << Rgt << "  Rgz = " << Rgz << endl;
- cout << "impactPar = " << impactPar << endl;
- cout << "s0ScaleFactor = " << s0ScaleFactor << endl;
+ //cout << "epsilon0 = " << epsilon0 << endl;
+ cout << "Rgt = " << Rgt << endl; // "  Rgz = " << Rgz << endl;
+ //cout << "impactPar = " << impactPar << endl;
+ //cout << "s0ScaleFactor = " << s0ScaleFactor << endl;
  cout << "xi_fa = " << xi_fa << endl;
  cout << "xi_q = " << xi_q << endl;
  cout << "xi_h = " << xi_h << endl;
@@ -303,7 +300,6 @@ int main(int argc, char **argv) {
  time(&start);
 
  // read parameters from file
- setDefaultParameters();
  readCommandLine(argc, argv);
  printParameters();
 
@@ -412,7 +408,7 @@ int main(int argc, char **argv) {
  cout << "IC done\n";
 */
 
- IC3F *ic = new IC3F(f_p, f_t, tau0, nevents, snn, b_min, b_max, projA, targA, projZ, targZ, Rgt, tau0);
+ IC3F *ic = new IC3F(f_p, f_t, nevents, snn, b_min, b_max, projA, targA, projZ, targZ, Rgt, tau0);
  ic->setIC(f_p, f_t, eos);
  delete ic;
  cout << "IC done\n";

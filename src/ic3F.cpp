@@ -12,7 +12,7 @@
 
 using namespace std;
 
-IC3F::IC3F(Fluid *f_p, Fluid *f_t, double tau, int _nevents, double _snn, double _b_min, double _b_max, int _projA, int _targA, int _projZ, int _targZ, double _Rg, double _tau0) {
+IC3F::IC3F(Fluid *f_p, Fluid *f_t, int _nevents, double _snn, double _b_min, double _b_max, int _projA, int _targA, int _projZ, int _targZ, double _Rg, double _tau0) {
  nx = f_p->getNX();
  ny = f_p->getNY();
  nz = f_p->getNZ();
