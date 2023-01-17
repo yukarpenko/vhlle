@@ -258,6 +258,8 @@ int main(int argc, char **argv) {
 
  time(&start);
 
+  cout << "***** running in BOX MODE *****\n" ;
+
  // read parameters from file
  setDefaultParameters();
  readCommandLine(argc, argv);

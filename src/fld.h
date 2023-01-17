@@ -49,15 +49,26 @@ public:
  void getCMFvariables(Cell *c, double tau, double &e, double &nb, double &nq,
                       double &ns, double &vx, double &vy, double &Y);
 
- inline Cell *getCell(int ix, int iy, int iz) {
-  ix = ix > 0 ? ix : 0;
-  ix = ix < nx ? ix : nx - 1;
-  iy = iy > 0 ? iy : 0;
-  iy = iy < ny ? iy : ny - 1;
-  iz = iz > 0 ? iz : 0;
-  iz = iz < nz ? iz : nz - 1;
-  return &cell[ix + nx * iy + nx * ny * iz];
- }
+  // preiodic boundary in 3D
+  inline Cell* getCell(int ix, int iy, int iz) 
+	{ ix = ix>0 ? ix : nx+ix;
+   ix = ix<nx ? ix : ix-nx ;
+   iy = iy>0 ? iy : ny+iy;
+   iy = iy<ny ? iy : iy-ny ;
+   iz = iz>0 ? iz : nz+iz;
+   iz = iz<nz ? iz : iz-nz ;
+   return &cell[ix + nx * iy + nx * ny * iz] ; }
+
+  // nonreflecting boundary
+//  inline Cell *getCell(int ix, int iy, int iz) {
+//    ix = ix > 0 ? ix : 0;
+//    ix = ix < nx ? ix : nx - 1;
+//    iy = iy > 0 ? iy : 0;
+//    iy = iy < ny ? iy : ny - 1;
+//    iz = iz > 0 ? iz : 0;
+//    iz = iz < nz ? iz : nz - 1;
+//    return &cell[ix + nx * iy + nx * ny * iz];
+//  }
 
  void correctImagCells(void);      // only ideal hydro part, Q + Qh
  void correctImagCellsFull(void);  // correct ideal+viscous, Q + pi

@@ -1001,21 +1001,21 @@ void Hydro::performStep(void) {
  // X dir
  for (int iy = 0; iy < f->getNY(); iy++)
   for (int iz = 0; iz < f->getNZ(); iz++)
-   for (int ix = 0; ix < f->getNX() - 1; ix++) {
+   for (int ix = 0; ix < f->getNX(); ix++) {
     hlle_flux(f->getCell(ix, iy, iz), f->getCell(ix + 1, iy, iz), X_, PREDICT);
    }
  //	cout << "predictor X done\n" ;
  // Y dir
  for (int iz = 0; iz < f->getNZ(); iz++)
   for (int ix = 0; ix < f->getNX(); ix++)
-   for (int iy = 0; iy < f->getNY() - 1; iy++) {
+   for (int iy = 0; iy < f->getNY(); iy++) {
     hlle_flux(f->getCell(ix, iy, iz), f->getCell(ix, iy + 1, iz), Y_, PREDICT);
    }
  //	cout << "predictor Y done\n" ;
  // Z dir
  for (int ix = 0; ix < f->getNX(); ix++)
   for (int iy = 0; iy < f->getNY(); iy++)
-   for (int iz = 0; iz < f->getNZ() - 1; iz++) {
+   for (int iz = 0; iz < f->getNZ(); iz++) {
     hlle_flux(f->getCell(ix, iy, iz), f->getCell(ix, iy, iz + 1), Z_, PREDICT);
    }
  //	cout << "predictor Z done\n" ;
@@ -1035,21 +1035,21 @@ void Hydro::performStep(void) {
  // X dir
  for (int iy = 0; iy < f->getNY(); iy++)
   for (int iz = 0; iz < f->getNZ(); iz++)
-   for (int ix = 0; ix < f->getNX() - 1; ix++) {
+   for (int ix = 0; ix < f->getNX(); ix++) {
     hlle_flux(f->getCell(ix, iy, iz), f->getCell(ix + 1, iy, iz), X_, CORRECT);
    }
  //	cout << "corrector X done\n" ;
  // Y dir
  for (int iz = 0; iz < f->getNZ(); iz++)
   for (int ix = 0; ix < f->getNX(); ix++)
-   for (int iy = 0; iy < f->getNY() - 1; iy++) {
+   for (int iy = 0; iy < f->getNY(); iy++) {
     hlle_flux(f->getCell(ix, iy, iz), f->getCell(ix, iy + 1, iz), Y_, CORRECT);
    }
  //	cout << "corrector Y done\n" ;
  // Z dir
  for (int ix = 0; ix < f->getNX(); ix++)
   for (int iy = 0; iy < f->getNY(); iy++)
-   for (int iz = 0; iz < f->getNZ() - 1; iz++) {
+   for (int iz = 0; iz < f->getNZ(); iz++) {
     hlle_flux(f->getCell(ix, iy, iz), f->getCell(ix, iy, iz + 1), Z_, CORRECT);
    }
  //	cout << "corrector Z done\n" ;
@@ -1067,7 +1067,7 @@ void Hydro::performStep(void) {
  #else
  tau += dt;
  #endif
- f->correctImagCells();
+ //f->correctImagCells();  // disabled in box mode
 
  //===== viscous part ======
  if (trcoeff->isViscous()) {
@@ -1076,21 +1076,21 @@ void Hydro::performStep(void) {
   // X dir
   for (int iy = 0; iy < f->getNY(); iy++)
    for (int iz = 0; iz < f->getNZ(); iz++)
-    for (int ix = 0; ix < f->getNX() - 1; ix++) {
+    for (int ix = 0; ix < f->getNX(); ix++) {
      visc_flux(f->getCell(ix, iy, iz), f->getCell(ix + 1, iy, iz), X_);
     }
   //	cout << "visc_flux X done\n" ;
   // Y dir
   for (int iz = 0; iz < f->getNZ(); iz++)
    for (int ix = 0; ix < f->getNX(); ix++)
-    for (int iy = 0; iy < f->getNY() - 1; iy++) {
+    for (int iy = 0; iy < f->getNY(); iy++) {
      visc_flux(f->getCell(ix, iy, iz), f->getCell(ix, iy + 1, iz), Y_);
     }
   //	cout << "visc_flux Y done\n" ;
   // Z dir
   for (int ix = 0; ix < f->getNX(); ix++)
    for (int iy = 0; iy < f->getNY(); iy++)
-    for (int iz = 0; iz < f->getNZ() - 1; iz++) {
+    for (int iz = 0; iz < f->getNZ(); iz++) {
      visc_flux(f->getCell(ix, iy, iz), f->getCell(ix, iy, iz + 1), Z_);
     }
 
@@ -1104,5 +1104,5 @@ void Hydro::performStep(void) {
  } else {  // end viscous part
  }
  //==== finishing work ====
- f->correctImagCellsFull();
+ //f->correctImagCellsFull();  // disabled in box mode
 }
