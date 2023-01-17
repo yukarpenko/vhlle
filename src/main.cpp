@@ -45,6 +45,7 @@ using namespace std;
 // program parameters, to be read from file
 int nx, ny, nz, eosType, etaSparam = 0, zetaSparam = 0;
 int eosTypeHadron = 0;
+// in Cartesian frame etamin, etamax = zmin, zmax
 double xmin, xmax, ymin, ymax, etamin, etamax, tau0, tauMax, tauResize, dtau;
 string collSystem, outputDir, isInputFile;
 double etaS, zetaS, eCrit, eEtaSMin, al, ah, aRho, T0, etaSMin;
@@ -346,12 +347,18 @@ int main(int argc, char **argv) {
  f->outputCorona(tau0);
 
  bool resized = false; // flag if the grid has been resized
+ double ctime; // current time, tau or t depending on the coordinate frame
  do {
   // small tau: decrease timestep by making substeps, in order
   // to avoid instabilities in eta direction (signal velocity ~1/tau)
   int nSubSteps = 1;
+  #ifdef CARTESIAN
+  ctime = h->time();
+  #else
+  ctime = h->getTau();
+  #endif
   while (dtau / nSubSteps >
-         1.0 * h->getTau() * (etamax - etamin) / (nz - 1)) {
+         1.0 * ctime * (etamax - etamin) / (nz - 1)) {
    nSubSteps *= 2;  // 0.02 in "old" coordinates
   }
   if(nSubSteps>1) {
@@ -362,15 +369,20 @@ int main(int argc, char **argv) {
    cout << "timestep reduced by " << nSubSteps << endl;
   } else
    h->performStep();
-  f->outputSurface(h->getTau());
+  #ifdef CARTESIAN
+  ctime = h->time();
+  #else
+  ctime = h->getTau();
+  #endif
+  f->outputSurface(ctime);
   if (!freezeoutOnly)
-   f->outputGnuplot(h->getTau());
-  if(h->getTau()>=tauResize and resized==false) {
+   f->outputGnuplot(ctime);
+  if(ctime>=tauResize and resized==false) {
    cout << "grid resize\n";
    f = expandGrid2x(h, eos, eosH, trcoeff);
    resized = true;
   }
- } while(h->getTau()<tauMax+0.0001);
+ } while(ctime<tauMax+0.0001);
 
  end = 0;
  time(&end);

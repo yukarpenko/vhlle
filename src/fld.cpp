@@ -42,16 +42,24 @@ namespace output{  // a namespace containing all the output streams
 
 // returns the velocities in cartesian coordinates, fireball rest frame.
 // Y=longitudinal rapidity of fluid
+// Cartesian mode: Y returns vz, longitudinal velocity
 void Fluid::getCMFvariables(Cell *c, double tau, double &e, double &nb,
                             double &nq, double &ns, double &vx, double &vy,
                             double &Y) {
  double p, vz;
+ #ifdef CARTESIAN
+ tau = 1.0;
+ #endif
  c->getPrimVar(eos, tau, e, p, nb, nq, ns, vx, vy, vz);
+ #ifdef CARTESIAN
+ Y = vz;
+ #else
  double eta = getZ(c->getZ());
  //	Y = eta + TMath::ATanH(vz) ;
  Y = eta + 1. / 2. * log((1. + vz) / (1. - vz));
  vx = vx * cosh(Y - eta) / cosh(Y);
  vy = vy * cosh(Y - eta) / cosh(Y);
+ #endif
 }
 
 Fluid::Fluid(EoS *_eos, EoS *_eosH, TransportCoeff *_trcoeff, int _nx, int _ny,
@@ -372,16 +380,19 @@ void Fluid::updateM(double tau, double dt) {
 }
 
 void Fluid::outputGnuplot(double tau) {
- double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz;
+ // in Cartesian frame:
+ // time t is passed as tau parameter. 
+ // in such case getCMFvariables() re-sets tau=1 internally
+ double e, p, nb, nq, ns, T, mub, muq, mus, vx, vy, vz;
 
  // X direction
  for (int ix = 0; ix < nx; ix++) {
   double x = getX(ix);
   Cell *c = getCell(ix, ny / 2, nz / 2);
   getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
-  eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
+  eos->eos(e, nb, nq, ns, T, mub, muq, mus, p);
   output::fx << setw(14) << tau << setw(14) << x << setw(14) << vx << setw(14) << vy
-        << setw(14) << e << setw(14) << nb << setw(14) << t << setw(14) << mub;
+        << setw(14) << e << setw(14) << nb << setw(14) << T << setw(14) << mub;
   output::fx << setw(14) << c->getpi(0, 0) << setw(14) << c->getpi(0, 1) << setw(14)
         << c->getpi(0, 2);
   output::fx << setw(14) << c->getpi(0, 3) << setw(14) << c->getpi(1, 1) << setw(14)
@@ -398,9 +409,9 @@ void Fluid::outputGnuplot(double tau) {
   double y = getY(iy);
   Cell *c = getCell(nx / 2, iy, nz / 2);
   getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
-  eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
+  eos->eos(e, nb, nq, ns, T, mub, muq, mus, p);
   output::fy << setw(14) << tau << setw(14) << y << setw(14) << vy << setw(14) << vx
-        << setw(14) << e << setw(14) << nb << setw(14) << t << setw(14) << mub;
+        << setw(14) << e << setw(14) << nb << setw(14) << T << setw(14) << mub;
   output::fy << setw(14) << c->getpi(0, 0) << setw(14) << c->getpi(0, 1) << setw(14)
         << c->getpi(0, 2);
   output::fy << setw(14) << c->getpi(0, 3) << setw(14) << c->getpi(1, 1) << setw(14)
@@ -417,9 +428,9 @@ void Fluid::outputGnuplot(double tau) {
   double x = getY(ix);
   Cell *c = getCell(ix, ix, nz / 2);
   getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
-  eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
+  eos->eos(e, nb, nq, ns, T, mub, muq, mus, p);
   output::fdiag << setw(14) << tau << setw(14) << sqrt(2.) * x << setw(14) << vx
-           << setw(14) << vy << setw(14) << e << setw(14) << nb << setw(14) << t
+           << setw(14) << vy << setw(14) << e << setw(14) << nb << setw(14) << T
            << setw(14) << mub << endl;
   output::fdiag << setw(14) << c->getpi(0, 0) << setw(14) << c->getpi(0, 1)
            << setw(14) << c->getpi(0, 2);
@@ -437,9 +448,9 @@ void Fluid::outputGnuplot(double tau) {
   double z = getZ(iz);
   Cell *c = getCell(nx / 2, ny / 2, iz);
   getCMFvariables(getCell(nx / 2, ny / 2, iz), tau, e, nb, nq, ns, vx, vy, vz);
-  eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
+  eos->eos(e, nb, nq, ns, T, mub, muq, mus, p);
   output::fz << setw(14) << tau << setw(14) << z << setw(14) << vz << setw(14) << vx
-        << setw(14) << e << setw(14) << nb << setw(14) << t << setw(14) << mub;
+        << setw(14) << e << setw(14) << nb << setw(14) << T << setw(14) << mub;
   output::fz << setw(14) << c->getpi(0, 0) << setw(14) << c->getpi(0, 1) << setw(14)
         << c->getpi(0, 2);
   output::fz << setw(14) << c->getpi(0, 3) << setw(14) << c->getpi(1, 1) << setw(14)
@@ -463,7 +474,7 @@ void transformToLab(double eta, double &vx, double &vy, double &vz) {
 
 void Fluid::outputSurface(double tau) {
  static double nbSurf = 0.0;
- double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz, Q[7];
+ double e, p, nb, nq, ns, T, mub, muq, mus, vx, vy, vz, Q[7];
  double E = 0., Efull = 0., S = 0., Px = 0., vt_num = 0., vt_den = 0.,
         vxvy_num = 0., vxvy_den = 0., pi0x_num = 0., pi0x_den = 0.,
         txxyy_num = 0., txxyy_den = 0., Nb1 = 0., Nb2 = 0.,
@@ -494,9 +505,39 @@ void Fluid::outputSurface(double tau) {
     Cell *c = getCell(ix, iy, iz);
     getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
     c->getQ(Q);
-    eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
+    eos->eos(e, nb, nq, ns, T, mub, muq, mus, p);
     double s = eos->s(e, nb, nq, ns);
     eta = getZ(iz);
+    #ifdef CARTESIAN
+    E += (e + p) / (1. - vx*vx - vy*vy - vz*vz) - p;
+    Nb1 += Q[NB_];
+    Nb2 += nb / sqrt(1. - vx*vx - vy*vy - vz*vz);
+    //---- inf check
+    if (std::isinf(E)) {
+     cout << "EEinf" << setw(14) << e << setw(14) << p << setw(14) << vx
+          << setw(14) << vy << setw(14) << vz << endl;
+     exit(1);
+    }
+    //--------------
+    Efull += (e + p) / (1. - vx*vx - vy*vy - vz*vz) - p;
+    if (trcoeff->isViscous())
+     Efull += c->getpi(0, 0);
+    if (e > ecrit) {
+     nCoreCells++;
+     if (c->getViscCorrCutFlag() < 0.9) nCoreCutCells++;
+    }
+    // -- noneq. corrections to entropy flux
+    const double gmumu[4] = {1., -1., -1., -1.};
+    double deltas = 0.;
+    if (trcoeff->isViscous())
+     for (int i = 0; i < 4; i++)
+      for (int j = 0; j < 4; j++)
+       deltas += pow(c->getpi(i, j), 2) * gmumu[i] * gmumu[j];
+    if (T > 0.02) {
+     s += 1.5 * deltas / ((e + p) * T);
+     S += s / sqrt(1. - vx*vx - vy*vy - vz*vz);
+    }
+    #else
     const double cosh_int = (sinh(eta + 0.5 * dz) - sinh(eta - 0.5 * dz)) / dz;
     const double sinh_int = (cosh(eta + 0.5 * dz) - cosh(eta - 0.5 * dz)) / dz;
     E += tau * (e + p) / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz)) *
@@ -529,8 +570,8 @@ void Fluid::outputSurface(double tau) {
      for (int i = 0; i < 4; i++)
       for (int j = 0; j < 4; j++)
        deltas += pow(c->getpi(i, j), 2) * gmumu[i] * gmumu[j];
-    if (t > 0.02) {
-     s += 1.5 * deltas / ((e + p) * t);
+    if (T > 0.02) {
+     s += 1.5 * deltas / ((e + p) * T);
      S += tau * s * (cosh_int - tanh(vz) * sinh_int) /
           sqrt(1. - vx * vx - vy * vy - tanh(vz) * tanh(vz));
     }
@@ -549,6 +590,8 @@ void Fluid::outputSurface(double tau) {
     pi0x_num += e / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz)) *
                 fabs(c->getpi(0, 1));
     pi0x_den += e / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz));
+    #endif
+    
     //----- Cornelius stuff
     double QCube[2][2][2][2][7];
     double piSquare[2][2][2][10], PiSquare[2][2][2];
@@ -557,10 +600,18 @@ void Fluid::outputSurface(double tau) {
       for (int jz = 0; jz < 2; jz++) {
        double _p, _nb, _nq, _ns, _vx, _vy, _vz;
        Cell *cc = getCell(ix + jx, iy + jy, iz + jz);
+       #ifdef CARTESIAN
+       cc->getPrimVar(eos, 1.0, e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
+       #else
        cc->getPrimVar(eos, tau, e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
+       #endif
        cc->getQ(QCube[1][jx][jy][jz]);
        ccube[1][jx][jy][jz] = e;
+       #ifdef CARTESIAN
+       cc->getPrimVarPrev(eos, 1.0, e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
+       #else
        cc->getPrimVarPrev(eos, tau - dt, e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
+       #endif
        cc->getQprev(QCube[0][jx][jy][jz]);
        ccube[0][jx][jy][jz] = e;
        // ---- get viscous tensor
@@ -601,8 +652,10 @@ void Fluid::outputSurface(double tau) {
           QC[i] += QCube[jt][jx][jy][jz][i] * wCenT[jt] * wCenX[jx] *
                    wCenY[jy] * wCenZ[jz];
          }
+     #ifndef CARTESIAN
      for (int i = 0; i < 7; i++)
       QC[i] = QC[i] / (tau + cornelius->get_centroid_elem(isegm, 0));
+     #endif
      double _ns = 0.0;
      transformPV(eos, QC, eC, pC, nbC, nqC, _ns, vxC, vyC, vzC);
      eos->eos(eC, nbC, nqC, _ns, TC, mubC, muqC, musC, pC);
@@ -625,14 +678,17 @@ void Fluid::outputSurface(double tau) {
       vzC *= sqrt(0.99 / v2C);
       v2C = 0.99;
      }
+     #ifndef CARTESIAN
      double etaC = getZ(iz) + cornelius->get_centroid_elem(isegm, 3);
      transformToLab(etaC, vxC, vyC, vzC);  // viC is now in lab.frame!
+     #endif
      double gammaC = 1. / sqrt(1. - vxC * vxC - vyC * vyC - vzC * vzC);
 
      double uC[4] = {gammaC, gammaC * vxC, gammaC * vyC, gammaC * vzC};
      const double tauC = tau + cornelius->get_centroid_elem(isegm, 0);
      double dsigma[4];
      // ---- transform dsigma to lab.frame :
+     #ifndef CARTESIAN
      const double ch = cosh(etaC);
      const double sh = sinh(etaC);
      dsigma[0] = tauC * (ch * cornelius->get_normal_elem(0, 0) -
@@ -641,6 +697,10 @@ void Fluid::outputSurface(double tau) {
                          ch / tauC * cornelius->get_normal_elem(0, 3));
      dsigma[1] = tauC * cornelius->get_normal_elem(0, 1);
      dsigma[2] = tauC * cornelius->get_normal_elem(0, 2);
+     #else
+     for(int ii=0; ii<4; ii++)
+      dsigma[ii] = cornelius->get_normal_elem(0, ii);
+     #endif
      double dVEff = 0.0;
      for (int ii = 0; ii < 4; ii++)
       dVEff += dsigma[ii] * uC[ii];  // normalize for Delta eta=1
@@ -651,6 +711,7 @@ void Fluid::outputSurface(double tau) {
              << setw(24) << musC;
 #ifdef OUTPI
      double picart[10];
+     #ifndef CARTESIAN
      /*pi00*/ picart[index44(0, 0)] = ch * ch * piC[index44(0, 0)] +
                                       2. * ch * sh * piC[index44(0, 3)] +
                                       sh * sh * piC[index44(3, 3)];
@@ -671,6 +732,11 @@ void Fluid::outputSurface(double tau) {
      /*pi33*/ picart[index44(3, 3)] = sh * sh * piC[index44(0, 0)] +
                                       ch * ch * piC[index44(3, 3)] +
                                       2. * sh * ch * piC[index44(0, 3)];
+     #else
+     for(int ii=0; ii<4; ii++)
+      for(int jj=0; jj<ii; jj++)
+       picart[index44(ii, jj)] = piC[index44(ii, jj)];
+     #endif
      for (int ii = 0; ii < 10; ii++) output::ffreeze << setw(24) << picart[ii];
      output::ffreeze << setw(24) << PiC << endl;
 #else
@@ -717,7 +783,7 @@ void Fluid::outputSurface(double tau) {
 
 void Fluid::outputCorona(double tau) {
  static double nbSurf = 0.0;
- double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz, Q[7];
+ double e, p, nb, nq, ns, T, mub, muq, mus, vx, vy, vz, Q[7];
  double E = 0., Efull = 0., S = 0., Px = 0., vt_num = 0., vt_den = 0.,
         vxvy_num = 0., vxvy_den = 0., pi0x_num = 0., pi0x_den = 0.,
         txxyy_num = 0., txxyy_den = 0., Nb1 = 0., Nb2 = 0.;
@@ -734,9 +800,35 @@ void Fluid::outputCorona(double tau) {
     Cell *c = getCell(ix, iy, iz);
     getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
     c->getQ(Q);
-    eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
+    eos->eos(e, nb, nq, ns, T, mub, muq, mus, p);
     double s = eos->s(e, nb, nq, ns);
     eta = getZ(iz);
+    #ifdef CARTESIAN
+    E += (e + p) / (1. - vx*vx - vy*vy - vz*vz) - p;
+    Nb1 += Q[NB_];
+    Nb2 += nb / sqrt(1. - vx*vx - vy*vy - vz*vz);
+    //---- inf check
+    if (std::isinf(E)) {
+     cout << "EEinf" << setw(14) << e << setw(14) << p << setw(14) << vx
+          << setw(14) << vy << setw(14) << vz << endl;
+     exit(1);
+    }
+    //--------------
+    Efull += (e + p) / (1. - vx*vx - vy*vy - vz*vz) - p;
+    if (trcoeff->isViscous())
+     Efull += c->getpi(0, 0);
+    // -- noneq. corrections to entropy flux
+    const double gmumu[4] = {1., -1., -1., -1.};
+    double deltas = 0.;
+    if (trcoeff->isViscous())
+     for (int i = 0; i < 4; i++)
+      for (int j = 0; j < 4; j++)
+       deltas += pow(c->getpi(i, j), 2) * gmumu[i] * gmumu[j];
+    if (T > 0.02) {
+     s += 1.5 * deltas / ((e + p) * T);
+     S += s / sqrt(1. - vx*vx - vy*vy - vz*vz);
+    }
+    #else
     const double cosh_int = (sinh(eta + 0.5 * dz) - sinh(eta - 0.5 * dz)) / dz;
     const double sinh_int = (cosh(eta + 0.5 * dz) - cosh(eta - 0.5 * dz)) / dz;
     E += tau * (e + p) / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz)) *
@@ -765,8 +857,8 @@ void Fluid::outputCorona(double tau) {
      for (int i = 0; i < 4; i++)
       for (int j = 0; j < 4; j++)
        deltas += pow(c->getpi(i, j), 2) * gmumu[i] * gmumu[j];
-    if (t > 0.02) {
-     s += 1.5 * deltas / ((e + p) * t);
+    if (T > 0.02) {
+     s += 1.5 * deltas / ((e + p) * T);
      S += tau * s * (cosh_int - tanh(vz) * sinh_int) /
           sqrt(1. - vx * vx - vy * vy - tanh(vz) * tanh(vz));
     }
@@ -783,6 +875,7 @@ void Fluid::outputCorona(double tau) {
     pi0x_num += e / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz)) *
                 fabs(c->getpi(0, 1));
     pi0x_den += e / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz));
+    #endif
 
     //----- Cornelius stuff
     bool isCorona = true, isTail = true;
@@ -793,7 +886,11 @@ void Fluid::outputCorona(double tau) {
       for (int jz = 0; jz < 2; jz++) {
        double _p, _nb, _nq, _ns, _vx, _vy, _vz;
        Cell *cc = getCell(ix + jx, iy + jy, iz + jz);
+       #ifdef CARTESIAN
+       cc->getPrimVar(eos, 1.0, e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
+       #else
        cc->getPrimVar(eos, tau, e, _p, _nb, _nq, _ns, _vx, _vy, _vz);
+       #endif
        cc->getQ(QCube[jx][jy][jz]);
        if (e > ecrit) isCorona = false;
        // ---- get viscous tensor
@@ -816,7 +913,9 @@ void Fluid::outputCorona(double tau) {
        for (int i = 0; i < 7; i++) {
         QC[i] += QCube[jx][jy][jz][i] * 0.125;
        }
+    #ifndef CARTESIAN
     for (int i = 0; i < 7; i++) QC[i] = QC[i] / tau;
+    #endif
     double _ns = 0.0;
     transformPV(eos, QC, eC, pC, nbC, nqC, _ns, vxC, vyC, vzC);
     if (eC >= 0.01) isTail = false;
@@ -844,13 +943,16 @@ void Fluid::outputCorona(double tau) {
       vzC *= sqrt(0.99 / v2C);
       v2C = 0.99;
      }
+     #ifndef CARTESIAN
      double etaC = getZ(iz) + 0.5 * dz;
      transformToLab(etaC, vxC, vyC, vzC);  // viC is now in lab.frame!
+     #endif
      double gammaC = 1. / sqrt(1. - vxC * vxC - vyC * vyC - vzC * vzC);
 
      double uC[4] = {gammaC, gammaC * vxC, gammaC * vyC, gammaC * vzC};
      const double tauC = tau;
      double dsigma[4];
+     #ifndef CARTESIAN
      // ---- transform dsigma to lab.frame :
      const double ch = cosh(etaC);
      const double sh = sinh(etaC);
@@ -858,6 +960,10 @@ void Fluid::outputCorona(double tau) {
      dsigma[3] = tauC * (-sh * dx * dy * dz);
      dsigma[1] = 0.0;
      dsigma[2] = 0.0;
+     #else
+     dsigma[0] = dx * dy * dz;
+     dsigma[1] = dsigma[2] = dsigma[3] = 0.0;
+     #endif
      double dVEff = 0.0;
      for (int ii = 0; ii < 4; ii++)
       dVEff += dsigma[ii] * uC[ii];  // normalize for Delta eta=1
@@ -868,6 +974,7 @@ void Fluid::outputCorona(double tau) {
              << setw(24) << musC;
 #ifdef OUTPI
      double picart[10];
+     #ifndef CARTESIAN
      /*pi00*/ picart[index44(0, 0)] = ch * ch * piC[index44(0, 0)] +
                                       2. * ch * sh * piC[index44(0, 3)] +
                                       sh * sh * piC[index44(3, 3)];
@@ -888,6 +995,11 @@ void Fluid::outputCorona(double tau) {
      /*pi33*/ picart[index44(3, 3)] = sh * sh * piC[index44(0, 0)] +
                                       ch * ch * piC[index44(3, 3)] +
                                       2. * sh * ch * piC[index44(0, 3)];
+     #else
+     for(int ii=0; ii<4; ii++)
+      for(int jj=0; jj<ii; jj++)
+       picart[index44(ii, jj)] = piC[index44(ii, jj)];
+     #endif
      for (int ii = 0; ii < 10; ii++) output::ffreeze << setw(24) << picart[ii];
      output::ffreeze << setw(24) << PiC << endl;
 #else

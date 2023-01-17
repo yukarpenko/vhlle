@@ -3,7 +3,7 @@ ROOTCFLAGS   := $(shell root-config --cflags)
 ROOTLIBS     := $(shell root-config --libs)
 
 CXX           = g++
-CXXFLAGS      = -Wall -fPIC -O3
+CXXFLAGS      = -Wall -fPIC -O3 -D CARTESIAN
 LD            = g++
 LDFLAGS       = -O3
 
@@ -17,7 +17,7 @@ SRC        = cll.cpp eos.cpp eo3.cpp eo1.cpp eoChiral.cpp eoHadron.cpp eoAZH.cpp
              icGlauber.cpp icGubser.cpp icGlissando.cpp icTrento.cpp
 OBJS       = $(patsubst %.cpp,$(objdir)/%.o,$(SRC))
 
-TARGET	   = hlle_visc
+TARGET	   = hlle_visc.cart
 #------------------------------------------------------------------------------
 $(TARGET):       $(OBJS)
 		$(LD)  $(LDFLAGS) $^ -o $@ $(LIBS)

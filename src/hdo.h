@@ -12,6 +12,9 @@ private:
  EoS *eos;
  TransportCoeff *trcoeff;
  double dt, tau;  // dt: timestep, tau: current value of the proper time
+ #ifdef CARTESIAN
+ double t;  // time in Cartesian frame
+ #endif
  double tau_z;    // effective value of the proper time used in 1/tau factors in
                   // the fluxes. Used to increase the accuracy
 public:
@@ -51,4 +54,7 @@ public:
  void performStep(void);
  // gets the current proper time
  inline double getTau() { return tau; }
+ #ifdef CARTESIAN
+ double time() { return t; }
+ #endif
 };
