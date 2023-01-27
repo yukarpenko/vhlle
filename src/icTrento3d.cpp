@@ -32,6 +32,26 @@ IcTrento3d::IcTrento3d(Fluid* f, const char* filename, double _tau0, const char*
 
  tau0 = _tau0;
 
+if(strcmp(setup,"LHC276")==0) {
+  sNN = 2760;
+  cout << "IcTrento3d: setup for 2.76 TeV LHC\n";
+ } else if(strcmp(setup,"RHIC200")==0) {
+  sNN = 200;
+  cout << "IcTrento3d: setup for 200 GeV RHIC\n";
+ } else if(strcmp(setup,"LHC5020")==0) {
+  sNN = 5020;
+  cout << "IcTrento3d: setup for 5.02 TeV LHC\n";
+ } else if(strcmp(setup,"RHIC62")==0) {
+  sNN = 62.4;
+  cout << "IcTrento3d: setup for 62.4 GeV RHIC\n";
+ } else if(strcmp(setup,"RHIC27")==0) {
+  sNN = 27;
+  cout << "IcTrento3d: setup for 27 GeV RHIC\n";
+ } else {
+  cout << "IcTrento3d: optional parameter LHC276 or RHIC200 is expected\n";
+  exit(0);
+ }
+
  rho = new double**[nx];
  for (int ix = 0; ix < nx; ix++) {
   rho[ix] = new double*[ny];
@@ -100,6 +120,7 @@ IcTrento3d::IcTrento3d(Fluid* f, const char* filename, double _tau0, const char*
     // allocate source array 3D - [x,y,eta]
   source = new double**[n_grid];
   for (int ix = 0; ix < n_grid; ix++) {
+      source[ix] = new double*[n_grid];
     for (int iy = 0; iy < n_grid; iy++) {
       source[ix][iy] = new double[n_grid_eta];
       for (int eta=0;eta<n_grid_eta;eta++){
@@ -121,6 +142,7 @@ IcTrento3d::IcTrento3d(Fluid* f, const char* filename, double _tau0, const char*
     }
    }
   }
+
   nevents += 1;
   cout << "event " << nevents << "  npart = " << npart << "\n";
   makeSmoothTable(npart);
@@ -169,6 +191,7 @@ double IcTrento3d::interpolateGrid(double x, double y,double eta) {
  const double dxG = (xmaxG - xminG) / (n_grid - 1);
  const double dyG = (ymaxG - yminG) / (n_grid - 1);
  const double detaG = (etamaxG - etaminG) / (n_grid_eta - 1);
+
  int ix = (int)((x - xminG) / dxG);
  int iy = (int)((y - yminG) / dyG);
  int ieta = (int)((eta - etaminG) / detaG);
@@ -229,12 +252,12 @@ void IcTrento3d::makeSmoothTable(int npart) {
     if (sNN < 100) {
      baryonGaussian = eta>0 ? exp(-pow(eta - neta0, 2)/(2. * nsigma * nsigma)) : exp(-pow(eta + neta0, 2)/(2. * nsigma * nsigma)) ;
      baryonGaussian /= nsigma*sqrt(2*C_PI);
-     nrho[ix][iy][iz] += interpolateGrid(x,y) * baryonGaussian;
+     nrho[ix][iy][iz] += interpolateGrid(x,y,eta) * baryonGaussian;
     }
-    double fEta = 0.;
+    /*double fEta = 0.;
     if(fabs(eta)<eta0) fEta = 1.0;
-    else if (fabs(eta)<ybeam) fEta = exp(-0.5*pow((fabs(eta)-eta0)/sigEta,2));
-    rho[ix][iy][iz] += interpolateGrid(x,y,eta) * fEta;
+    else if (fabs(eta)<ybeam) fEta = exp(-0.5*pow((fabs(eta)-eta0)/sigEta,2));*/
+    rho[ix][iy][iz] += interpolateGrid(x,y,eta);// * fEta;
  } // Z(eta) loop
 }
 
@@ -315,6 +338,7 @@ void IcTrento3d::setIC(Fluid* f, EoS* eos) {
 double IcTrento3d::setNormalization(int npart) {
  double e;
  double total_energy = 0.0;
+ cout<<sNN<<endl;
  for (int ix = 0; ix < nx; ix++)
   for (int iy = 0; iy < ny; iy++)
    for (int iz = 0; iz < nz; iz++) {
