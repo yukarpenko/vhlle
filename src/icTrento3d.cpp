@@ -5,7 +5,6 @@
 #include <iostream>
 #include <sstream>
 #include <cstring>
-
 #include "eos.h"
 #include "eoChiral.h"
 #include "fld.h"
@@ -225,22 +224,6 @@ double IcTrento3d::interpolateGrid(double x, double y,double eta) {
 }
 
 void IcTrento3d::makeSmoothTable(int npart) {
- if (sNN == 27) {
-  double cent = (double)npart/(2.*197.); // our measure of centrality
-  eta0 = 0.888 - 0.213*cent;
-  sigEta = 1.088 - 0.213*cent;
-  neta0 = 1.332 - 0.319*cent;
-  nsigma = 0.788 - 0.213*cent;
-  cout << "eta0 = " << eta0 << endl;
-  cout << "sigEta = " << sigEta << endl;
-  cout << "neta0 = " << neta0 << endl;
-  cout << "nsigma = " << nsigma << endl;
- }
- if (sNN == 5020) {
-  double cent = (double)npart/(2.*208.); // our measure of centrality
-  eta0 = 3.85165 - 0.49095*cent;
-  cout << "eta0 = " << eta0 << endl;
- }
  for (int ix = 0; ix < nx; ix++)
   for (int iy = 0; iy < ny; iy++)
    for (int iz = 0; iz < nz; iz++) {
@@ -249,11 +232,11 @@ void IcTrento3d::makeSmoothTable(int npart) {
     const double y = ymin + iy * dy;
     const double eta = zmin + iz * dz;
     double baryonGaussian;
-    if (sNN < 100) {
+    /*if (sNN < 100) {
      baryonGaussian = eta>0 ? exp(-pow(eta - neta0, 2)/(2. * nsigma * nsigma)) : exp(-pow(eta + neta0, 2)/(2. * nsigma * nsigma)) ;
      baryonGaussian /= nsigma*sqrt(2*C_PI);
      nrho[ix][iy][iz] += interpolateGrid(x,y,eta) * baryonGaussian;
-    }
+    }*/
     /*double fEta = 0.;
     if(fabs(eta)<eta0) fEta = 1.0;
     else if (fabs(eta)<ybeam) fEta = exp(-0.5*pow((fabs(eta)-eta0)/sigEta,2));*/
@@ -332,7 +315,7 @@ void IcTrento3d::setIC(Fluid* f, EoS* eos) {
       << endl;
  cout << "1/tau*dE/dy_ini: : " << E_midrap/(3.0*dz*tau0) << endl;
  cout << "1/tau*dJ/dy_ini: " << Jy0_midrap/(3.0*dz*tau0) << endl;
- //exit(1);
+ 
 }
 
 double IcTrento3d::setNormalization(int npart) {
