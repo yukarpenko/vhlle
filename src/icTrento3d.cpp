@@ -62,17 +62,6 @@ if(strcmp(setup,"LHC276")==0) {
   }
  }
 
- nrho = new double**[nx];
- for (int ix = 0; ix < nx; ix++) {
-  nrho[ix] = new double*[ny];
-  for (int iy = 0; iy < ny; iy++) {
-   nrho[ix][iy] = new double[nz];
-   for (int iz = 0; iz < nz; iz++) {
-    nrho[ix][iy][iz] = 0.0;
-   }
-  }
- }
-
  // ---- read the events
  nevents = 0;
  ifstream fin(filename);
@@ -163,27 +152,20 @@ if(strcmp(setup,"LHC276")==0) {
  } while (abs(sNorm-old_sNorm) > 0.0001);
  cout << "sNorm set to " << sNorm << endl;
  double old_nNorm = 0.0;
- if (sNN < 100) {
-  nNorm = 1.0;
-  do {
-    old_nNorm = nNorm;
-    nNorm = setBaryonNorm(npart)*old_nNorm;
-  } while (abs(nNorm-old_nNorm) > 0.0001);
-  cout << "nNorm set to " << nNorm << endl;
- }
+
 }
 
 IcTrento3d::~IcTrento3d() {
  for (int ix = 0; ix < nx; ix++) {
   for (int iy = 0; iy < ny; iy++) {
    delete[] rho[ix][iy];
-   delete[] nrho[ix][iy];
+   
   }
   delete[] rho[ix];
-  delete[] nrho[ix];
+  
  }
  delete[] rho;
- delete[] nrho;
+ 
 }
 
 double IcTrento3d::interpolateGrid(double x, double y,double eta) {
@@ -232,15 +214,8 @@ void IcTrento3d::makeSmoothTable(int npart) {
     const double y = ymin + iy * dy;
     const double eta = zmin + iz * dz;
     double baryonGaussian;
-    /*if (sNN < 100) {
-     baryonGaussian = eta>0 ? exp(-pow(eta - neta0, 2)/(2. * nsigma * nsigma)) : exp(-pow(eta + neta0, 2)/(2. * nsigma * nsigma)) ;
-     baryonGaussian /= nsigma*sqrt(2*C_PI);
-     nrho[ix][iy][iz] += interpolateGrid(x,y,eta) * baryonGaussian;
-    }*/
-    /*double fEta = 0.;
-    if(fabs(eta)<eta0) fEta = 1.0;
-    else if (fabs(eta)<ybeam) fEta = exp(-0.5*pow((fabs(eta)-eta0)/sigEta,2));*/
-    rho[ix][iy][iz] += interpolateGrid(x,y,eta);// * fEta;
+    
+    rho[ix][iy][iz] += interpolateGrid(x,y,eta);
  } // Z(eta) loop
 }
 
@@ -255,11 +230,6 @@ void IcTrento3d::setIC(Fluid* f, EoS* eos) {
   for (int iy = 0; iy < ny; iy++)
    for (int iz = 0; iz < nz; iz++) {
     e = s95p::s95p_e(sNorm * rho[ix][iy][iz] / nevents / dx / dy);
-    if (sNN < 100) {
-      nb = nNorm * nrho[ix][iy][iz] / nevents / dx / dy / dz;
-    } else {
-      nb = 0.;
-    }
     p = eos->p(e, 0., 0., 0.);
     Cell* c = f->getCell(ix, iy, iz);
     const double ueta = tanh(A*f->getX(ix))*sinh(ybeam-fabs(f->getZ(iz)));
@@ -333,14 +303,3 @@ double IcTrento3d::setNormalization(int npart) {
  return npart*0.5*sNN/total_energy;
 }
 
-double IcTrento3d::setBaryonNorm(int npart) {
- double Nb = 0.0;
- double nb;
- for (int ix = 0; ix < nx; ix++)
-  for (int iy = 0; iy < ny; iy++)
-   for (int iz = 0; iz < nz; iz++) {
-    nb = nNorm * nrho[ix][iy][iz] / nevents / dx / dy / dz;
-    Nb += nb*tau0*dx*dy*dz;
-   }
- return npart/Nb;
-}

@@ -39,5 +39,5 @@ public:
  double interpolateGrid(double x, double y,double eta);
  void setIC(Fluid *f, EoS *eos);
  double setNormalization(int npart);
- double setBaryonNorm(int npart);
+ 
 };
