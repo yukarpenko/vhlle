@@ -27,7 +27,7 @@ public:
        int _nz, double _minx, double _maxx, double _miny, double _maxy,
        double _minz, double _maxz, double dt, double eCrit);
  ~Fluid();
- void initOutput(const char *dir, double tau0);
+ void initOutput(const char *dir, double tau0, bool hsOnly);
  int output_xy_spacing;
  int output_eta_points;
  int output_tau_spacing;
