@@ -59,8 +59,8 @@ public:
   return &cell[ix + nx * iy + nx * ny * iz];
  }
 
- void correctImagCells(void);      // only ideal hydro part
- void correctImagCellsFull(void);  // correct ideal+visc
+ void correctImagCells(void);      // only ideal hydro part, Q + Qh
+ void correctImagCellsFull(void);  // correct ideal+viscous, Q + pi
  void updateM(double tau, double dt);
 
  void outputGnuplot(double tau);
