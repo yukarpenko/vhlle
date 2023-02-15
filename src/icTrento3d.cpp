@@ -15,7 +15,7 @@
 using namespace std;
 
 IcTrento3d::IcTrento3d(Fluid* f, const char* filename, double _tau0, const char* setup) {
- cout << "loading TRENTO IC\n";
+ cout << "loading TRENTO3d IC\n";
  nx = f->getNX();
  ny = f->getNY();
  nz = f->getNZ();
@@ -198,8 +198,8 @@ double IcTrento3d::interpolateGrid(double x, double y,double eta) {
   for (int jy = 0; jy < 2; jy++) {
     for (int jeta = 0; jeta < 2; jeta++) {
    return_val += wx[jx] * wy[jy] * weta[jeta] *source[ix + jx][iy + jy][ieta + jeta];
-  }
-  }
+           }
+      }
   }
  return_val = std::max(return_val, 0.);
  return return_val;
@@ -289,10 +289,9 @@ void IcTrento3d::setIC(Fluid* f, EoS* eos) {
 }
 
 double IcTrento3d::setNormalization(int npart) {
- double e;
- double total_energy = 0.0;
- cout<<sNN<<endl;
- for (int ix = 0; ix < nx; ix++)
+double e;
+double total_energy = 0.0;
+for (int ix = 0; ix < nx; ix++)
   for (int iy = 0; iy < ny; iy++)
    for (int iz = 0; iz < nz; iz++) {
     e = s95p::s95p_e(sNorm * rho[ix][iy][iz] / nevents / dx / dy);
