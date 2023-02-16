@@ -229,7 +229,7 @@ void IcTrento3d::setIC(Fluid* f, EoS* eos) {
  for (int ix = 0; ix < nx; ix++)
   for (int iy = 0; iy < ny; iy++)
    for (int iz = 0; iz < nz; iz++) {
-    e = s95p::s95p_e(sNorm * rho[ix][iy][iz] / nevents / dx / dy);
+    e = s95p::s95p_e(sNorm * rho[ix][iy][iz] / nevents);
     p = eos->p(e, 0., 0., 0.);
     Cell* c = f->getCell(ix, iy, iz);
     const double ueta = tanh(A*f->getX(ix))*sinh(ybeam-fabs(f->getZ(iz)));
@@ -294,7 +294,7 @@ double total_energy = 0.0;
 for (int ix = 0; ix < nx; ix++)
   for (int iy = 0; iy < ny; iy++)
    for (int iz = 0; iz < nz; iz++) {
-    e = s95p::s95p_e(sNorm * rho[ix][iy][iz] / nevents / dx / dy);
+    e = s95p::s95p_e(sNorm * rho[ix][iy][iz] / nevents);
     double eta = zmin + iz * dz;
     double coshEta = cosh(eta);
     total_energy += tau0*e*dx*dy*dz*coshEta;

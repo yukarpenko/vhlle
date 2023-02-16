@@ -280,7 +280,7 @@ void IcTrento::setIC(Fluid* f, EoS* eos) {
  for (int ix = 0; ix < nx; ix++)
   for (int iy = 0; iy < ny; iy++)
    for (int iz = 0; iz < nz; iz++) {
-    e = s95p::s95p_e(sNorm * rho[ix][iy][iz] / nevents / dx / dy);
+    e = s95p::s95p_e(sNorm * rho[ix][iy][iz] / nevents);
     if (sNN < 100) {
       nb = nNorm * nrho[ix][iy][iz] / nevents / dx / dy / dz;
     } else {
@@ -350,7 +350,7 @@ double IcTrento::setNormalization(int npart) {
  for (int ix = 0; ix < nx; ix++)
   for (int iy = 0; iy < ny; iy++)
    for (int iz = 0; iz < nz; iz++) {
-    e = s95p::s95p_e(sNorm * rho[ix][iy][iz] / nevents / dx / dy);
+    e = s95p::s95p_e(sNorm * rho[ix][iy][iz] / nevents);
     double eta = zmin + iz * dz;
     double coshEta = cosh(eta);
     total_energy += tau0*e*dx*dy*dz*coshEta;
