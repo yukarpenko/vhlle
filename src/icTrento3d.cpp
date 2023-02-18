@@ -30,6 +30,7 @@ IcTrento3d::IcTrento3d(Fluid* f, const char* filename, double _tau0, const char*
  zmax = f->getZ(nz - 1);
 
  tau0 = _tau0;
+ double norm=2.5;
 
 if(strcmp(setup,"LHC276")==0) {
   sNN = 2760;
@@ -229,7 +230,7 @@ void IcTrento3d::setIC(Fluid* f, EoS* eos) {
  for (int ix = 0; ix < nx; ix++)
   for (int iy = 0; iy < ny; iy++)
    for (int iz = 0; iz < nz; iz++) {
-    e = s95p::s95p_e(sNorm * rho[ix][iy][iz] / nevents);
+    e = norm*(s95p::s95p_e(sNorm * rho[ix][iy][iz] / nevents));
     p = eos->p(e, 0., 0., 0.);
     Cell* c = f->getCell(ix, iy, iz);
     const double ueta = tanh(A*f->getX(ix))*sinh(ybeam-fabs(f->getZ(iz)));

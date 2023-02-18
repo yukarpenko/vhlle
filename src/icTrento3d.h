@@ -24,6 +24,7 @@ private:
  double ***rho;
  double ***nrho;
  double ***source;
+double norm=2.9; //2.85 pred tim
  static const int NP = 10000;  // dimension for particle arrays
  // auxiliary particle arrays
 
