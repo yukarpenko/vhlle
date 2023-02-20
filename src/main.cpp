@@ -346,7 +346,6 @@ int main(int argc, char **argv) {
  // h->setNSvalues() ; // initialize viscous terms
 
  f->initOutput(outputDir.c_str(), tau0, freezeoutOnly);
- f->outputCorona(tau0);
 
  bool resized = false; // flag if the grid has been resized
  double ctime; // current time, tau or t depending on the coordinate frame
@@ -376,7 +375,6 @@ int main(int argc, char **argv) {
   #else
   ctime = h->getTau();
   #endif
-  f->outputSurface(ctime);
   if (!freezeoutOnly)
    f->outputGnuplot(ctime);
   if(ctime>=tauResize and resized==false) {
