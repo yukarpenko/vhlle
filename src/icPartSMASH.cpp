@@ -90,24 +90,25 @@ IcPartSMASH::IcPartSMASH(Fluid* f, const char* filename, double _Rgt, double _Rg
               Py_val >> Rap_val >> Id_val >> Charge_val;
 
   // Fill arrays
-  Tau.push_back(Tau_val);
-  X.push_back(X_val);
-  Y.push_back(Y_val);
-  Eta.push_back(Eta_val);
-  Mt.push_back(Mt_val);
-  Px.push_back(Px_val);
-  Py.push_back(Py_val);
-  Rap.push_back(Rap_val);
-  Id.push_back(Id_val);
-  Charge.push_back(Charge_val);
+  if (!instream.fail()) {
+   Tau.push_back(Tau_val);
+   X.push_back(X_val);
+   Y.push_back(Y_val);
+   Eta.push_back(Eta_val);
+   Mt.push_back(Mt_val);
+   Px.push_back(Px_val);
+   Py.push_back(Py_val);
+   Rap.push_back(Rap_val);
+   Id.push_back(Id_val);
+   Charge.push_back(Charge_val);
 
 #ifdef TSHIFT
-  Eta[np] = TMath::ATanH(Tau[np] * sinh(Eta[np]) /
-                         (Tau[np] * cosh(Eta[np]) + tshift));
-  Tau[np] += tshift;
+   Eta[np] = TMath::ATanH(Tau[np] * sinh(Eta[np]) /
+                          (Tau[np] * cosh(Eta[np]) + tshift));
+   Tau[np] += tshift;
 #endif
-  if (!instream.fail())
    np++;
+  }
   else if (np > 0) {
    // cout<<"readF14:instream: failure reading data\n" ;
    // cout<<"stream = "<<instream.str()<<endl ;
@@ -136,6 +137,7 @@ IcPartSMASH::IcPartSMASH(Fluid* f, const char* filename, double _Rgt, double _Rg
  }
  if (nevents > 1)
   cout << "++ Warning: loaded " << nevents << "  initial SMASH events\n";
+  cout << "Running vHLLE on averaged initial state from SMASH";
 }
 
 IcPartSMASH::~IcPartSMASH() {
