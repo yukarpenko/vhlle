@@ -45,15 +45,17 @@
 using namespace std;
 
 // program parameters, to be read from file
-int nx, ny, nz, eosType, zetaSparam,vtk = 0;
+int x, ny, nz, eosType, etaSparam = 0, zetaSparam = 0,vtk = 0;
+bool vtk_cartesian=false;
+std::string vtk_values;
 int eosTypeHadron = 0;
 double xmin, xmax, ymin, ymax, etamin, etamax, tau0, tauMax, tauResize, dtau;
 string collSystem, outputDir, isInputFile;
-double etaS, zetaS, eCrit;
-bool vtk_cartesian=false;
-int icModel, glauberVariable = 1;  // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
+double etaS, zetaS, eCrit, eEtaSMin, al, ah, aRho, T0, etaSMin;
+int icModel,glauberVariable =1;  // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
 double epsilon0, Rgt, Rgz, impactPar, s0ScaleFactor;
-std::string vtk_values;
+bool freezeoutOnly {false};  // freezoutOnly 1 for true, 0 for false
+
 void setDefaultParameters() {
  tauResize = 4.0;
 }
@@ -129,6 +131,22 @@ void readParameters(char *parFile) {
    vtk_values = parValue;
   else if (strcmp(parName, "VTK_cartesian") == 0)
    vtk_cartesian = parValue;
+  else if (strcmp(parName, "etaSparam") == 0)
+   etaSparam = atoi(parValue);
+  else if (strcmp(parName, "aRho") == 0)
+   aRho = atof(parValue);
+  else if (strcmp(parName, "ah") == 0)
+   ah = atof(parValue);
+  else if (strcmp(parName, "al") == 0)
+   al = atof(parValue);
+  else if (strcmp(parName, "T0") == 0)
+   T0 = atof(parValue);
+  else if (strcmp(parName, "eEtaSMin") == 0)
+   eEtaSMin = atof(parValue);
+  else if (strcmp(parName, "etaSMin") == 0)
+   etaSMin = atof(parValue);
+  else if (strcmp(parName, "freezeoutOnly") == 0)
+   freezeoutOnly = atoi(parValue);
   else if (parName[0] == '!')
    cout << "CCC " << sline.str() << endl;
   else
@@ -139,6 +157,7 @@ void readParameters(char *parFile) {
 void printParameters() {
  cout << "====== parameters ======\n";
  cout << "outputDir = " << outputDir << endl;
+ cout << "freezeoutOnly = " << freezeoutOnly << endl;
  cout << "eosType = " << eosType << endl;
  cout << "eosTypeHadron = " << eosTypeHadron << endl;
  cout << "nx = " << nx << endl;
@@ -158,8 +177,24 @@ void printParameters() {
  cout << "tauGridResize = " << tauResize << endl;
  cout << "dtau = " << dtau << endl;
  cout << "e_crit = " << eCrit << endl;
- cout << "eta/s = " << etaS << endl;
  cout << "zeta/s param : " << zetaSparam << endl;
+ cout << "etaSparam = " << etaSparam << endl;
+ if (etaSparam == 0){
+    cout << "eta/s = " << etaS << endl;
+ }
+ else if (etaSparam == 1){
+    cout << "al = " << al << endl;
+    cout << "ah = " << ah << endl;
+    cout << "etaSMin = " << etaSMin << endl;
+    cout << "T0 = " << T0 << endl;
+ }
+ else if (etaSparam == 2){
+    cout << "al = " << al << endl;
+    cout << "ah = " << ah << endl;
+    cout << "aRho = " << aRho << endl;
+    cout << "etaSMin = " << etaSMin << endl;
+    cout << "eEtaSMin = " << eEtaSMin << endl;
+ }
  cout << "zeta/s = " << zetaS << endl;
  cout << "epsilon0 = " << epsilon0 << endl;
  cout << "Rgt = " << Rgt << "  Rgz = " << Rgz << endl;
@@ -266,13 +301,13 @@ int main(int argc, char **argv) {
 
 
  // transport coefficients
- trcoeff = new TransportCoeff(etaS, zetaS, zetaSparam, eos);
+ trcoeff = new TransportCoeff(etaS, zetaS, zetaSparam, eos, etaSparam, ah, al, aRho, T0, etaSMin, eEtaSMin);
 
  f = new Fluid(eos, eosH, trcoeff, nx, ny, nz, xmin, xmax, ymin, ymax, etamin,
                etamax, dtau, eCrit);
  cout << "fluid allocation done\n";
 
- // initilal conditions
+ // initial conditions
  if (icModel == 1) {  // optical Glauber
   ICGlauber *ic = new ICGlauber(epsilon0, impactPar, tau0);
   ic->setIC(f, eos);
@@ -320,7 +355,7 @@ int main(int argc, char **argv) {
  time(&start);
  // h->setNSvalues() ; // initialize viscous terms
 
- f->initOutput(outputDir.c_str(), tau0);
+ f->initOutput(outputDir.c_str(), tau0, freezeoutOnly);
  f->outputCorona(tau0);
 
  bool resized = false; // flag if the grid has been resized
@@ -329,7 +364,7 @@ int main(int argc, char **argv) {
  VtkOutput vtk_out=VtkOutput(dir,eos,xmin,ymin,etamin, vtk_cartesian);
 
  do {
-  // small tau: decrease timestep by makins substeps, in order
+  // small tau: decrease timestep by making substeps, in order
   // to avoid instabilities in eta direction (signal velocity ~1/tau)
   if(vtk>0) {
     vtk_out.write(*h,vtk_values);
@@ -347,8 +382,9 @@ int main(int argc, char **argv) {
    cout << "timestep reduced by " << nSubSteps << endl;
   } else
    h->performStep();
-  f->outputGnuplot(h->getTau());
   f->outputSurface(h->getTau());
+  if (!freezeoutOnly)
+   f->outputGnuplot(h->getTau());
   if(h->getTau()>=tauResize and resized==false) {
    cout << "grid resize\n";
    f = expandGrid2x(h, eos, eosH, trcoeff);

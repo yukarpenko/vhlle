@@ -111,50 +111,54 @@ Fluid::~Fluid() {
  delete cell0;
 }
 
-void Fluid::initOutput(const char *dir, double tau0) {
+void Fluid::initOutput(const char *dir, double tau0, bool hsOnly) {
+ // hsOnly (default false):
+ // if true only the hypersurface output is initialized
  char command[255];
  sprintf(command, "mkdir -p %s", dir);
  int return_mkdir = system(command);
  cout << "mkdir returns: " << return_mkdir << endl;
- string outx = dir;
- outx.append("/outx.dat");
- string outxvisc = dir;
- outxvisc.append("/outx.visc.dat");
- string outyvisc = dir;
- outyvisc.append("/outy.visc.dat");
- string outdiagvisc = dir;
- outdiagvisc.append("/diag.visc.dat");
- string outy = dir;
- outy.append("/outy.dat");
- string outdiag = dir;
- outdiag.append("/outdiag.dat");
- string outz = dir;
- outz.append("/outz.dat");
- string outaniz = dir;
- outaniz.append("/out.aniz.dat");
- string out2d = dir;
- out2d.append("/out2D.dat");
  string outfreeze = dir;
  outfreeze.append("/freezeout.dat");
- output::fx.open(outx.c_str());
- output::fy.open(outy.c_str());
- output::fz.open(outz.c_str());
- output::fdiag.open(outdiag.c_str());
- output::f2d.open(out2d.c_str());
- output::fxvisc.open(outxvisc.c_str());
- output::fyvisc.open(outyvisc.c_str());
- output::fdiagvisc.open(outdiagvisc.c_str());
- output::faniz.open(outaniz.c_str());
  output::ffreeze.open(outfreeze.c_str());
- //################################################################
- // important remark. for correct diagonal output, nx=ny must hold.
- //################################################################
- outputGnuplot(tau0);
- output::faniz << "#  tau  <<v_T>>  e_p  e'_p  (to compare with SongHeinz)\n";
+ if (!hsOnly) {
+  string outx = dir;
+  outx.append("/outx.dat");
+  string outxvisc = dir;
+  outxvisc.append("/outx.visc.dat");
+  string outyvisc = dir;
+  outyvisc.append("/outy.visc.dat");
+  string outdiagvisc = dir;
+  outdiagvisc.append("/diag.visc.dat");
+  string outy = dir;
+  outy.append("/outy.dat");
+  string outdiag = dir;
+  outdiag.append("/outdiag.dat");
+  string outz = dir;
+  outz.append("/outz.dat");
+  string outaniz = dir;
+  outaniz.append("/out.aniz.dat");
+  string out2d = dir;
+  out2d.append("/out2D.dat");
+  output::fx.open(outx.c_str());
+  output::fy.open(outy.c_str());
+  output::fz.open(outz.c_str());
+  output::fdiag.open(outdiag.c_str());
+  output::f2d.open(out2d.c_str());
+  output::fxvisc.open(outxvisc.c_str());
+  output::fyvisc.open(outyvisc.c_str());
+  output::fdiagvisc.open(outdiagvisc.c_str());
+  output::faniz.open(outaniz.c_str());
+  //################################################################
+  // important remark. for correct diagonal output, nx=ny must hold.
+  //################################################################
+  outputGnuplot(tau0);
+  output::faniz << "#  tau  <<v_T>>  e_p  e'_p  (to compare with SongHeinz)\n";
+ }
 }
 
 void Fluid::correctImagCells(void) {
- double Q[7];
+ double Q[7], Qh[7];
  // Z
  for (int ix = 0; ix < nx; ix++)
   for (int iy = 0; iy < ny; iy++) {
@@ -162,10 +166,18 @@ void Fluid::correctImagCells(void) {
    getCell(ix, iy, 2)->getQ(Q);
    getCell(ix, iy, 1)->setQ(Q);
    getCell(ix, iy, 0)->setQ(Q);
+
+   getCell(ix, iy, 2)->getQh(Qh);
+   getCell(ix, iy, 1)->setQh(Qh);
+   getCell(ix, iy, 0)->setQh(Qh);
    // right boundary
    getCell(ix, iy, nz - 3)->getQ(Q);
    getCell(ix, iy, nz - 2)->setQ(Q);
    getCell(ix, iy, nz - 1)->setQ(Q);
+
+   getCell(ix, iy, nz - 3)->getQh(Qh);
+   getCell(ix, iy, nz - 2)->setQh(Qh);
+   getCell(ix, iy, nz - 1)->setQh(Qh);
   }
  // Y
  for (int ix = 0; ix < nx; ix++)
@@ -174,10 +186,18 @@ void Fluid::correctImagCells(void) {
    getCell(ix, 2, iz)->getQ(Q);
    getCell(ix, 1, iz)->setQ(Q);
    getCell(ix, 0, iz)->setQ(Q);
+
+   getCell(ix, 2, iz)->getQh(Qh);
+   getCell(ix, 1, iz)->setQh(Qh);
+   getCell(ix, 0, iz)->setQh(Qh);
    // right boundary
    getCell(ix, ny - 3, iz)->getQ(Q);
    getCell(ix, ny - 2, iz)->setQ(Q);
    getCell(ix, ny - 1, iz)->setQ(Q);
+
+   getCell(ix, ny - 3, iz)->getQh(Qh);
+   getCell(ix, ny - 2, iz)->setQh(Qh);
+   getCell(ix, ny - 1, iz)->setQh(Qh);
   }
  // X
  for (int iy = 0; iy < ny; iy++)
@@ -186,10 +206,18 @@ void Fluid::correctImagCells(void) {
    getCell(2, iy, iz)->getQ(Q);
    getCell(1, iy, iz)->setQ(Q);
    getCell(0, iy, iz)->setQ(Q);
+
+   getCell(2, iy, iz)->getQh(Qh);
+   getCell(1, iy, iz)->setQh(Qh);
+   getCell(0, iy, iz)->setQh(Qh);
    // right boundary
    getCell(nx - 3, iy, iz)->getQ(Q);
    getCell(nx - 2, iy, iz)->setQ(Q);
    getCell(nx - 1, iy, iz)->setQ(Q);
+
+   getCell(nx - 3, iy, iz)->getQh(Qh);
+   getCell(nx - 2, iy, iz)->setQh(Qh);
+   getCell(nx - 1, iy, iz)->setQh(Qh);
   }
 }
 
@@ -424,7 +452,7 @@ void Fluid::outputGnuplot(double tau) {
  output::fz << endl;
 }
 
-// unput: geom. rapidity + velocities in Bjorken frame, --> output: velocities
+// input: geom. rapidity + velocities in Bjorken frame, --> output: velocities
 // in lab.frame
 void transformToLab(double eta, double &vx, double &vy, double &vz) {
  const double Y = eta + 1. / 2. * log((1. + vz) / (1. - vz));
@@ -441,7 +469,7 @@ void Fluid::outputSurface(double tau) {
         txxyy_num = 0., txxyy_den = 0., Nb1 = 0., Nb2 = 0.,
         eps_p = 0. ;
  double eta = 0;
- int nelements = 0, nsusp = 0;  // all surface emenents and suspicious ones
+ int nelements = 0, nsusp = 0;  // all surface elements and suspicious ones
  int nCoreCells = 0,
      nCoreCutCells = 0;  // cells with e>eCrit and cells with cut visc.corr.
                          //-- Cornelius: allocating memory for corner points

@@ -4,11 +4,18 @@
 #include "trancoeff.h"
 #include "inc.h"
 
-TransportCoeff::TransportCoeff(double _etaS, double _zetaS, int _zetaSparam, EoS *_eos) {
- etaS = _etaS;
+TransportCoeff::TransportCoeff(double _etaS, double _zetaS, int _zetaSparam, EoS *_eos, int _etaSparam, double _ah, double _al, double _aRho, double _T0, double _etaSMin, double _eEtaSMin) {
+ etaS0 = _etaS;
  zetaS0 = _zetaS;
  zetaSparam = _zetaSparam; //0 - basic ,1 ,2 - arxiv:1910.12930, 3 arxiv:2103.09848
  eos = _eos;
+ etaSparam = _etaSparam;
+ ah = _ah;
+ al = _al;
+ aRho =_aRho;
+ etaSMin = _etaSMin;
+ eEtaSMin = _eEtaSMin;
+ T0=_T0;
 }
 
 void TransportCoeff::printZetaT()
@@ -34,7 +41,7 @@ double TransportCoeff::zetaS(double e, double T)
  double B_norm2=0.13;
  double B1=0.01;
  double B2=0.12;
- 
+
  if(zetaSparam==0)
     return zetaS0 * (1. / 3. - eos->cs2(e)) / (exp((0.16 - T) / 0.001) + 1.);
  else if(zetaSparam==1)
@@ -62,16 +69,28 @@ double TransportCoeff::zetaS(double e, double T)
  }
 }
 
-
-void TransportCoeff::getEta(double e, double T, double &_etaS, double &_zetaS) {
- _etaS = etaS;
+void TransportCoeff::getEta(double e, double rho, double T, double &_etaS, double &_zetaS) {
+ _etaS = etaS(e,rho, T);
  _zetaS = zetaS(e,T);
 }
 
-void TransportCoeff::getTau(double e, double T, double &_taupi, double &_tauPi) {
+double TransportCoeff::etaS(double e,double rho, double T)
+{
+  if (etaSparam == 0){
+      return etaS0;
+  }
+  else if (etaSparam == 1){
+      return etaSMin +  ((T>T0) ? ah*(T-T0) :  al*(T-T0));
+  }
+  else if (etaSparam == 2){
+      return std::max(0.0, etaSMin + ((e>eEtaSMin) ? ( (ah*(e-eEtaSMin)+aRho*rho) ): al*(e-eEtaSMin)+aRho*rho));
+  }
+}
+
+void TransportCoeff::getTau(double e, double rho, double T, double &_taupi, double &_tauPi) {
  if (T > 0.) {
-  _taupi = 5. / 5.068 * etaS / T;
-  _tauPi = 6.0 / 5.068 * zetaS(e,T) / T;;
+  _taupi = 5. / 5.068 * etaS(e,rho, T) / T;
+  _tauPi = 6.0 / 5.068 * zetaS(e,T) / T;
  } else {
   _taupi = _tauPi = 0.;
  }
