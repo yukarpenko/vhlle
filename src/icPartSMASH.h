@@ -11,10 +11,10 @@ private:
  double ***T00, ***T0x, ***T0y, ***T0z, ***QB, ***QE;
  // auxiliary particle values for reading from file
  double Tau_val, X_val, Y_val, Eta_val, Mt_val, Px_val, Py_val, Rap_val;
- int Id_val, Charge_val;
+ int Id_val, Charge_val, Baryon_val, Strangeness_val;
   // auxiliary particle arrays
  std::vector<double> Tau, X, Y, Eta, Mt, Px, Py, Rap;
- std::vector<int> Id, Charge;
+ std::vector<int> Id, Charge, Baryon, Strangeness;
 
  double tau0;
  double Rgx, Rgy, Rgz;

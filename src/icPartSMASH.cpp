@@ -74,21 +74,58 @@ IcPartSMASH::IcPartSMASH(Fluid* f, const char* filename, double _Rgt, double _Rg
  nevents = 0;
  ifstream fin(filename);
  if (!fin.good()) {
-  cout << "I/O error with " << filename << endl;
+  std::cout << "I/O error with " << filename << endl;
   exit(1);
  }
  int np = 0;  // particle counter
- string line;
- istringstream instream;
+ std::string line;
+ std::istringstream instream;
+ bool isBaryonIncluded {false};
+ std::string quantity[15];
+ 
+ double E_smash {0.0}; 
+ int B_smash {0};
+ int Q_smash {0};
+
+ // Read first two lines of the header
+ // to decide what type of input file 
+ // SMASH 3.0: includes baryon number and strangeness
+ getline(fin, line);
+ getline(fin, line);
+ instream.str(line);
+ instream.seekg(0);
+ instream.clear();
+ instream >> quantity[0] >> quantity[1] >> quantity[2] >> quantity[3] >>
+   quantity[4] >> quantity[5] >> quantity[6] >> quantity[7] >> quantity[8] >>
+   quantity[9] >> quantity[10] >> quantity[11] >> quantity[12] >> quantity[13];
+ if (quantity[11] != "") 
+  isBaryonIncluded = true;
+  
+ // Read subsequent lines
  while (!fin.eof()) {
   getline(fin, line);
   instream.str(line);
   instream.seekg(0);
   instream.clear();
   // Read line
-  instream >> Tau_val >> X_val >> Y_val >> Eta_val >> Mt_val >> Px_val >>
-              Py_val >> Rap_val >> Id_val >> Charge_val;
-
+  // if n_B is included: read in all quantities, incl. nB and nS
+  if (isBaryonIncluded)
+   instream >> Tau_val >> X_val >> Y_val >> Eta_val >> Mt_val >> Px_val >>
+               Py_val >> Rap_val >> Id_val >> Charge_val >> Baryon_val >> 
+               Strangeness_val;
+  // if not included: nB from PDG code, nS = 0
+  else {
+   instream >> Tau_val >> X_val >> Y_val >> Eta_val >> Mt_val >> Px_val >>
+               Py_val >> Rap_val >> Id_val >> Charge_val;
+   Baryon_val = 0;
+   for (auto &code : PDG_Codes_Baryons) {
+        if (Id_val == code) {
+          // PDG code > 0: baryon, else anti baryon
+          (code > 0) ? Baryon_val = 1 : Baryon_val = -1;
+        }
+   }
+   Strangeness_val = 0;
+  }
   // Fill arrays
   if (!instream.fail()) {
    Tau.push_back(Tau_val);
@@ -101,20 +138,26 @@ IcPartSMASH::IcPartSMASH(Fluid* f, const char* filename, double _Rgt, double _Rg
    Rap.push_back(Rap_val);
    Id.push_back(Id_val);
    Charge.push_back(Charge_val);
+   Baryon.push_back(Baryon_val);
+   Strangeness.push_back(Strangeness_val);
 
 #ifdef TSHIFT
    Eta[np] = TMath::ATanH(Tau[np] * sinh(Eta[np]) /
                           (Tau[np] * cosh(Eta[np]) + tshift));
    Tau[np] += tshift;
 #endif
+   E_smash += Mt_val * cosh(Rap_val);
+   B_smash += Baryon_val;
+   Q_smash += Charge_val;
+
    np++;
   }
   else if (np > 0) {
    // cout<<"readF14:instream: failure reading data\n" ;
    // cout<<"stream = "<<instream.str()<<endl ;
    if (nevents % 100 == 0) {
-    cout << "event = " << nevents << "  np = " << np << "\r";
-    cout << flush;
+    std::cout << "event = " << nevents << "  np = " << np << "\r";
+    std::cout << flush;
    }
    makeSmoothTable(np);
    np = 0;
@@ -135,9 +178,12 @@ IcPartSMASH::IcPartSMASH(Fluid* f, const char* filename, double _Rgt, double _Rg
    // if(nevents>10000) return ;
   }
  }
- if (nevents > 1)
-  cout << "++ Warning: loaded " << nevents << "  initial SMASH events\n";
-  cout << "Running vHLLE on averaged initial state from SMASH";
+ if (nevents > 1) {
+  std::cout << "++ Warning: loaded " << nevents << "  initial SMASH events\n";
+  std::cout << "Running vHLLE on averaged initial state from SMASH\n";
+ }
+ std::cout << "particle E = " << E_smash / nevents << "\n";
+ std::cout << "  Nbar = " << B_smash / nevents << "  Ncharge = " << Q_smash / nevents << "\n";
 }
 
 IcPartSMASH::~IcPartSMASH() {
@@ -209,21 +255,17 @@ void IcPartSMASH::makeSmoothTable(int npart) {
       if (weight != weight || fabs(weight) > DBL_MAX) {
        weight = 0.0;
       }
+      // Add components of energy-momentum tensor
       T00[ix][iy][iz] += weight * Mt[ip] * cosh(Rap[ip] - Eta[ip] + zdiff);
       T0x[ix][iy][iz] += weight * Px[ip];
       T0y[ix][iy][iz] += weight * Py[ip];
       T0z[ix][iy][iz] += weight * Mt[ip] * sinh(Rap[ip] - Eta[ip] + zdiff);
 
-      // Add baryons and antibaryons
-      for (auto &code : PDG_Codes_Baryons) {
-        if (Id[ip] == code) {
-          // PDG code > 0: baryon, else anti baryon
-          (code > 0) ? QB[ix][iy][iz] += weight : QB[ix][iy][iz] -= weight;
-        }
-      }
-
+      // Add baryon number
+      QB[ix][iy][iz] += weight * Baryon[ip];
+      
       // Add electrice charge
-      QE[ix][iy][iz] += Charge[ip] * weight;
+      QE[ix][iy][iz] += weight * Charge[ip];
      }
  }  // end particle loop
 }
@@ -242,7 +284,7 @@ void IcPartSMASH::setIC(Fluid* f, EoS* eos) {
     Q[NQ_] = QE[ix][iy][iz] / nevents / dx / dy / dz / tau0;
     Q[NS_] = 0.0;
     if (ix == nx / 2 && iy == ny / 2 && iz == nz / 2)
-     cout << "IC SMASH, center: " << xmin + ix * dx << "  " << zmin + iz * dz
+     std::cout << "IC SMASH, center: " << xmin + ix * dx << "  " << zmin + iz * dz
           << "  " << Q[T_] << "  " << Q[Z_] << endl;
     transformPV(eos, Q, e, p, nb, nq, ns, vx, vy, vz);
     if (e < 1e-7 || fabs(f->getX(ix)) > 10. || fabs(f->getY(iy)) > 10. ||
@@ -268,8 +310,8 @@ void IcPartSMASH::setIC(Fluid* f, EoS* eos) {
     Nq += tau0 * nq * u[0] * dx * dy * dz;
     S += tau0 * eos->s(e, nb, nq, ns) * u[0] * dx * dy * dz;
    }
- cout << "hydrodynamic E = " << E << "  Pz = " << Pz << "  Nbar = " << Nb << "  Ncharge = " << Nq
+ std::cout << "hydrodynamic E = " << E << "  Pz = " << Pz << "  Nbar = " << Nb << "  Ncharge = " << Nq
       << endl
       << "  Px = " << Px << "  Py = " << Py << endl;
- cout << "initial_entropy S_ini = " << S << endl;
+ std::cout << "initial_entropy S_ini = " << S << endl;
 }
