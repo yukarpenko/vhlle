@@ -24,7 +24,6 @@ private:
  double ***rho;
  double ***nrho;
  double ***source;
-double norm=2.9; //2.85 pred tim
  static const int NP = 10000;  // dimension for particle arrays
  // auxiliary particle arrays
 
@@ -39,6 +38,6 @@ public:
  ~IcTrento3d();
  double interpolateGrid(double x, double y,double eta);
  void setIC(Fluid *f, EoS *eos);
- double setNormalization(int npart);
+ //double setNormalization(int npart);
  
 };
