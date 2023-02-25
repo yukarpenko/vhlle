@@ -181,7 +181,7 @@ IcTrento::IcTrento(Fluid* f, const char* filename, double _tau0, const char* set
 
  // autocalculation of sNorm and nNorm
  sNorm = 1.0;
- double old_sNorm = 0.0;
+ /*double old_sNorm = 0.0;
  do {
    old_sNorm = sNorm;
    sNorm = pow(setNormalization(npart), 0.75)*old_sNorm;
@@ -195,7 +195,7 @@ IcTrento::IcTrento(Fluid* f, const char* filename, double _tau0, const char* set
     nNorm = setBaryonNorm(npart)*old_nNorm;
   } while (abs(nNorm-old_nNorm) > 0.0001);
   cout << "nNorm set to " << nNorm << endl;
- }
+ }*/
 }
 
 IcTrento::~IcTrento() {

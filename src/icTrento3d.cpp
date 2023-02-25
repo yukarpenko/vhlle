@@ -30,8 +30,7 @@ IcTrento3d::IcTrento3d(Fluid* f, const char* filename, double _tau0, const char*
  zmax = f->getZ(nz - 1);
 
  tau0 = _tau0;
- double norm=2.5;
-
+/*
 if(strcmp(setup,"LHC276")==0) {
   sNN = 2760;
   cout << "IcTrento3d: setup for 2.76 TeV LHC\n";
@@ -40,7 +39,7 @@ if(strcmp(setup,"LHC276")==0) {
   cout << "IcTrento3d: setup for 200 GeV RHIC\n";
  } else if(strcmp(setup,"LHC5020")==0) {
   sNN = 5020;
-  cout << "IcTrento3d: setup for 5.02 TeV LHC\n";
+  cout << "IcTrento3d: setup for 5.02 TeV LHC\n";\
  } else if(strcmp(setup,"RHIC62")==0) {
   sNN = 62.4;
   cout << "IcTrento3d: setup for 62.4 GeV RHIC\n";
@@ -50,7 +49,7 @@ if(strcmp(setup,"LHC276")==0) {
  } else {
   cout << "IcTrento3d: optional parameter LHC276 or RHIC200 is expected\n";
   exit(0);
- }
+ }*/
 
  rho = new double**[nx];
  for (int ix = 0; ix < nx; ix++) {
@@ -106,7 +105,7 @@ if(strcmp(setup,"LHC276")==0) {
   instream.seekg(16);
   instream >> etamaxG;
  
-    // allocate source array 3D - [x,y,eta]
+  // allocate source array 3D - [x,y,eta]
   source = new double**[n_grid];
   for (int ix = 0; ix < n_grid; ix++) {
       source[ix] = new double*[n_grid];
@@ -146,13 +145,13 @@ if(strcmp(setup,"LHC276")==0) {
 
  // autocalculation of sNorm and nNorm
  sNorm = 1.0;
- double old_sNorm = 0.0;
+ /*double old_sNorm = 0.0;
  do {
    old_sNorm = sNorm;
    sNorm = pow(setNormalization(npart), 0.75)*old_sNorm;
  } while (abs(sNorm-old_sNorm) > 0.0001);
  cout << "sNorm set to " << sNorm << endl;
- double old_nNorm = 0.0;
+ double old_nNorm = 0.0;*/
 
 }
 
@@ -214,8 +213,7 @@ void IcTrento3d::makeSmoothTable(int npart) {
     const double x = xmin + ix * dx;
     const double y = ymin + iy * dy;
     const double eta = zmin + iz * dz;
-    double baryonGaussian;
-    
+   
     rho[ix][iy][iz] += interpolateGrid(x,y,eta);
  } // Z(eta) loop
 }
@@ -227,13 +225,17 @@ void IcTrento3d::setIC(Fluid* f, EoS* eos) {
  double Tcm = 0.0;
  double e, p, nb;
  double total_energy = 0.0;
+ double norm=2.95;
+ sNorm =1;
  for (int ix = 0; ix < nx; ix++)
   for (int iy = 0; iy < ny; iy++)
    for (int iz = 0; iz < nz; iz++) {
-    e = norm*(s95p::s95p_e(sNorm * rho[ix][iy][iz] / nevents));
+    //e = 1.95*(s95p::s95p_e(sNorm * rho[ix][iy][iz] / nevents));
+    e = s95p::s95p_e(sNorm * rho[ix][iy][iz]);
+    
     p = eos->p(e, 0., 0., 0.);
     Cell* c = f->getCell(ix, iy, iz);
-    const double ueta = tanh(A*f->getX(ix))*sinh(ybeam-fabs(f->getZ(iz)));
+    const double ueta = tanh(A*f->getX(ix))*sinh(1-fabs(f->getZ(iz)));
     double u[4] = {sqrt(1.0+ueta*ueta), 0., 0., ueta};
     c->setPrimVar(eos, tau0, e, nb, 0.4*nb, 0., 0., 0., u[3]/u[0]);
     if (e > 0.) c->setAllM(1.);
@@ -245,7 +247,6 @@ void IcTrento3d::setIC(Fluid* f, EoS* eos) {
     double uzlab = u[0] * sinhEta + u[3] * coshEta;
     double dE = tau0 * ((e + p) * u[0] * u0lab - p * coshEta) * dx * dy * dz;
     E += dE;
-    // if(zmin+iz*dz>0.)
     Pz += tau0 * ((e + p) * u[0] * uzlab - p * sinhEta) * dx * dy * dz;
     Px += tau0 * (e + p) * u[1] * u[0] * dx * dy * dz;
     Py += tau0 * (e + p) * u[2] * u[0] * dx * dy * dz;
@@ -288,7 +289,7 @@ void IcTrento3d::setIC(Fluid* f, EoS* eos) {
  cout << "1/tau*dJ/dy_ini: " << Jy0_midrap/(3.0*dz*tau0) << endl;
  
 }
-
+/*
 double IcTrento3d::setNormalization(int npart) {
 double e;
 double total_energy = 0.0;
@@ -301,5 +302,5 @@ for (int ix = 0; ix < nx; ix++)
     total_energy += tau0*e*dx*dy*dz*coshEta;
    }
  return npart*0.5*sNN/total_energy;
-}
+}*/
 
