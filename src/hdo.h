@@ -20,7 +20,7 @@ public:
  void setDtau(double deltaTau);  // change the timestep
  double getDtau() { return dt; }  // return current value of timestep
  void setFluid(Fluid *_f) { f = _f; }
- Fluid* getFluid() { return f; }
+ Fluid* getFluid()  const { return f; }
 
  // HLLE (ideal)flux between two neighbouring cells in a given direction
  // mode: PREDICT = used in predictor step; calculates fluxes for dt/2
@@ -50,5 +50,5 @@ public:
  // source terms) over one timestep
  void performStep(void);
  // gets the current proper time
- inline double getTau() { return tau; }
+ inline double getTau() const { return tau; }
 };

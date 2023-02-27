@@ -39,11 +39,15 @@
 #include "eoHadron.h"
 #include "eoSmash.h"
 #include "trancoeff.h"
+#include "vtk.h"
+
 
 using namespace std;
 
 // program parameters, to be read from file
-int nx, ny, nz, eosType, etaSparam = 0, zetaSparam = 0;
+int x, ny, nz, eosType, etaSparam = 0, zetaSparam = 0,vtk = 0;
+bool vtk_cartesian=false;
+std::string vtk_values;
 int eosTypeHadron = 0;
 double xmin, xmax, ymin, ymax, etamin, etamax, tau0, tauMax, tauResize, dtau;
 string collSystem, outputDir, isInputFile;
@@ -121,6 +125,12 @@ void readParameters(char *parFile) {
    impactPar = atof(parValue);
   else if (strcmp(parName, "s0ScaleFactor") == 0)
    s0ScaleFactor = atof(parValue);
+  else if (strcmp(parName, "VTK_output") == 0)
+   vtk = atoi(parValue);
+  else if (strcmp(parName, "VTK_output_values") == 0)
+   vtk_values = parValue;
+  else if (strcmp(parName, "VTK_cartesian") == 0)
+   vtk_cartesian = parValue;
   else if (strcmp(parName, "etaSparam") == 0)
    etaSparam = atoi(parValue);
   else if (strcmp(parName, "aRho") == 0)
@@ -190,6 +200,9 @@ void printParameters() {
  cout << "Rgt = " << Rgt << "  Rgz = " << Rgz << endl;
  cout << "impactPar = " << impactPar << endl;
  cout << "s0ScaleFactor = " << s0ScaleFactor << endl;
+ cout << "VTK output = " << vtk << endl;
+ cout << "VTK output values = " << vtk_values << endl;
+ cout << "VTK cartesian = " << vtk_cartesian << endl;
  cout << "======= end parameters =======\n";
 }
 
@@ -346,9 +359,16 @@ int main(int argc, char **argv) {
  f->outputCorona(tau0);
 
  bool resized = false; // flag if the grid has been resized
+ 
+ std::string dir=outputDir.c_str();
+ VtkOutput vtk_out=VtkOutput(dir,eos,xmin,ymin,etamin, vtk_cartesian);
+
  do {
   // small tau: decrease timestep by making substeps, in order
   // to avoid instabilities in eta direction (signal velocity ~1/tau)
+  if(vtk>0) {
+    vtk_out.write(*h,vtk_values);
+  }
   int nSubSteps = 1;
   while (dtau / nSubSteps >
          1.0 * h->getTau() * (etamax - etamin) / (nz - 1)) {
