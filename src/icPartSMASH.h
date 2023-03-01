@@ -8,7 +8,7 @@ private:
  int nx, ny, nz, nevents;
  double xmin, xmax, ymin, ymax, zmin, zmax;
  double dx, dy, dz;
- double ***T00, ***T0x, ***T0y, ***T0z, ***QB, ***QE;
+ double ***T00, ***T0x, ***T0y, ***T0z, ***QB, ***QE, ***QS;
  // auxiliary particle values for reading from file
  double Tau_val, X_val, Y_val, Eta_val, Mt_val, Px_val, Py_val, Rap_val;
  int Id_val, Charge_val, Baryon_val, Strangeness_val;
@@ -22,6 +22,7 @@ private:
  int nsmoothy;
  int nsmoothz;
  void makeSmoothTable(int npart);
+ bool isKernelInvariant;
 
  // To properly add baryon contributions to net-baryon number
  // PDG IDs corresponding to baryons included in SMASH-1.8
@@ -73,7 +74,28 @@ private:
                -9952212, -9962112, -9962212, -9972112, -9972212};
 
 public:
- IcPartSMASH(Fluid *f, const char *filename, double _Rgt, double _Rgz, double tau0);
+ IcPartSMASH(Fluid *f, const char *filename, double _Rgt, double _Rgz, double tau0, int _smoothingType);
  ~IcPartSMASH();
  void setIC(Fluid *f, EoS *eos);
 };
+
+struct spatialVector {
+    double xdiff;
+    double ydiff;
+    double zdiff;
+};
+
+struct velocityVector {
+    double vx;
+    double vy;
+    double vz;
+};
+
+velocityVector velocityMilne(double _mt, double _px, double _py, double _y, 
+  double _eta, double _etaDiff, double _tau);
+
+double smoothingKernel(spatialVector _r, double _gammaz, double _tau, 
+  double _Rgx, double _Rgy, double _Rgz);
+
+double smoothingKernelInvariant(spatialVector _r, velocityVector _v, double _R, 
+  double _tau);
