@@ -188,7 +188,14 @@ void MultiHydro::frictionSubstep()
     double s = 2.0*mN*mN*(1.0 + uput);
     double Ekin = s/(2.0*mN) - 2.0*mN;
     double sigmaT, sigmaE, sigmaP;
-    xsect->NN(Ekin, sigmaT, sigmaE, sigmaP);
+    if (Ekin <= 0.) {
+     Ekin = 0;
+     sigmaT = 0;
+     sigmaE = 0;
+     sigmaP = 0;
+    } else {
+     xsect->NN(Ekin, sigmaT, sigmaE, sigmaP);
+    }
     // Moeller factor
     double Vrel = sqrt(uput*uput - 1.0);
     // friction coefficient
@@ -594,7 +601,9 @@ void MultiHydro::findFreezeout(EoS* eosH)
     double QCube_p[2][2][2][2][7], QCube_f[2][2][2][2][7], QCube_t[2][2][2][2][7];
     // array for storing full energy-momentum tensor of all three fluids at corners
     double TCube[2][2][2][2][4][4];
-    double piSquare[2][2][2][10], PiSquare[2][2][2];
+    double piSquare_p[2][2][2][10], PiSquare_p[2][2][2];
+    double piSquare_t[2][2][2][10], PiSquare_t[2][2][2];
+    double piSquare_f[2][2][2][10], PiSquare_f[2][2][2];
 
     // fill all corner cell with energy-momentum tensor
     for (int jx = 0; jx < 2; jx++)
@@ -632,6 +641,15 @@ void MultiHydro::findFreezeout(EoS* eosH)
         for (int j = 0; j < 4; j++) {
          TCube[0][jx][jy][jz][i][j] = Ttemp[i][j];
        }
+       for (int ii = 0; ii < 4; ii++)
+        for (int jj = 0; jj <= ii; jj++) {
+         piSquare_p[jx][jy][jz][index44(ii, jj)] = cc_p->getpi(ii, jj);
+         piSquare_t[jx][jy][jz][index44(ii, jj)] = cc_t->getpi(ii, jj);
+         piSquare_f[jx][jy][jz][index44(ii, jj)] = cc_f->getpi(ii, jj);
+       }
+       PiSquare_p[jx][jy][jz] = cc_p->getPi();
+       PiSquare_t[jx][jy][jz] = cc_t->getPi();
+       PiSquare_f[jx][jy][jz] = cc_f->getPi();
     }
 
     // cornelius
@@ -642,8 +660,10 @@ void MultiHydro::findFreezeout(EoS* eosH)
 
      // interpolation procedure
      double vxC = 0., vyC = 0., vzC = 0., TC = 0., mubC = 0., muqC = 0.,
-            musC = 0., piC[10] = {0., 0., 0., 0., 0., 0., 0., 0., 0., 0.},
-            PiC = 0., nbC = 0., nqC = 0.;
+            musC = 0., PiC_p = 0., PiC_t = 0., PiC_f = 0., nbC = 0., nqC = 0.;
+     double piC_p[10] = {0., 0., 0., 0., 0., 0., 0., 0., 0., 0.};
+     double piC_t[10] = {0., 0., 0., 0., 0., 0., 0., 0., 0., 0.};
+     double piC_f[10] = {0., 0., 0., 0., 0., 0., 0., 0., 0., 0.};
      double QC_p[7] = {0., 0., 0., 0., 0., 0., 0.};
      double QC_t[7] = {0., 0., 0., 0., 0., 0., 0.};
      double QC_f[7] = {0., 0., 0., 0., 0., 0., 0.};
@@ -653,7 +673,11 @@ void MultiHydro::findFreezeout(EoS* eosH)
        TmunuC[i][j] = 0;
      }
      double eC = 0., pC = 0.;
-     for (int ii = 0; ii < 10; ii++) piC[ii] = 0.0;
+     for (int ii = 0; ii < 10; ii++) {
+      piC_p[ii] = 0.0;
+      piC_t[ii] = 0.0;
+      piC_f[ii] = 0.0;
+     }
      double wCenT[2] = {1. - cornelius->get_centroid_elem(isegm, 0) / h_p->getDtau(),
                         cornelius->get_centroid_elem(isegm, 0) / h_p->getDtau()};
      double wCenX[2] = {1. - cornelius->get_centroid_elem(isegm, 1) / dx,
@@ -740,6 +764,18 @@ void MultiHydro::findFreezeout(EoS* eosH)
      if (TC > 0.4 || fabs(mubC) > 0.85) {
       cout << "#### Error (multifluid surface): high T/mu_b (T=" << TC << "/mu_b=" << mubC << ") ####\n";
      }
+     for (int jx = 0; jx < 2; jx++)
+      for (int jy = 0; jy < 2; jy++)
+       for (int jz = 0; jz < 2; jz++) {
+        for (int ii = 0; ii < 10; ii++) {
+         piC_p[ii] += piSquare_p[jx][jy][jz][ii] * wCenX[jx] * wCenY[jy] * wCenZ[jz];
+         piC_t[ii] += piSquare_t[jx][jy][jz][ii] * wCenX[jx] * wCenY[jy] * wCenZ[jz];
+         piC_f[ii] += piSquare_f[jx][jy][jz][ii] * wCenX[jx] * wCenY[jy] * wCenZ[jz];
+        }
+        PiC_p += PiSquare_p[jx][jy][jz] * wCenX[jx] * wCenY[jy] * wCenZ[jz];
+        PiC_t += PiSquare_t[jx][jy][jz] * wCenX[jx] * wCenY[jy] * wCenZ[jz];
+        PiC_f += PiSquare_f[jx][jy][jz] * wCenX[jx] * wCenY[jy] * wCenZ[jz];
+       }
      double v2C = vxC * vxC + vyC * vyC + vzC * vzC;
      if (v2C > 1.) {
       vxC *= sqrt(0.99 / v2C);
@@ -785,28 +821,73 @@ void MultiHydro::findFreezeout(EoS* eosH)
      vEff_t += dVEff_t;
      vEff_f += dVEff_f;
 
-     double picart[10];
+     double picart_p[10];
+     double picart_t[10];
+     double picart_f[10];
 #ifdef OUTPI
-     /*pi00*/ picart[index44(0, 0)] = ch * ch * piC[index44(0, 0)] +
-                                      2. * ch * sh * piC[index44(0, 3)] +
-                                      sh * sh * piC[index44(3, 3)];
-     /*pi01*/ picart[index44(0, 1)] =
-         ch * piC[index44(0, 1)] + sh * piC[index44(3, 1)];
-     /*pi02*/ picart[index44(0, 2)] =
-         ch * piC[index44(0, 2)] + sh * piC[index44(3, 2)];
-     /*pi03*/ picart[index44(0, 3)] =
-         ch * sh * (piC[index44(0, 0)] + piC[index44(3, 3)]) +
-         (ch * ch + sh * sh) * piC[index44(0, 3)];
-     /*pi11*/ picart[index44(1, 1)] = piC[index44(1, 1)];
-     /*pi12*/ picart[index44(1, 2)] = piC[index44(1, 2)];
-     /*pi13*/ picart[index44(1, 3)] =
-         sh * piC[index44(0, 1)] + ch * piC[index44(3, 1)];
-     /*pi22*/ picart[index44(2, 2)] = piC[index44(2, 2)];
-     /*pi23*/ picart[index44(2, 3)] =
-         sh * piC[index44(0, 2)] + ch * piC[index44(3, 2)];
-     /*pi33*/ picart[index44(3, 3)] = sh * sh * piC[index44(0, 0)] +
-                                      ch * ch * piC[index44(3, 3)] +
-                                      2. * sh * ch * piC[index44(0, 3)];
+     // projectile fluid
+     /*pi00*/ picart_p[index44(0, 0)] = ch * ch * piC_p[index44(0, 0)] +
+                                      2. * ch * sh * piC_p[index44(0, 3)] +
+                                      sh * sh * piC_p[index44(3, 3)];
+     /*pi01*/ picart_p[index44(0, 1)] =
+         ch * piC_p[index44(0, 1)] + sh * piC_p[index44(3, 1)];
+     /*pi02*/ picart_p[index44(0, 2)] =
+         ch * piC_p[index44(0, 2)] + sh * piC_p[index44(3, 2)];
+     /*pi03*/ picart_p[index44(0, 3)] =
+         ch * sh * (piC_p[index44(0, 0)] + piC_p[index44(3, 3)]) +
+         (ch * ch + sh * sh) * piC_p[index44(0, 3)];
+     /*pi11*/ picart_p[index44(1, 1)] = piC_p[index44(1, 1)];
+     /*pi12*/ picart_p[index44(1, 2)] = piC_p[index44(1, 2)];
+     /*pi13*/ picart_p[index44(1, 3)] =
+         sh * piC_p[index44(0, 1)] + ch * piC_p[index44(3, 1)];
+     /*pi22*/ picart_p[index44(2, 2)] = piC_p[index44(2, 2)];
+     /*pi23*/ picart_p[index44(2, 3)] =
+         sh * piC_p[index44(0, 2)] + ch * piC_p[index44(3, 2)];
+     /*pi33*/ picart_p[index44(3, 3)] = sh * sh * piC_p[index44(0, 0)] +
+                                      ch * ch * piC_p[index44(3, 3)] +
+                                      2. * sh * ch * piC_p[index44(0, 3)];
+     // target fluid
+     /*pi00*/ picart_t[index44(0, 0)] = ch * ch * piC_t[index44(0, 0)] +
+                                      2. * ch * sh * piC_t[index44(0, 3)] +
+                                      sh * sh * piC_t[index44(3, 3)];
+     /*pi01*/ picart_t[index44(0, 1)] =
+         ch * piC_t[index44(0, 1)] + sh * piC_t[index44(3, 1)];
+     /*pi02*/ picart_t[index44(0, 2)] =
+         ch * piC_t[index44(0, 2)] + sh * piC_t[index44(3, 2)];
+     /*pi03*/ picart_t[index44(0, 3)] =
+         ch * sh * (piC_t[index44(0, 0)] + piC_t[index44(3, 3)]) +
+         (ch * ch + sh * sh) * piC_t[index44(0, 3)];
+     /*pi11*/ picart_t[index44(1, 1)] = piC_t[index44(1, 1)];
+     /*pi12*/ picart_t[index44(1, 2)] = piC_t[index44(1, 2)];
+     /*pi13*/ picart_t[index44(1, 3)] =
+         sh * piC_t[index44(0, 1)] + ch * piC_t[index44(3, 1)];
+     /*pi22*/ picart_t[index44(2, 2)] = piC_t[index44(2, 2)];
+     /*pi23*/ picart_t[index44(2, 3)] =
+         sh * piC_t[index44(0, 2)] + ch * piC_t[index44(3, 2)];
+     /*pi33*/ picart_t[index44(3, 3)] = sh * sh * piC_t[index44(0, 0)] +
+                                      ch * ch * piC_t[index44(3, 3)] +
+                                      2. * sh * ch * piC_t[index44(0, 3)];
+     // projectile fluid
+     /*pi00*/ picart_f[index44(0, 0)] = ch * ch * piC_f[index44(0, 0)] +
+                                      2. * ch * sh * piC_f[index44(0, 3)] +
+                                      sh * sh * piC_f[index44(3, 3)];
+     /*pi01*/ picart_f[index44(0, 1)] =
+         ch * piC_f[index44(0, 1)] + sh * piC_f[index44(3, 1)];
+     /*pi02*/ picart_f[index44(0, 2)] =
+         ch * piC_f[index44(0, 2)] + sh * piC_f[index44(3, 2)];
+     /*pi03*/ picart_f[index44(0, 3)] =
+         ch * sh * (piC_f[index44(0, 0)] + piC_f[index44(3, 3)]) +
+         (ch * ch + sh * sh) * piC_f[index44(0, 3)];
+     /*pi11*/ picart_f[index44(1, 1)] = piC_f[index44(1, 1)];
+     /*pi12*/ picart_f[index44(1, 2)] = piC_f[index44(1, 2)];
+     /*pi13*/ picart_f[index44(1, 3)] =
+         sh * piC_f[index44(0, 1)] + ch * piC_f[index44(3, 1)];
+     /*pi22*/ picart_f[index44(2, 2)] = piC_f[index44(2, 2)];
+     /*pi23*/ picart_f[index44(2, 3)] =
+         sh * piC_f[index44(0, 2)] + ch * piC_f[index44(3, 2)];
+     /*pi33*/ picart_f[index44(3, 3)] = sh * sh * piC_f[index44(0, 0)] +
+                                      ch * ch * piC_f[index44(3, 3)] +
+                                      2. * sh * ch * piC_f[index44(0, 3)];
 #endif
 
      double dEtotSurf[3] = {0., 0., 0.};
@@ -832,7 +913,7 @@ void MultiHydro::findFreezeout(EoS* eosH)
         f_p->getX(ix) + cornelius->get_centroid_elem(isegm, 1),
         f_p->getY(iy) + cornelius->get_centroid_elem(isegm, 2),
         f_p->getZ(iz) + cornelius->get_centroid_elem(isegm, 3),
-        dsigma, uC_p, TCp, mubCp, muqCp, musCp, picart, PiC, dVEff_p
+        dsigma, uC_p, TCp, mubCp, muqCp, musCp, picart_p, PiC_p, dVEff_p
        );
        printFreezeout(
         fmhfreeze_t,
@@ -840,7 +921,7 @@ void MultiHydro::findFreezeout(EoS* eosH)
         f_t->getX(ix) + cornelius->get_centroid_elem(isegm, 1),
         f_t->getY(iy) + cornelius->get_centroid_elem(isegm, 2),
         f_t->getZ(iz) + cornelius->get_centroid_elem(isegm, 3),
-        dsigma, uC_t, TCt, mubCt, muqCt, musCt, picart, PiC, dVEff_t
+        dsigma, uC_t, TCt, mubCt, muqCt, musCt, picart_t, PiC_t, dVEff_t
        );
        printFreezeout(
         fmhfreeze_f,
@@ -848,16 +929,16 @@ void MultiHydro::findFreezeout(EoS* eosH)
         f_f->getX(ix) + cornelius->get_centroid_elem(isegm, 1),
         f_f->getY(iy) + cornelius->get_centroid_elem(isegm, 2),
         f_f->getZ(iz) + cornelius->get_centroid_elem(isegm, 3),
-        dsigma, uC_f, TCf, mubCf, muqCf, musCf, picart, PiC, dVEff_f
+        dsigma, uC_f, TCf, mubCf, muqCf, musCf, picart_f, PiC_f, dVEff_f
        );
-       printFreezeout(
+       /*printFreezeout(
         fmhfreeze_all,
         h_f->getTau() - h_f->getDtau() + cornelius->get_centroid_elem(isegm, 0),
         f_f->getX(ix) + cornelius->get_centroid_elem(isegm, 1),
         f_f->getY(iy) + cornelius->get_centroid_elem(isegm, 2),
         f_f->getZ(iz) + cornelius->get_centroid_elem(isegm, 3),
         dsigma, uC, TC, mubC, muqC, musC, picart, PiC, dVEff
-       );
+       );*/
       }
      } else {
       if (dEtotSurf[0] > 0 && dVEff_p > 0) printFreezeout(
@@ -866,7 +947,7 @@ void MultiHydro::findFreezeout(EoS* eosH)
        f_p->getX(ix) + cornelius->get_centroid_elem(isegm, 1),
        f_p->getY(iy) + cornelius->get_centroid_elem(isegm, 2),
        f_p->getZ(iz) + cornelius->get_centroid_elem(isegm, 3),
-       dsigma, uC_p, TCp, mubCp, muqCp, musCp, picart, PiC, dVEff_p
+       dsigma, uC_p, TCp, mubCp, muqCp, musCp, picart_p, PiC_p, dVEff_p
       );
       if (dEtotSurf[1] > 0 && dVEff_t > 0) printFreezeout(
        fmhfreeze_t,
@@ -874,7 +955,7 @@ void MultiHydro::findFreezeout(EoS* eosH)
        f_t->getX(ix) + cornelius->get_centroid_elem(isegm, 1),
        f_t->getY(iy) + cornelius->get_centroid_elem(isegm, 2),
        f_t->getZ(iz) + cornelius->get_centroid_elem(isegm, 3),
-       dsigma, uC_t, TCt, mubCt, muqCt, musCt, picart, PiC, dVEff_t
+       dsigma, uC_t, TCt, mubCt, muqCt, musCt, picart_t, PiC_t, dVEff_t
       );
       if (dEtotSurf[2] > 0 && dVEff_f > 0) printFreezeout(
        fmhfreeze_f,
@@ -882,16 +963,16 @@ void MultiHydro::findFreezeout(EoS* eosH)
        f_f->getX(ix) + cornelius->get_centroid_elem(isegm, 1),
        f_f->getY(iy) + cornelius->get_centroid_elem(isegm, 2),
        f_f->getZ(iz) + cornelius->get_centroid_elem(isegm, 3),
-       dsigma, uC_f, TCf, mubCf, muqCf, musCf, picart, PiC, dVEff_f
+       dsigma, uC_f, TCf, mubCf, muqCf, musCf, picart_f, PiC_f, dVEff_f
       );
-      if (dEtotSurf[2] > 0 && dVEff > 0) printFreezeout(
+      /*if (dEtotSurf[2] > 0 && dVEff > 0) printFreezeout(
         fmhfreeze_all,
         h_f->getTau() - h_f->getDtau() + cornelius->get_centroid_elem(isegm, 0),
         f_f->getX(ix) + cornelius->get_centroid_elem(isegm, 1),
         f_f->getY(iy) + cornelius->get_centroid_elem(isegm, 2),
         f_f->getZ(iz) + cornelius->get_centroid_elem(isegm, 3),
         dsigma, uC, TC, mubC, muqC, musC, picart, PiC, dVEff
-       );
+       );*/
      }
 
     }
