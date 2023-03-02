@@ -45,7 +45,7 @@
 using namespace std;
 
 // program parameters, to be read from file
-int x, ny, nz, eosType, etaSparam = 0, zetaSparam = 0,vtk = 0;
+int nx, ny, nz, eosType, etaSparam = 0, zetaSparam = 0,vtk = 0;
 bool vtk_cartesian=false;
 std::string vtk_values;
 int eosTypeHadron = 0;
