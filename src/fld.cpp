@@ -699,13 +699,14 @@ void Fluid::outputCorona(double tau) {
 #ifdef SWAP_EOS
  swap(eos, eosH);
 #endif
- output::f2d << endl;
+output::f2d << endl;
  for (int ix = 2; ix < nx - 2; ix++)
   for (int iy = 2; iy < ny - 2; iy++)
    for (int iz = 2; iz < nz - 2; iz++) {
     Cell *c = getCell(ix, iy, iz);
     getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
     c->getQ(Q);
+
     eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
     double s = eos->s(e, nb, nq, ns);
     eta = getZ(iz);

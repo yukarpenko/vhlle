@@ -30,26 +30,6 @@ IcTrento3d::IcTrento3d(Fluid* f, const char* filename, double _tau0, const char*
  zmax = f->getZ(nz - 1);
 
  tau0 = _tau0;
-/*
-if(strcmp(setup,"LHC276")==0) {
-  sNN = 2760;
-  cout << "IcTrento3d: setup for 2.76 TeV LHC\n";
- } else if(strcmp(setup,"RHIC200")==0) {
-  sNN = 200;
-  cout << "IcTrento3d: setup for 200 GeV RHIC\n";
- } else if(strcmp(setup,"LHC5020")==0) {
-  sNN = 5020;
-  cout << "IcTrento3d: setup for 5.02 TeV LHC\n";\
- } else if(strcmp(setup,"RHIC62")==0) {
-  sNN = 62.4;
-  cout << "IcTrento3d: setup for 62.4 GeV RHIC\n";
- } else if(strcmp(setup,"RHIC27")==0) {
-  sNN = 27;
-  cout << "IcTrento3d: setup for 27 GeV RHIC\n";
- } else {
-  cout << "IcTrento3d: optional parameter LHC276 or RHIC200 is expected\n";
-  exit(0);
- }*/
 
  rho = new double**[nx];
  for (int ix = 0; ix < nx; ix++) {
@@ -143,15 +123,6 @@ if(strcmp(setup,"LHC276")==0) {
   getline(fin, line);
  }
 
- // autocalculation of sNorm and nNorm
- sNorm = 1.0;
- /*double old_sNorm = 0.0;
- do {
-   old_sNorm = sNorm;
-   sNorm = pow(setNormalization(npart), 0.75)*old_sNorm;
- } while (abs(sNorm-old_sNorm) > 0.0001);
- cout << "sNorm set to " << sNorm << endl;
- double old_nNorm = 0.0;*/
 
 }
 
@@ -225,14 +196,11 @@ void IcTrento3d::setIC(Fluid* f, EoS* eos) {
  double Tcm = 0.0;
  double e, p, nb;
  double total_energy = 0.0;
- double norm=2.95;
- sNorm =1;
+
  for (int ix = 0; ix < nx; ix++)
   for (int iy = 0; iy < ny; iy++)
    for (int iz = 0; iz < nz; iz++) {
-    //e = 1.95*(s95p::s95p_e(sNorm * rho[ix][iy][iz] / nevents));
-    e = s95p::s95p_e(sNorm * rho[ix][iy][iz]);
-    
+    e = s95p::s95p_e(rho[ix][iy][iz]/ nevents);
     p = eos->p(e, 0., 0., 0.);
     Cell* c = f->getCell(ix, iy, iz);
     const double ueta = tanh(A*f->getX(ix))*sinh(1-fabs(f->getZ(iz)));
@@ -289,18 +257,3 @@ void IcTrento3d::setIC(Fluid* f, EoS* eos) {
  cout << "1/tau*dJ/dy_ini: " << Jy0_midrap/(3.0*dz*tau0) << endl;
  
 }
-/*
-double IcTrento3d::setNormalization(int npart) {
-double e;
-double total_energy = 0.0;
-for (int ix = 0; ix < nx; ix++)
-  for (int iy = 0; iy < ny; iy++)
-   for (int iz = 0; iz < nz; iz++) {
-    e = s95p::s95p_e(sNorm * rho[ix][iy][iz] / nevents);
-    double eta = zmin + iz * dz;
-    double coshEta = cosh(eta);
-    total_energy += tau0*e*dx*dy*dz*coshEta;
-   }
- return npart*0.5*sNN/total_energy;
-}*/
-
