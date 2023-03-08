@@ -180,13 +180,13 @@ void IcTrento3d::makeSmoothTable(int npart) {
  for (int ix = 0; ix < nx; ix++)
   for (int iy = 0; iy < ny; iy++)
    for (int iz = 0; iz < nz; iz++) {
-    // longidudinal profile here
+  
     const double x = xmin + ix * dx;
     const double y = ymin + iy * dy;
     const double eta = zmin + iz * dz;
    
     rho[ix][iy][iz] += interpolateGrid(x,y,eta);
- } // Z(eta) loop
+ } 
 }
 
 void IcTrento3d::setIC(Fluid* f, EoS* eos) {
