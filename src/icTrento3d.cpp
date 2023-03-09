@@ -42,8 +42,7 @@ IcTrento3d::IcTrento3d(Fluid* f, const char* filename, double _tau0, const char*
   }
  }
 
- // ---- read the events
- nevents = 0;
+ // ---- read the files
  ifstream fin(filename);
  if (!fin.good()) {
   cout << "I/O error with " << filename << endl;
@@ -101,8 +100,8 @@ IcTrento3d::IcTrento3d(Fluid* f, const char* filename, double _tau0, const char*
   xminG = -xmaxG;
   yminG = -xmaxG;
   etaminG=-etamaxG;
-  
-  if (nevents == 0) cout << "Trento IS grid: x,y,etamaxG = " << xmaxG <<" "<< etamaxG << "  n_grid = " << n_grid << " n_grid_eta= "<<n_grid_eta<< endl;
+
+cout << "Trento IS grid: x,y,etamaxG = " << xmaxG <<" "<< etamaxG << "  n_grid = " << n_grid << " n_grid_eta= "<<n_grid_eta<< endl;
   for (int iy = 0; iy < n_grid; iy++) {
    for (int ix = 0; ix < n_grid; ix++) {
     for (int eta=0;eta<n_grid_eta;eta++){
@@ -111,8 +110,6 @@ IcTrento3d::IcTrento3d(Fluid* f, const char* filename, double _tau0, const char*
    }
   }
 
-  nevents += 1;
-  cout << "event " << nevents << "  npart = " << npart << "\n";
   makeSmoothTable(npart);
 
   // delete source array
@@ -200,7 +197,7 @@ void IcTrento3d::setIC(Fluid* f, EoS* eos) {
  for (int ix = 0; ix < nx; ix++)
   for (int iy = 0; iy < ny; iy++)
    for (int iz = 0; iz < nz; iz++) {
-    e = s95p::s95p_e(rho[ix][iy][iz]/ nevents);
+    e = s95p::s95p_e(rho[ix][iy][iz]);
     p = eos->p(e, 0., 0., 0.);
     Cell* c = f->getCell(ix, iy, iz);
     const double ueta = tanh(A*f->getX(ix))*sinh(1-fabs(f->getZ(iz)));
