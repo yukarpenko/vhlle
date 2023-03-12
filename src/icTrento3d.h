@@ -5,19 +5,15 @@ class EoS;
 class IcTrento3d {
 private:
  double A; // initial shear flow constant
- int nx, ny, nz, nevents;
+ int nx, ny, nz;
  int n_grid,n_grid_eta;
  double xminG, xmaxG, yminG, ymaxG, etaminG, etamaxG; // grid sizes
  double xmin, xmax, ymin, ymax, zmin, zmax;
  double dx, dy, dz;
  double ***rho;
- double ***nrho;
  double ***source;
  static const int NP = 10000;  // dimension for particle arrays
  double tau0;
- int nsmoothx;  // smoothly distribute to +- this many cells
- int nsmoothy;
- int nsmoothz;
  void makeSmoothTable(int npart);
 
 public:
@@ -25,5 +21,4 @@ public:
  ~IcTrento3d();
  double interpolateGrid(double x, double y,double eta);
  void setIC(Fluid *f, EoS *eos);
- 
 };
