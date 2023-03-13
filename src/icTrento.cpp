@@ -58,13 +58,14 @@ IcTrento::IcTrento(Fluid* f, const char* filename, double _tau0, const char* set
   cout << "IcTrento: setup for 200 GeV RHIC\n";
  } else if(strcmp(setup,"LHC5020")==0) {
   sNN = 5020;
-  eta0 = 3.7; //2.3; // midrapidity plateau
+  eta0 = 2.5; // midrapidity plateau
   sigEta = 1.4; // diffuseness of rapidity profile
-  etaM = 4.5;
-  ybeam = 8.585; // beam rapidity
+  etaM = 4;
+  ybeam = 7.98; // beam rapidity
   alphaMix = 0.15; // WN/binary mixing
   Rg = 0.4; // Gaussian smearing in transverse dir
-  A = 0.0 ; // 5e-4; // initial shear flow
+  //sNorm = 0.96; // normalization of initial entropy profile
+  A = 0.0 ; /// 3.6e-5; // initial shear flow
   cout << "IcTrento: setup for 5.02 TeV LHC\n";
  } else if(strcmp(setup,"RHIC62")==0) {
   sNN = 62.4;
@@ -181,6 +182,8 @@ IcTrento::IcTrento(Fluid* f, const char* filename, double _tau0, const char* set
 
  // autocalculation of sNorm and nNorm
  sNorm = 1.0;
+ if (sNN < 2760){
+  cout << "energy je pod 2761"<<endl;
  double old_sNorm = 0.0;
  do {
    old_sNorm = sNorm;
@@ -195,6 +198,11 @@ IcTrento::IcTrento(Fluid* f, const char* filename, double _tau0, const char* set
     nNorm = setBaryonNorm(npart)*old_nNorm;
   } while (abs(nNorm-old_nNorm) > 0.0001);
   cout << "nNorm set to " << nNorm << endl;
+ }
+ }
+
+ else {
+  sNorm=1;
  }
 }
 
@@ -245,11 +253,7 @@ void IcTrento::makeSmoothTable(int npart) {
   cout << "neta0 = " << neta0 << endl;
   cout << "nsigma = " << nsigma << endl;
  }
- if (sNN == 5020) {
-  double cent = (double)npart/(2.*208.); // our measure of centrality
-  eta0 = 3.85165 - 0.49095*cent;
-  cout << "eta0 = " << eta0 << endl;
- }
+
  for (int ix = 0; ix < nx; ix++)
   for (int iy = 0; iy < ny; iy++)
    for (int iz = 0; iz < nz; iz++) {
@@ -276,11 +280,12 @@ void IcTrento::setIC(Fluid* f, EoS* eos) {
  double E_midrap = 0.0, Jy0_midrap = 0.0;  // same quantity at midrapidity
  double Tcm = 0.0;
  double e, p, nb;
+ cout <<sNorm<<endl;
  double total_energy = 0.0;
  for (int ix = 0; ix < nx; ix++)
   for (int iy = 0; iy < ny; iy++)
    for (int iz = 0; iz < nz; iz++) {
-    e = s95p::s95p_e(sNorm * rho[ix][iy][iz] / nevents / dx / dy);
+    e = s95p::s95p_e(sNorm * rho[ix][iy][iz] / nevents);
     if (sNN < 100) {
       nb = nNorm * nrho[ix][iy][iz] / nevents / dx / dy / dz;
     } else {
@@ -341,7 +346,6 @@ void IcTrento::setIC(Fluid* f, EoS* eos) {
       << endl;
  cout << "1/tau*dE/dy_ini: : " << E_midrap/(3.0*dz*tau0) << endl;
  cout << "1/tau*dJ/dy_ini: " << Jy0_midrap/(3.0*dz*tau0) << endl;
- //exit(1);
 }
 
 double IcTrento::setNormalization(int npart) {
@@ -350,7 +354,7 @@ double IcTrento::setNormalization(int npart) {
  for (int ix = 0; ix < nx; ix++)
   for (int iy = 0; iy < ny; iy++)
    for (int iz = 0; iz < nz; iz++) {
-    e = s95p::s95p_e(sNorm * rho[ix][iy][iz] / nevents / dx / dy);
+    e = s95p::s95p_e(sNorm * rho[ix][iy][iz] / nevents);
     double eta = zmin + iz * dz;
     double coshEta = cosh(eta);
     total_energy += tau0*e*dx*dy*dz*coshEta;
