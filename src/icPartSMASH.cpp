@@ -87,7 +87,7 @@ IcPartSMASH::IcPartSMASH(Fluid* f, const char* filename, double _Rgt, double _Rg
  std::string line;
  std::istringstream instream;
  bool isBaryonIncluded {false};
- std::string quantity[15];
+ std::string quantity[14];
  
  double E_smash {0.0}; 
  int B_smash {0};
@@ -224,6 +224,9 @@ IcPartSMASH::~IcPartSMASH() {
  delete[] QS;
 }
 
+// parameter smoothingType: 0 (default) for kernel contracted in eta, 1 for invariant kernel
+// switches on isKernelInvariant
+// if true only Rgz parameter is needed to smooth out particles
 void IcPartSMASH::makeSmoothTable(int npart) {
  for (int ip = 0; ip < npart; ip++) {  // particle loop
   int ixc = (int)round((X[ip] - xmin) / dx);
