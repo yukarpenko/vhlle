@@ -1,6 +1,7 @@
 
 class EoS;
 class Fluid;
+class Nucleon;
 
 // this class takes care of the initial conditions for hydrodynamic evolution
 class IC3F {
@@ -25,6 +26,7 @@ private:
  int nsmoothx;  // smoothly distribute to +- this many cells
  int nsmoothy;
  int nsmoothz;
+ std::vector<std::vector<Nucleon>> nucleons;
  void makeSmoothPart(double x, double y, double eta, int Charge, double rap, bool isProjectile);
 
 public:
@@ -32,4 +34,5 @@ public:
  ~IC3F(void);
  // setIC: initializes entire hydro grid at a given initial proper time tau
  void setIC(Fluid* f_p, Fluid *f_t, EoS* eos);
+ std::vector<std::vector<Nucleon>> getNucleons(void);
 };

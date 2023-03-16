@@ -9,6 +9,7 @@
 #include "ic3F.h"
 #include "rmn.h"
 #include "inc.h"
+#include "nucleon.h"
 
 using namespace std;
 
@@ -97,6 +98,7 @@ IC3F::IC3F(Fluid *f_p, Fluid *f_t, int _nevents, double _snn, double _b_min, dou
    }
   }
  }
+ nucleons.clear();
 
  // random generators
  random_device rd;
@@ -131,6 +133,9 @@ IC3F::IC3F(Fluid *f_p, Fluid *f_t, int _nevents, double _snn, double _b_min, dou
 
   // output for debugging
   //ofstream fout("nucleons.dat");
+  std::vector<Nucleon> nucl1;
+  nucleons.push_back(nucl1);
+  nucleons[iev].clear();
 
   // generating nucleons of projectile nucleus
   for (int i = 0; i < projA; i++) {
@@ -147,6 +152,7 @@ IC3F::IC3F(Fluid *f_p, Fluid *f_t, int _nevents, double _snn, double _b_min, dou
    z = z / gamma + z0_proj;
    double eta = asinh(z * cosh(rap_beam) / tau0 - sinh(rap_beam)) + rap_beam;
    int charge = i < projZ ? 1 : 0;
+   nucleons[iev].push_back(Nucleon(x, y, eta, rap_beam, charge));
    makeSmoothPart(x, y, eta, charge, rap_beam, true);
    //fout << x << " " << y << " " << z << " " << r << " " << eta << endl;
   }
@@ -166,6 +172,7 @@ IC3F::IC3F(Fluid *f_p, Fluid *f_t, int _nevents, double _snn, double _b_min, dou
    z = z / gamma + z0_targ;
    double eta = asinh(z * cosh(rap_beam) / tau0 + sinh(rap_beam)) - rap_beam;
    int charge = i < targZ ? 1 : 0;
+   nucleons[iev].push_back(Nucleon(x, y, eta, -rap_beam, charge));
    makeSmoothPart(x, y, eta, charge, -rap_beam, false);
    //fout << x << " " << y << " " << z << " " << r << " " << eta << endl;
   }
@@ -202,6 +209,10 @@ IC3F::~IC3F() {
  delete[] T0z_t;
  delete[] QB_t;
  delete[] QE_t;
+}
+
+std::vector<std::vector<Nucleon>> IC3F::getNucleons(void) {
+ return nucleons;
 }
 
 void IC3F::makeSmoothPart(double x, double y, double eta, int Charge, double rap, bool isProjectile) {

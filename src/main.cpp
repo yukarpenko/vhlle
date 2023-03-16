@@ -24,7 +24,6 @@
 #include "fld.h"
 #include "hdo.h"
 #include "ic.h"
-#include "ic3F.h"
 #include "ickw.h"
 #include "icPartUrqmd.h"
 #include "icPartSMASH.h"
@@ -41,6 +40,8 @@
 #include "eoSmash.h"
 #include "trancoeff.h"
 #include "multiHydro.h"
+#include "ic3F.h"
+#include "nucleon.h"
 
 using namespace std;
 
@@ -410,6 +411,7 @@ int main(int argc, char **argv) {
 
  IC3F *ic = new IC3F(f_p, f_t, nevents, snn, b_min, b_max, projA, targA, projZ, targZ, Rgt, tau0);
  ic->setIC(f_p, f_t, eos);
+ std::vector<std::vector<Nucleon>> nucleons = ic->getNucleons();
  delete ic;
  cout << "IC done\n";
 
@@ -430,7 +432,7 @@ int main(int argc, char **argv) {
  time(&start);
  // h->setNSvalues() ; // initialize viscous terms
 
- mh = new MultiHydro(f_p, f_t, f_f, h_p, h_t, h_f, eos, trcoeff, dtau, eCrit, snn, xi_fa, lambda, formationTime, frictionModel, decreasingFormTime, xi_q, xi_h);
+ mh = new MultiHydro(f_p, f_t, f_f, h_p, h_t, h_f, eos, trcoeff, dtau, eCrit, snn, xi_fa, lambda, formationTime, frictionModel, decreasingFormTime, xi_q, xi_h, nucleons);
 
  f_p->initOutput(outputDir.c_str(), tau0, "proj");
  f_t->initOutput(outputDir.c_str(), tau0, "targ");
@@ -443,13 +445,19 @@ int main(int argc, char **argv) {
 
  do {
   mh->performStep();
+  mh->evolveSpectators();
   f_p->outputGnuplot(h_p->getTau());
   f_t->outputGnuplot(h_t->getTau());
   f_f->outputGnuplot(h_t->getTau());
   f_p->outputSurface(h_p->getTau());
   f_t->outputSurface(h_t->getTau());
   f_f->outputSurface(h_f->getTau());
-  mh->findFreezeout(eosH);
+  int status = mh->findFreezeout(eosH);
+  if(status==1) {
+   ofstream ffspect ((outputDir+"/spectators.dat").c_str());
+   mh->printSpectators(ffspect);
+   return 0; // stop hydro evolution
+  }
   cout << "step done, tau=" << h_p->getTau() << endl;
   if (0.1*f_p->getDz()*h_p->getTau() > h_p->getDtau()) {
    cout << "grid resize" << endl;

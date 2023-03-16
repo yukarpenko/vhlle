@@ -1,3 +1,4 @@
+#include <vector>
 
 class Fluid;
 class Hydro;
@@ -5,6 +6,7 @@ class EoS;
 class TransportCoeff;
 class CrossSections;
 class Cornelius;
+class Nucleon;
 
 class MultiHydro {
  Fluid *f_p, *f_t, *f_f; // projectile and target fluids
@@ -26,12 +28,13 @@ class MultiHydro {
      {1, 0, 0, 0}, {0, -1, 0, 0}, {0, 0, -1, 0}, {0, 0, 0, -1}};
  double EtotSurf[3] = {0., 0., 0.}, EtotSurf_positive[3] = {0., 0., 0.},
      EtotSurf_negative[3] = {0., 0., 0.};
+ std::vector<std::vector<Nucleon>> nucleons;
 
 public:
  MultiHydro(Fluid *f_p, Fluid *f_t, Fluid *f_f, Hydro *h_p, Hydro *h_t,
   Hydro* h_f, EoS *eos, TransportCoeff *trcoeff, double dtau, double eCrit, double sNN,
   double xi_fa, double lambda, double formationTime, int frictionModel, int decreasingFormTime,
-  double xi_q, double xi_h);
+  double xi_q, double xi_h, std::vector<std::vector<Nucleon>> nucl);
  ~MultiHydro(void);
  void initOutput(const char *dir);
  void performStep();
@@ -42,7 +45,7 @@ public:
  void getEnergyDensity();
  void getSumEnergyDensity();
  void updateEnergyDensity();
- void findFreezeout(EoS *eosH);
+ int  findFreezeout(EoS *eosH);
  void printFreezeout(std::ofstream &fout, double t, double x, double y, double z, double dsigma[4], double uC[4], double TC, double mub, double muq, double mus, double picart[10], double PiC, double dVEff);
  void outputEnergyDensity();
  void resizeMHeps();
@@ -55,4 +58,7 @@ public:
  double calculateScatRates(double px, double T, double mu, double u[4], int particle);
  double pp_total(double mandelstam_s);
  double Fermi(double nb);
+ double getEnergyDensity(double x, double y, double eta);
+ void evolveSpectators(void);
+ void printSpectators(std::ofstream &fout);
 };
