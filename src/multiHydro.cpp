@@ -1098,12 +1098,14 @@ double MultiHydro::Fermi(double nb) {
  return pow(0.197,2)*pow(6*nb/M_PI,2/3)*M_PI*M_PI/(2*0.938);
 }
 
-double MultiHydro::getEnergyDensity(double x, double y, double eta) {
+double MultiHydro::getLocalEnergyDensity(double x, double y, double eta) {
+// this function returns effective energy density, pre-computed in the MHeps[][][] array,
+// at an arbitrary position using tri-linear interpolation over the table(array)
  int ix = (int)((x - f_p->getX(0))/dx);
  int iy = (int)((y - f_p->getY(0))/dy);
  int iz = (int)((eta - f_p->getZ(0))/dz);
  if(ix<0 || ix>nx-1 || iy<0 || iy>ny-1 || iz<0  || iz>nz-1) {
-  cout << "MultiHydro::getEnergyDensity: out of bounds\n";
+  cout << "MultiHydro::getLocalEnergyDensity: out of bounds\n";
   exit(77);
  }
  double xm = (x - f_p->getX(0) - ix*dx) / dx;
@@ -1129,7 +1131,7 @@ void MultiHydro::evolveSpectators(void) {
  }
  for(int iev=0; iev<nucleons.size(); iev++) {
   for (auto it = nucleons[iev].begin(); it != nucleons[iev].end();) {
-   if(getEnergyDensity((*it).x, (*it).y, (*it).eta)>ecrit) {
+   if(getLocalEnergyDensity((*it).x, (*it).y, (*it).eta)>ecrit) {
     it = nucleons[iev].erase(it);
    } else
    it++;

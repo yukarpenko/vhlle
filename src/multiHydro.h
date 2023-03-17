@@ -58,7 +58,7 @@ public:
  double calculateScatRates(double px, double T, double mu, double u[4], int particle);
  double pp_total(double mandelstam_s);
  double Fermi(double nb);
- double getEnergyDensity(double x, double y, double eta);
+ double getLocalEnergyDensity(double x, double y, double eta);
  void evolveSpectators(void);
  void printSpectators(std::ofstream &fout);
 };
