@@ -245,7 +245,7 @@ void IcPartSMASH::makeSmoothTable(int npart) {
       const double ydiff = Y[ip] - (ymin + iy * dy);
       const double zdiff = Eta[ip] - (zmin + iz * dz);
       spatialVector rdiff {xdiff, ydiff, zdiff};
-      velocityVector velocity = velocityMilne(Mt[ip], Px[ip], Py[ip], Rap[ip], Eta[ip], zdiff, tau0);
+      velocityVector velocity = velocityHyperbolic(Mt[ip], Px[ip], Py[ip], Rap[ip], Eta[ip], zdiff, tau0);
       
       // calculate norm of the kernel
       if (isKernelInvariant) {
@@ -266,7 +266,7 @@ void IcPartSMASH::makeSmoothTable(int npart) {
       const double ydiff = Y[ip] - (ymin + iy * dy);
       const double zdiff = Eta[ip] - (zmin + iz * dz);
       spatialVector rdiff {xdiff, ydiff, zdiff};
-      velocityVector velocity = velocityMilne(Mt[ip], Px[ip], Py[ip], Rap[ip], Eta[ip], zdiff, tau0);
+      velocityVector velocity = velocityHyperbolic(Mt[ip], Px[ip], Py[ip], Rap[ip], Eta[ip], zdiff, tau0);
       double weight;
       
       // calculate weight for the cell
@@ -346,7 +346,7 @@ void IcPartSMASH::setIC(Fluid* f, EoS* eos) {
  std::cout << "initial_entropy S_ini = " << S << std::endl;
 }
 
-velocityVector velocityMilne(double _mt, double _px, double _py, double _y, double _eta, double _etaDiff, double _tau){
+velocityVector velocityHyperbolic(double _mt, double _px, double _py, double _y, double _eta, double _etaDiff, double _tau){
 
     double _p0 = _mt * cosh(_y);
     double _pz = _mt * sinh(_y);

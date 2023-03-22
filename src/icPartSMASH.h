@@ -91,7 +91,7 @@ struct velocityVector {
     double vz;
 };
 
-velocityVector velocityMilne(double _mt, double _px, double _py, double _y, 
+velocityVector velocityHyperbolic(double _mt, double _px, double _py, double _y, 
   double _eta, double _etaDiff, double _tau);
 
 double smoothingKernel(spatialVector _r, double _gammaz, double _tau, 
