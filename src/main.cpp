@@ -56,6 +56,7 @@ double etaS, zetaS, eCrit, eEtaSMin, al, ah, aRho, T0, etaSMin;
 int icModel,glauberVariable =1;  // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
 double epsilon0, Rgt, Rgz, impactPar, s0ScaleFactor;
 bool freezeoutOnly {false};  // freezoutOnly 1 for true, 0 for false
+int smoothingType {0}; // 0 for kernel contracted in eta, 1 for invariant kernel 
 
 void setDefaultParameters() {
  tauResize = 4.0;
@@ -148,6 +149,8 @@ void readParameters(char *parFile) {
    etaSMin = atof(parValue);
   else if (strcmp(parName, "freezeoutOnly") == 0)
    freezeoutOnly = atoi(parValue);
+  else if (strcmp(parName, "smoothingType") == 0)
+   smoothingType = atoi(parValue);
   else if (parName[0] == '!')
    cout << "CCC " << sline.str() << endl;
   else
@@ -199,6 +202,7 @@ void printParameters() {
  cout << "zeta/s = " << zetaS << endl;
  cout << "epsilon0 = " << epsilon0 << endl;
  cout << "Rgt = " << Rgt << "  Rgz = " << Rgz << endl;
+ cout << "smoothingType = " << smoothingType << endl;
  cout << "impactPar = " << impactPar << endl;
  cout << "s0ScaleFactor = " << s0ScaleFactor << endl;
  cout << "VTK output = " << vtk << endl;
@@ -330,7 +334,7 @@ int main(int argc, char **argv) {
    ic->setIC(f, eos);
    delete ic;
  } else if (icModel == 6){ // SMASH IC
-   IcPartSMASH *ic = new IcPartSMASH(f, isInputFile.c_str(), Rgt, Rgz, tau0);
+   IcPartSMASH *ic = new IcPartSMASH(f, isInputFile.c_str(), Rgt, Rgz, tau0, smoothingType);
    ic->setIC(f, eos);
    delete ic;
  } else if(icModel==7){ // IC from Trento
