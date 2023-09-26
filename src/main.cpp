@@ -297,6 +297,10 @@ int main(int argc, char **argv) {
                etamax, dtau, eCrit);
  cout << "fluid allocation done\n";
 
+ #ifdef CARTESIAN
+ tau0 = 1.0;  //  to eliminate tau0 factors when setting up initial state in Cartesian frame
+ #endif
+
  // initial conditions
  if (icModel == 1) {  // optical Glauber
   ICGlauber *ic = new ICGlauber(epsilon0, impactPar, tau0);
