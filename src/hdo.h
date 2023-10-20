@@ -40,7 +40,7 @@ public:
  // expansion scalar \partial_mu u^\mu (du)
  // for a given cell (ix,iy,iz)
  void NSquant(int ix, int iy, int iz, double pi[][4], double &Pi,
-              double dmu[4][4], double &du);
+              double dmu[4][4], double dbeta[4][4], double &du);
  // sets the values of shear stress/bulk pressure in NS limit in all hydro grid
  void setNSvalues();
  // advances numerical solution for shear/bulk in a whole grid over one

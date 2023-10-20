@@ -341,7 +341,7 @@ int main(int argc, char **argv) {
    IcTrento *ic = new IcTrento(f, isInputFile.c_str(), tau0, collSystem.c_str());
    ic->setIC(f, eos);
    delete ic;  
-} else if(icModel==8){ // IC from Trento
+} else if(icModel==8){ // IC from Trento3d
    IcTrento3d *ic = new IcTrento3d(f, isInputFile.c_str(), tau0, collSystem.c_str());
    ic->setIC(f, eos);
    delete ic;
@@ -371,6 +371,7 @@ int main(int argc, char **argv) {
  
  std::string dir=outputDir.c_str();
  VtkOutput vtk_out=VtkOutput(dir,eos,xmin,ymin,etamin, vtk_cartesian);
+ //int istep=0;
 
  do {
   // small tau: decrease timestep by making substeps, in order
@@ -394,11 +395,14 @@ int main(int argc, char **argv) {
   f->outputSurface(h->getTau());
   if (!freezeoutOnly)
    f->outputGnuplot(h->getTau());
+  //if(istep%20==0)  // 3D debug output: disk space comsuming
+  // f->outputSnapshot(h->getTau());
   if(h->getTau()>=tauResize and resized==false) {
    cout << "grid resize\n";
    f = expandGrid2x(h, eos, eosH, trcoeff);
    resized = true;
   }
+  //istep++;
  } while(h->getTau()<tauMax+0.0001);
 
  end = 0;
