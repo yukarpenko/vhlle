@@ -372,6 +372,7 @@ int main(int argc, char **argv) {
  std::string dir=outputDir.c_str();
  VtkOutput vtk_out=VtkOutput(dir,eos,xmin,ymin,etamin, vtk_cartesian);
 
+ int nelements = 0;
  do {
   // small tau: decrease timestep by making substeps, in order
   // to avoid instabilities in eta direction (signal velocity ~1/tau)
@@ -391,7 +392,7 @@ int main(int argc, char **argv) {
    cout << "timestep reduced by " << nSubSteps << endl;
   } else
    h->performStep();
-  f->outputSurface(h->getTau());
+  nelements = f->outputSurface(h->getTau());
   if (!freezeoutOnly)
    f->outputGnuplot(h->getTau());
   if(h->getTau()>=tauResize and resized==false) {
@@ -399,7 +400,7 @@ int main(int argc, char **argv) {
    f = expandGrid2x(h, eos, eosH, trcoeff);
    resized = true;
   }
- } while(h->getTau()<tauMax+0.0001);
+ } while((h->getTau()<tauMax+0.0001) and (nelements>0));
 
  end = 0;
  time(&end);
