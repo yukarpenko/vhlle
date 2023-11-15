@@ -40,7 +40,7 @@ IcGlissando::IcGlissando(Fluid* f, const char* filename, double _tau0, const cha
   ybeam = 7.98; // beam rapidity
   alphaMix = 0.15; // WN/binary mixing
   Rg = 0.4; // Gaussian smearing in transverse dir
-  //sNorm = 0.96; // normalization of initial entropy profile
+  sNorm = 3.16; //1.584; // normalization of initial entropy profile
   A = 0.0 ; /// 3.6e-5; // initial shear flow
   cout << "IcGlissando: setup for 2.76 TeV LHC\n";
  } else if(strcmp(setup,"RHIC200")==0) {
@@ -58,13 +58,14 @@ IcGlissando::IcGlissando(Fluid* f, const char* filename, double _tau0, const cha
   cout << "IcGlissando: setup for 200 GeV RHIC\n";
  } else if(strcmp(setup,"LHC5020")==0) {
   sNN = 5020;
-  eta0 = 3.7; //2.3 // midrapidity plateau
+  eta0 = 2.4; //2.3 // midrapidity plateau
   sigEta = 1.4; // diffuseness of rapidity profile
   etaM = 4.5;
   ybeam = 8.585; // beam rapidity
   alphaMix = 0.15; // WN/binary mixing
   Rg = 0.4; // Gaussian smearing in transverse dir
-  A = 0.0 ; // 5e-4; // initial shear flow
+  sNorm = 3.35; //3.77 with no bulk viscosity; // normalization of initial entropy profile
+  A = 3e-4 ; // 5e-4; // initial shear flow
   cout << "IcGlissando: setup for 5.02 TeV LHC\n";
  } else if(strcmp(setup,"RHIC62")==0) {
   sNN = 62.4;
@@ -161,24 +162,6 @@ IcGlissando::IcGlissando(Fluid* f, const char* filename, double _tau0, const cha
  }
  if (nevents > 1)
   cout << "IcGlissando: loaded " << nevents << "  initial UrQMD events\n";
-
- // autocalculation of sNorm and nNorm
- sNorm = 1.0;
- double old_sNorm = 0.0;
- do {
-   old_sNorm = sNorm;
-   sNorm = pow(setNormalization(np_tot/nevents), 0.75)*old_sNorm;
- } while (abs(sNorm-old_sNorm) > 0.0001);
- cout << "sNorm set to " << sNorm << endl;
- double old_nNorm = 0.0;
- if (sNN < 100) {
-  nNorm = 1.0;
-  do {
-    old_nNorm = nNorm;
-    nNorm = setBaryonNorm(np_tot/nevents)*old_nNorm;
-  } while (abs(nNorm-old_nNorm) > 0.0001);
-  cout << "nNorm set to " << nNorm << endl;
- }
 }
 
 IcGlissando::~IcGlissando() {
