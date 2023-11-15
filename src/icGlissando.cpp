@@ -31,78 +31,9 @@ IcGlissando::IcGlissando(Fluid* f, const char* filename, double _tau0, const cha
  zmax = f->getZ(nz - 1);
 
  tau0 = _tau0;
- 
- if(strcmp(setup,"LHC276")==0) {
-  sNN = 2760;
-  eta0 = 2.3; // midrapidity plateau
-  sigEta = 1.4; // diffuseness of rapidity profile
-  etaM = 4;
-  ybeam = 7.98; // beam rapidity
-  alphaMix = 0.15; // WN/binary mixing
-  Rg = 0.4; // Gaussian smearing in transverse dir
-  sNorm = 3.16; //1.584; // normalization of initial entropy profile
-  A = 0.0 ; /// 3.6e-5; // initial shear flow
-  cout << "IcGlissando: setup for 2.76 TeV LHC\n";
- } else if(strcmp(setup,"RHIC200")==0) {
-  sNN = 200;
-  eta0 = 1.5; // midrapidity plateau
-  sigEta = 1.4; // diffuseness of rapidity profile
-  etaM = 3.36;
-  ybeam = 5.36; // beam rapidity
-  alphaMix = 0.145; // WN/binary mixing
-  Rg = 0.4; // Gaussian smearing in transverse dir
-  //sNorm = 0.56; // normalization of initial entropy profile
-  A = 0.0 ; // 5e-4; // initial shear flow
-  nsigma = 0.6;
-  neta0 = 1.4;
-  cout << "IcGlissando: setup for 200 GeV RHIC\n";
- } else if(strcmp(setup,"LHC5020")==0) {
-  sNN = 5020;
-  eta0 = 2.4; //2.3 // midrapidity plateau
-  sigEta = 1.4; // diffuseness of rapidity profile
-  etaM = 4.5;
-  ybeam = 8.585; // beam rapidity
-  alphaMix = 0.15; // WN/binary mixing
-  Rg = 0.4; // Gaussian smearing in transverse dir
-  sNorm = 3.35; //3.77 with no bulk viscosity; // normalization of initial entropy profile
-  A = 3e-4 ; // 5e-4; // initial shear flow
-  cout << "IcGlissando: setup for 5.02 TeV LHC\n";
- } else if(strcmp(setup,"RHIC62")==0) {
-  sNN = 62.4;
-  etaM = 1.8;
-  ybeam = 4.2;
-  alphaMix = 0.132;
-  Rg = 0.4;
-  A = 0.0;
-  eta0 = 1.8;
-  sigEta = 0.7;
-  nsigma = 1.0;
-  neta0 = 2.2;
-  cout << "IcGlissando: setup for 62.4 GeV RHIC\n";
- } else if(strcmp(setup,"AFTER72")==0) {
-  sNN = 72;
-  etaM = 1.8;
-  ybeam = 4.2;
-  alphaMix = 0.132;
-  Rg = 0.4;
-  A = 0.0;
-  eta0 = 1.8;
-  sigEta = 0.7;
-  nsigma = 1.0;
-  neta0 = 2.2;
-  cout << "IcGlissando: setup for 72 GeV AFTER\n";
- } else if(strcmp(setup,"RHIC27")==0) {
-  sNN = 27;
-  etaM = 1.0;
-  ybeam = 3.36; // beam rapidity
-  alphaMix = 0.123; // 0.125 WN/binary mixing
-  Rg = 0.4; // Gaussian smearing in transverse dir
-  A = 0.0 ; // 5e-4; // initial shear flow
-  cout << "IcGlissando: setup for 27 GeV RHIC\n";
- } else {
-  cout << "IcGlissando: optional parameter LHC276 or RHIC200 is expected\n";
-  exit(0);
- }
+
+ setParameters(setup);
+ printParameters(); 
 
  nsmoothx = (int)(3.0 * Rg / dx);  // smoothly distribute to +- this many cells
  nsmoothy = nsmoothx;
@@ -175,6 +106,58 @@ IcGlissando::~IcGlissando() {
  }
  delete[] rho;
  delete[] nrho;
+}
+
+void IcGlissando::setParameters(const char* filename)
+{
+ char parName[255], parValue[255];
+ ifstream fin(filename);
+ if (!fin.is_open()) {
+  cout << "IcGlissando: cannot open parameters file " << filename << endl;
+  exit(1);
+ }
+ cout << "IcGlissando: reading parameters from " << filename << endl;
+ while (fin.good()) {
+  string line;
+  getline(fin, line);
+  istringstream sline(line);
+  sline >> parName >> parValue;
+  if (strcmp(parName, "sNN") == 0)
+   sNN = atof(parValue);
+  else if (strcmp(parName, "eta0") == 0)
+   eta0 = atof(parValue);
+  else if (strcmp(parName, "sigEta") == 0)
+   sigEta = atof(parValue);
+  else if (strcmp(parName, "etaM") == 0)
+   etaM = atof(parValue);
+  else if (strcmp(parName, "ybeam") == 0)
+   ybeam = atof(parValue);
+  else if (strcmp(parName, "alphaMix") == 0)
+   alphaMix = atof(parValue);
+  else if (strcmp(parName, "Rg") == 0)
+   Rg = atof(parValue);
+  else if (strcmp(parName, "sNorm") == 0)
+   sNorm = atof(parValue);
+  else if (strcmp(parName, "A") == 0)
+   A = atof(parValue);
+  else if (parName[0] == '!')
+   cout << "CCC " << sline.str() << endl;
+  else
+   cout << "UUU " << sline.str() << endl;
+ }
+}
+
+void IcGlissando::printParameters(void)
+{
+ cout << "IcGlissando:  parameter settings are:\n";
+ cout << setw(12) << "sNN" << setw(10) << sNN << endl;
+ cout << setw(12) << "eta0" << setw(10) << eta0 << endl;
+ cout << setw(12) << "etaM" << setw(10) << etaM << endl;
+ cout << setw(12) << "ybeam" << setw(10) << ybeam << endl;
+ cout << setw(12) << "alphaMix" << setw(10) << alphaMix << endl;
+ cout << setw(12) << "Rg" << setw(10) << Rg << endl;
+ cout << setw(12) << "sNorm" << setw(10) << sNorm << endl;
+ cout << setw(12) << "A" << setw(14) << std::scientific << A << endl;
 }
 
 void IcGlissando::makeSmoothTable(int npart) {

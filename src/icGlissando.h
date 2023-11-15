@@ -31,6 +31,8 @@ private:
  int nsmoothy;
  int nsmoothz;
  void makeSmoothTable(int npart);
+ void setParameters(const char* filename);
+ void printParameters(void);
 
 public:
  IcGlissando(Fluid *f, const char *filename, double tau0, const char* setup);
