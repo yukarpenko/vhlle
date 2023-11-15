@@ -386,7 +386,7 @@ void Fluid::outputGnuplot(double tau) {
   Cell *c = getCell(ix, ny / 2, nz / 2);
   getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
   eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
-  output::fx << setw(14) << tau << setw(14) << x << setw(14) << vx << setw(14) << vy
+  output::fx << setw(14) << tau << setw(14) << x << setw(14) << vx << setw(14) << vz
         << setw(14) << e << setw(14) << nb << setw(14) << t << setw(14) << mub;
   output::fx << setw(14) << c->getpi(0, 0) << setw(14) << c->getpi(0, 1) << setw(14)
         << c->getpi(0, 2);
@@ -405,7 +405,7 @@ void Fluid::outputGnuplot(double tau) {
   Cell *c = getCell(nx / 2, iy, nz / 2);
   getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
   eos->eos(e, nb, nq, ns, t, mub, muq, mus, p);
-  output::fy << setw(14) << tau << setw(14) << y << setw(14) << vy << setw(14) << vx
+  output::fy << setw(14) << tau << setw(14) << y << setw(14) << vy << setw(14) << vz
         << setw(14) << e << setw(14) << nb << setw(14) << t << setw(14) << mub;
   output::fy << setw(14) << c->getpi(0, 0) << setw(14) << c->getpi(0, 1) << setw(14)
         << c->getpi(0, 2);
