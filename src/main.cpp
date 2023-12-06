@@ -37,6 +37,7 @@
 #include "eo1.h"
 #include "eoChiral.h"
 #include "eoCMF.h"
+#include "eoCMFe.h"
 #include "eoAZH.h"
 #include "eoHadron.h"
 #include "eoSmash.h"
@@ -290,8 +291,10 @@ int main(int argc, char **argv) {
   eos = new EoSAZH();
  else if (eosType == 3)
      eos = new EoSCMF();
+ else if (eosType == 4)
+     eos = new EoSCMFe();
  else {
-  cout << "eosType != 0,1,2\n";
+  cout << "eosType != 0,1,2,3,4\n";
   return 0;
  }
 

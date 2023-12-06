@@ -9,6 +9,19 @@
 #include "eos.h"
 #include "eoCMF.h"
 
+/*
+Equation of state based on 
+J. Steinheimer, S. Schramm, and H. Stocker, Phys. Rev.
+C 84, 045208 (2011), arXiv:1108.2596 [hep-ph].
+A. Motornenko, J. Steinheimer, V. Vovchenko,
+S. Schramm, and H. Stoecker, Phys. Rev. C 101,
+034904 (2020), arXiv:1905.00866 [hep-ph].
+E. R. Most, A. Motornenko, J. Steinheimer, V. Dex-
+heimer, M. Hanauske, L. Rezzolla, and H. Stoecker,
+Phys. Rev. D 107, 043034 (2023), arXiv:2201.13150
+[nucl-th]
+*/
+
 using namespace std;
 
 double EPS_CUTOFF = 1e-5;
@@ -229,7 +242,7 @@ int EoSCMF::get_ind(double eps, double n) {
  for (int i = 0; i < N_T; i++) {
   a[i] = etab[i][nB_ind];
  }
- 
+
  int t_ind = binary_search(a, 0, N_T, eps);
  if (t_ind >= N_T-1) t_ind = N_T-2;
 
