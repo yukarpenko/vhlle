@@ -22,7 +22,8 @@ E. R. Most, A. Motornenko, J. Steinheimer, V. Dex-
 heimer, M. Hanauske, L. Rezzolla, and H. Stoecker,
 Phys. Rev. D 107, 043034 (2023), arXiv:2201.13150
 [nucl-th]
-The equation of state is retabulated to allow for faster access.
+The equation of state is retabulated to allow for faster access. It needs to be 
+unzipped before usage.
 */
 
 using namespace std;
