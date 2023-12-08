@@ -108,6 +108,18 @@ void VtkOutput::write_vtk_scalar(std::ofstream &file, const Hydro h, std::string
            eos_->eos(e, nb, nq, ns, T, mub, muq, mus, p);
            eos_->eos(e2, nb2, nq2, ns2, T2, mub2, muq2, mus2, p2);
            q=factor*T+(factor-1)*T2;
+          } else if(quantity == "mub"){
+           eos_->eos(e, nb, nq, ns, T, mub, muq, mus, p);
+           eos_->eos(e2, nb2, nq2, ns2, T2, mub2, muq2, mus2, p2);
+           q=factor*mub+(factor-1)*mub2;
+          } else if(quantity == "muq"){
+           eos_->eos(e, nb, nq, ns, T, mub, muq, mus, p);
+           eos_->eos(e2, nb2, nq2, ns2, T2, mub2, muq2, mus2, p2);
+           q=factor*muq+(factor-1)*muq2;
+          } else if(quantity == "mus"){
+           eos_->eos(e, nb, nq, ns, T, mub, muq, mus, p);
+           eos_->eos(e2, nb2, nq2, ns2, T2, mub2, muq2, mus2, p2);
+           q=factor*mus+(factor-1)*mus2;
          }else{
           std::cout<<"No quantity for VTK output specified"<<std::endl;
           return;
