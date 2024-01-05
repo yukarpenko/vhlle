@@ -175,9 +175,21 @@ void IcGlissando::makeSmoothTable(int npart) {
  for (int ip = 0; ip < npart; ip++) {  // particle loop
   int ixc = (int)((X[ip] - xmin) / dx);
   int iyc = (int)((Y[ip] - ymin) / dy);
-  // finding the norm
-  const double norm_gauss = 2.0*C_PI*Rg*Rg;
-
+  // 1) finding the norm
+  double norm_gauss = 0.0;
+  for (int ix = ixc - nsmoothx; ix < ixc + nsmoothx + 1; ix++)
+   for (int iy = iyc - nsmoothy; iy < iyc + nsmoothy + 1; iy++)
+    if (ix > 0 && ix < nx && iy > 0 && iy < ny) {
+     const double xdiff = X[ip] - (xmin + ix * dx);
+     const double ydiff = Y[ip] - (ymin + iy * dy);
+     double trSmear;
+     trSmear = exp(-xdiff * xdiff / (2. * Rg * Rg) - ydiff * ydiff / (2. * Rg * Rg));
+     if (trSmear != trSmear || fabs(trSmear) > DBL_MAX) {
+      trSmear = 0.0;
+     }
+     norm_gauss += trSmear;
+    }
+  // 2) computing a 3D profile for each smeared participant
   for (int ix = ixc - nsmoothx; ix < ixc + nsmoothx + 1; ix++)
    for (int iy = iyc - nsmoothy; iy < iyc + nsmoothy + 1; iy++)
     if (ix > 0 && ix < nx && iy > 0 && iy < ny) {
