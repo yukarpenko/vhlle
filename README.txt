@@ -115,7 +115,8 @@ The following branches may be particularly useful:
 <IS-file> is the file name of an initial state table. This file has to be supplied
  for all but the simplest initial state options (optical Glauber or Gubser).
 <output-directory> is the directory to write the output files into. If the directory
- does not exist, it will be created.
+ does not exist, it will be created. If not specified a 'data' subfolder in the current directory 
+ will be created or used if already existing.
 
  A sample command:
  ./hlle_visc -params params/glissRHIC/gliss2RHIC.20-30 -system RHIC200 -ISinput ic/glissando/sources.RHIC.20-30.dat -outputDir output/RHIC.20-30

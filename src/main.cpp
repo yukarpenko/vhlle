@@ -56,12 +56,30 @@ double xmin, xmax, ymin, ymax, etamin, etamax, tau0, tauMax, tauResize, dtau;
 string collSystem, outputDir, isInputFile;
 double etaS, zetaS, eCrit, eEtaSMin, al, ah, aRho, T0, etaSMin;
 int icModel,glauberVariable =1;  // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
-double epsilon0, Rgt, Rgz, impactPar, s0ScaleFactor;
+double epsilon0, impactPar, s0ScaleFactor;
+double Rgt {1.0};
+double Rgz {1.0}; // smearing parameters used in hadron transport input
 bool freezeoutOnly {false};  // freezoutOnly 1 for true, 0 for false
 int smoothingType {0}; // 0 for kernel contracted in eta, 1 for invariant kernel 
 
 void setDefaultParameters() {
  tauResize = 4.0;
+}
+
+void checkGridDimension(int n, char _x) {
+  if (n < 5) {
+   std::cerr << "FATAL: The number of cells in the hydrodynamic grid is too small! \n";
+   std::cerr << "n" << _x << " < 5 \n";
+   exit(1);
+  }
+}
+
+void checkGridBorders(double min, double max, std::string _x) {
+  if (min >= max) {
+   std::cerr << "FATAL: The hydrodynamic grid is not set up correctly! \n";
+   std::cerr << _x << "min >= " << _x << "max \n";
+   exit(1);
+  }
 }
 
 void readParameters(char *parFile) {
@@ -81,12 +99,18 @@ void readParameters(char *parFile) {
    eosType = atoi(parValue);
   else if (strcmp(parName, "eosTypeHadron") == 0)
    eosTypeHadron = atoi(parValue);
-  else if (strcmp(parName, "nx") == 0)
+  else if (strcmp(parName, "nx") == 0) {
    nx = atoi(parValue);
-  else if (strcmp(parName, "ny") == 0)
+   checkGridDimension(nx, 'x');
+  }
+  else if (strcmp(parName, "ny") == 0) {
    ny = atoi(parValue);
-  else if (strcmp(parName, "nz") == 0)
+   checkGridDimension(ny, 'y');
+  }
+  else if (strcmp(parName, "nz") == 0) {
    nz = atoi(parValue);
+   checkGridDimension(nz, 'z');
+  }
   else if (strcmp(parName, "icModel") == 0)
    icModel = atoi(parValue);
   else if (strcmp(parName, "glauberVar") == 0)
@@ -158,6 +182,9 @@ void readParameters(char *parFile) {
   else
    cout << "UUU " << sline.str() << endl;
  }
+ checkGridBorders(xmin, xmax, "x");
+ checkGridBorders(ymin, ymax, "y");
+ checkGridBorders(etamin, etamax, "eta");
 }
 
 void printParameters() {
@@ -223,7 +250,11 @@ void readCommandLine(int argc, char** argv)
    if(strcmp(argv[iarg],"-system")==0) collSystem = argv[iarg+1];
    if(strcmp(argv[iarg],"-params")==0) readParameters(argv[iarg+1]);
    if(strcmp(argv[iarg],"-ISinput")==0) isInputFile = argv[iarg+1];
-   if(strcmp(argv[iarg],"-outputDir")==0) outputDir = argv[iarg+1];
+   if(strcmp(argv[iarg],"-outputDir")==0) {
+    outputDir = argv[iarg+1];}
+   else {
+    outputDir = "data";
+   } 
   }
   cout << "vhlle: command line parameters are:\n";
   cout << "collision system:  " << collSystem << endl;
@@ -317,7 +348,6 @@ int main(int argc, char **argv) {
  f = new Fluid(eos, eosH, trcoeff, nx, ny, nz, xmin, xmax, ymin, ymax, etamin,
                etamax, dtau, eCrit);
  cout << "fluid allocation done\n";
-
  // initial conditions
  if (icModel == 1) {  // optical Glauber
   ICGlauber *ic = new ICGlauber(epsilon0, impactPar, tau0);
