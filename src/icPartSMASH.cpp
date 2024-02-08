@@ -15,7 +15,7 @@
 using namespace std;
 
 IcPartSMASH::IcPartSMASH(Fluid* f, const char* filename, double _Rgt, double _Rgz,
-                         double _tau0, int _smoothingType) {
+                         int _smoothingType) {
  nx = f->getNX();
  ny = f->getNY();
  nz = f->getNZ();
@@ -29,7 +29,6 @@ IcPartSMASH::IcPartSMASH(Fluid* f, const char* filename, double _Rgt, double _Rg
  zmin = f->getZ(0);
  zmax = f->getZ(nz - 1);
 
- tau0 = _tau0;
  Rgx = _Rgt;
  Rgy = _Rgt;
  Rgz = _Rgz;
@@ -135,6 +134,7 @@ IcPartSMASH::IcPartSMASH(Fluid* f, const char* filename, double _Rgt, double _Rg
   }
   // Fill arrays
   if (!instream.fail()) {
+   tau0 = Tau_val;
    Tau.push_back(Tau_val);
    X.push_back(X_val);
    Y.push_back(Y_val);

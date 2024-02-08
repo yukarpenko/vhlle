@@ -304,7 +304,7 @@ int main(int argc, char **argv) {
  } else if (eosTypeHadron == 1) {
    eosH = new EoSSmash((char*)"eos/hadgas_eos_SMASH.dat", 101, 51, 51); //SMASH hadronic EoS
  } else {
-   cout << "Unknown haronic EoS type for hypersurface creation.\n" <<
+   cout << "Unknown hadronic EoS type for hypersurface creation.\n" <<
            "eosTypeHadron should be either \"0\" (PDG hadronic EoS) or " <<
            "\"1\" (SMASH hadronic EoS).\n";
    return 0;
@@ -340,7 +340,8 @@ int main(int argc, char **argv) {
    ic->setIC(f, eos);
    delete ic;
  } else if (icModel == 6){ // SMASH IC
-   IcPartSMASH *ic = new IcPartSMASH(f, isInputFile.c_str(), Rgt, Rgz, tau0, smoothingType);
+   IcPartSMASH *ic = new IcPartSMASH(f, isInputFile.c_str(), Rgt, Rgz, smoothingType);
+   tau0 = ic->getTau0();
    ic->setIC(f, eos);
    delete ic;
  } else if(icModel==7){ // IC from Trento
