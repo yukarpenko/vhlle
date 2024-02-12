@@ -59,7 +59,8 @@ int icModel,glauberVariable =1;  // icModel=1 for pure Glauber, 2 for table inpu
 double epsilon0, impactPar, s0ScaleFactor;
 double Rgt {1.0};
 double Rgz {1.0}; // smearing parameters used in hadron transport input
-bool freezeoutOnly {false};  // freezoutOnly 1 for true, 0 for false
+bool freezeoutOnly {false};  // only FO hypersurface output: {0,1}
+bool freezeoutExtend {false}; // freezeout output extended by e,nb: {0,1}
 int smoothingType {0}; // 0 for kernel contracted in eta, 1 for invariant kernel 
 
 void setDefaultParameters() {
@@ -175,6 +176,8 @@ void readParameters(char *parFile) {
    etaSMin = atof(parValue);
   else if (strcmp(parName, "freezeoutOnly") == 0)
    freezeoutOnly = atoi(parValue);
+  else if (strcmp(parName, "freezeoutExtend") == 0)
+   freezeoutExtend = atoi(parValue);
   else if (strcmp(parName, "smoothingType") == 0)
    smoothingType = atoi(parValue);
   else if (parName[0] == '!')
@@ -191,6 +194,7 @@ void printParameters() {
  cout << "====== parameters ======\n";
  cout << "outputDir = " << outputDir << endl;
  cout << "freezeoutOnly = " << freezeoutOnly << endl;
+ cout << "freezeoutExtend = " << freezeoutExtend << endl;
  cout << "eosType = " << eosType << endl;
  cout << "eosTypeHadron = " << eosTypeHadron << endl;
  cout << "nx = " << nx << endl;
@@ -402,7 +406,7 @@ int main(int argc, char **argv) {
  // h->setNSvalues() ; // initialize viscous terms
 
  f->initOutput(outputDir.c_str(), tau0, freezeoutOnly);
- f->outputCorona(tau0);
+ f->outputCorona(tau0, freezeoutExtend);
 
  bool resized = false; // flag if the grid has been resized
  
@@ -429,7 +433,7 @@ int main(int argc, char **argv) {
    cout << "timestep reduced by " << nSubSteps << endl;
   } else
    h->performStep();
-  nelements = f->outputSurface(h->getTau());
+  nelements = f->outputSurface(h->getTau(), freezeoutExtend);
   if (!freezeoutOnly)
    f->outputGnuplot(h->getTau());
   if(h->getTau()>=tauResize and resized==false) {
