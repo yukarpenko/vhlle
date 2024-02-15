@@ -43,6 +43,7 @@
 #include "eoSmash.h"
 #include "trancoeff.h"
 #include "vtk.h"
+#include "colour.h"
 
 
 using namespace std;
@@ -53,15 +54,35 @@ bool vtk_cartesian=false;
 std::string vtk_values;
 int eosTypeHadron = 0;
 double xmin, xmax, ymin, ymax, etamin, etamax, tau0, tauMax, tauResize, dtau;
-string collSystem, outputDir, isInputFile;
+std::string collSystem, isInputFile;
+std::string outputDir {"data"};
 double etaS, zetaS, eCrit, eEtaSMin, al, ah, aRho, T0, etaSMin;
 int icModel,glauberVariable =1;  // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
-double epsilon0, Rgt, Rgz, impactPar, s0ScaleFactor;
-bool freezeoutOnly {false};  // freezoutOnly 1 for true, 0 for false
+double epsilon0, impactPar, s0ScaleFactor;
+double Rgt {1.0};
+double Rgz {1.0}; // smearing parameters used in hadron transport input
+bool freezeoutOnly {false};  // only FO hypersurface output: {0,1}
+bool freezeoutExtend {false}; // freezeout output extended by e,nb: {0,1}
 int smoothingType {0}; // 0 for kernel contracted in eta, 1 for invariant kernel 
 
 void setDefaultParameters() {
  tauResize = 4.0;
+}
+
+void checkGridDimension(int n, char _x) {
+  if (n < 5) {
+   std::cerr << red << "FATAL: The number of cells in the hydrodynamic grid is too small! \n";
+   std::cerr << "n" << _x << " < 5 \n" << reset;
+   exit(1);
+  }
+}
+
+void checkGridBorders(double min, double max, std::string _x) {
+  if (min >= max) {
+   std::cerr << red << "FATAL: The hydrodynamic grid is not set up correctly! \n";
+   std::cerr << _x << "min >= " << _x << "max \n" << reset;
+   exit(1);
+  }
 }
 
 void readParameters(char *parFile) {
@@ -81,12 +102,18 @@ void readParameters(char *parFile) {
    eosType = atoi(parValue);
   else if (strcmp(parName, "eosTypeHadron") == 0)
    eosTypeHadron = atoi(parValue);
-  else if (strcmp(parName, "nx") == 0)
+  else if (strcmp(parName, "nx") == 0) {
    nx = atoi(parValue);
-  else if (strcmp(parName, "ny") == 0)
+   checkGridDimension(nx, 'x');
+  }
+  else if (strcmp(parName, "ny") == 0) {
    ny = atoi(parValue);
-  else if (strcmp(parName, "nz") == 0)
+   checkGridDimension(ny, 'y');
+  }
+  else if (strcmp(parName, "nz") == 0) {
    nz = atoi(parValue);
+   checkGridDimension(nz, 'z');
+  }
   else if (strcmp(parName, "icModel") == 0)
    icModel = atoi(parValue);
   else if (strcmp(parName, "glauberVar") == 0)
@@ -151,6 +178,8 @@ void readParameters(char *parFile) {
    etaSMin = atof(parValue);
   else if (strcmp(parName, "freezeoutOnly") == 0)
    freezeoutOnly = atoi(parValue);
+  else if (strcmp(parName, "freezeoutExtend") == 0)
+   freezeoutExtend = atoi(parValue);
   else if (strcmp(parName, "smoothingType") == 0)
    smoothingType = atoi(parValue);
   else if (parName[0] == '!')
@@ -158,12 +187,16 @@ void readParameters(char *parFile) {
   else
    cout << "UUU " << sline.str() << endl;
  }
+ checkGridBorders(xmin, xmax, "x");
+ checkGridBorders(ymin, ymax, "y");
+ checkGridBorders(etamin, etamax, "eta");
 }
 
 void printParameters() {
  cout << "====== parameters ======\n";
  cout << "outputDir = " << outputDir << endl;
  cout << "freezeoutOnly = " << freezeoutOnly << endl;
+ cout << "freezeoutExtend = " << freezeoutExtend << endl;
  cout << "eosType = " << eosType << endl;
  cout << "eosTypeHadron = " << eosTypeHadron << endl;
  cout << "nx = " << nx << endl;
@@ -304,7 +337,7 @@ int main(int argc, char **argv) {
  } else if (eosTypeHadron == 1) {
    eosH = new EoSSmash((char*)"eos/hadgas_eos_SMASH.dat", 101, 51, 51); //SMASH hadronic EoS
  } else {
-   cout << "Unknown haronic EoS type for hypersurface creation.\n" <<
+   cout << "Unknown hadronic EoS type for hypersurface creation.\n" <<
            "eosTypeHadron should be either \"0\" (PDG hadronic EoS) or " <<
            "\"1\" (SMASH hadronic EoS).\n";
    return 0;
@@ -317,7 +350,6 @@ int main(int argc, char **argv) {
  f = new Fluid(eos, eosH, trcoeff, nx, ny, nz, xmin, xmax, ymin, ymax, etamin,
                etamax, dtau, eCrit);
  cout << "fluid allocation done\n";
-
  // initial conditions
  if (icModel == 1) {  // optical Glauber
   ICGlauber *ic = new ICGlauber(epsilon0, impactPar, tau0);
@@ -340,7 +372,8 @@ int main(int argc, char **argv) {
    ic->setIC(f, eos);
    delete ic;
  } else if (icModel == 6){ // SMASH IC
-   IcPartSMASH *ic = new IcPartSMASH(f, isInputFile.c_str(), Rgt, Rgz, tau0, smoothingType);
+   IcPartSMASH *ic = new IcPartSMASH(f, isInputFile.c_str(), Rgt, Rgz, smoothingType);
+   tau0 = ic->getTau0();
    ic->setIC(f, eos);
    delete ic;
  } else if(icModel==7){ // IC from Trento
@@ -371,7 +404,7 @@ int main(int argc, char **argv) {
  // h->setNSvalues() ; // initialize viscous terms
 
  f->initOutput(outputDir.c_str(), tau0, freezeoutOnly);
- f->outputCorona(tau0);
+ f->outputCorona(tau0, freezeoutExtend);
 
  bool resized = false; // flag if the grid has been resized
  
@@ -398,7 +431,7 @@ int main(int argc, char **argv) {
    cout << "timestep reduced by " << nSubSteps << endl;
   } else
    h->performStep();
-  nelements = f->outputSurface(h->getTau());
+  nelements = f->outputSurface(h->getTau(), freezeoutExtend);
   if (!freezeoutOnly)
    f->outputGnuplot(h->getTau());
   if(h->getTau()>=tauResize and resized==false) {

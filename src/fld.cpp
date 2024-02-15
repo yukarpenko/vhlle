@@ -463,7 +463,7 @@ void transformToLab(double eta, double &vx, double &vy, double &vz) {
 
 
 // return value: the number of surface elements reconstructed at the current timestep
-int Fluid::outputSurface(double tau) {
+int Fluid::outputSurface(double tau, bool extendFO) {
  static double nbSurf = 0.0;
  double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz, Q[7];
  double E = 0., Efull = 0., S = 0., Px = 0., vt_num = 0., vt_den = 0.,
@@ -674,7 +674,13 @@ int Fluid::outputSurface(double tau) {
                                       ch * ch * piC[index44(3, 3)] +
                                       2. * sh * ch * piC[index44(0, 3)];
      for (int ii = 0; ii < 10; ii++) output::ffreeze << setw(24) << picart[ii];
-     output::ffreeze << setw(24) << PiC << endl;
+     output::ffreeze << setw(24) << PiC;
+     if (extendFO) {
+      output::ffreeze << setw(24) << eC << setw(24) << nbC << endl;
+     }
+     else {
+      output::ffreeze << endl;
+     } 
 #else
      output::ffreeze << setw(24) << dVEff << endl;
 #endif
@@ -717,7 +723,7 @@ int Fluid::outputSurface(double tau) {
  return nelements;
 }
 
-void Fluid::outputCorona(double tau) {
+void Fluid::outputCorona(double tau, bool extendFO) {
  static double nbSurf = 0.0;
  double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz, Q[7];
  double E = 0., Efull = 0., S = 0., Px = 0., vt_num = 0., vt_den = 0.,
@@ -892,7 +898,13 @@ output::f2d << endl;
                                       ch * ch * piC[index44(3, 3)] +
                                       2. * sh * ch * piC[index44(0, 3)];
      for (int ii = 0; ii < 10; ii++) output::ffreeze << setw(24) << picart[ii];
-     output::ffreeze << setw(24) << PiC << endl;
+     output::ffreeze << setw(24) << PiC;
+     if (extendFO) {
+      output::ffreeze << setw(24) << eC << setw(24) << nbC << endl;
+     }
+     else {
+      output::ffreeze << endl;
+     }
 #else
      output::ffreeze << setw(24) << dVEff << endl;
 #endif
