@@ -43,6 +43,7 @@
 #include "eoSmash.h"
 #include "trancoeff.h"
 #include "vtk.h"
+#include "colour.h"
 
 
 using namespace std;
@@ -53,7 +54,8 @@ bool vtk_cartesian=false;
 std::string vtk_values;
 int eosTypeHadron = 0;
 double xmin, xmax, ymin, ymax, etamin, etamax, tau0, tauMax, tauResize, dtau;
-string collSystem, outputDir, isInputFile;
+std::string collSystem, isInputFile;
+std::string outputDir {"data"};
 double etaS, zetaS, eCrit, eEtaSMin, al, ah, aRho, T0, etaSMin;
 int icModel,glauberVariable =1;  // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
 double epsilon0, impactPar, s0ScaleFactor;
@@ -69,16 +71,16 @@ void setDefaultParameters() {
 
 void checkGridDimension(int n, char _x) {
   if (n < 5) {
-   std::cerr << "FATAL: The number of cells in the hydrodynamic grid is too small! \n";
-   std::cerr << "n" << _x << " < 5 \n";
+   std::cerr << red << "FATAL: The number of cells in the hydrodynamic grid is too small! \n";
+   std::cerr << "n" << _x << " < 5 \n" << reset;
    exit(1);
   }
 }
 
 void checkGridBorders(double min, double max, std::string _x) {
   if (min >= max) {
-   std::cerr << "FATAL: The hydrodynamic grid is not set up correctly! \n";
-   std::cerr << _x << "min >= " << _x << "max \n";
+   std::cerr << red << "FATAL: The hydrodynamic grid is not set up correctly! \n";
+   std::cerr << _x << "min >= " << _x << "max \n" << reset;
    exit(1);
   }
 }
@@ -254,11 +256,7 @@ void readCommandLine(int argc, char** argv)
    if(strcmp(argv[iarg],"-system")==0) collSystem = argv[iarg+1];
    if(strcmp(argv[iarg],"-params")==0) readParameters(argv[iarg+1]);
    if(strcmp(argv[iarg],"-ISinput")==0) isInputFile = argv[iarg+1];
-   if(strcmp(argv[iarg],"-outputDir")==0) {
-    outputDir = argv[iarg+1];}
-   else {
-    outputDir = "data";
-   } 
+   if(strcmp(argv[iarg],"-outputDir")==0) outputDir = argv[iarg+1];
   }
   cout << "vhlle: command line parameters are:\n";
   cout << "collision system:  " << collSystem << endl;

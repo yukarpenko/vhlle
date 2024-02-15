@@ -11,11 +11,17 @@
 #include "rmn.h"
 #include "fld.h"
 #include "icPartSMASH.h"
+#include "colour.h"
 
 using namespace std;
 
 IcPartSMASH::IcPartSMASH(Fluid* f, const char* filename, double _Rgt, double _Rgz,
                          int _smoothingType) {
+
+ std::string tau0_warning = "Warning! tau0 will not be taken from the configuration file.\n"
+                            "         It will be automatically set from SMASH initial state input file.\n";
+ std::cout << yellow << tau0_warning << reset;
+ 
  nx = f->getNX();
  ny = f->getNY();
  nz = f->getNZ();
