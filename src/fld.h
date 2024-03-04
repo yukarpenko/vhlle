@@ -28,6 +28,8 @@ public:
        double _minz, double _maxz, double dt, double eCrit);
  ~Fluid();
  void initOutput(const char *dir, double tau0, bool hsOnly);
+ void renameOutput(const char *dir);
+ void checkOutputDirectory(std::string freezeoutFile, std::string suffix);
  int output_xy_spacing;
  int output_eta_points;
  int output_tau_spacing;

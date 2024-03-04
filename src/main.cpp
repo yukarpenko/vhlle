@@ -446,6 +446,8 @@ int main(int argc, char **argv) {
  float diff2 = difftime(end, start);
  cout << "Execution time = " << diff2 << " [sec]" << endl;
 
+ f->renameOutput(outputDir.c_str());
+
  delete f;
  delete h;
  delete eos;

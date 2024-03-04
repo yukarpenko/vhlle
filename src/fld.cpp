@@ -20,6 +20,7 @@
 #include <iomanip>
 #include <cmath>
 #include <algorithm>
+#include <cstdio>
 #include "inc.h"
 #include "rmn.h"
 #include "fld.h"
@@ -27,6 +28,7 @@
 #include "eos.h"
 #include "trancoeff.h"
 #include "cornelius.h"
+#include "colour.h"
 
 #define OUTPI
 
@@ -120,6 +122,9 @@ void Fluid::initOutput(const char *dir, double tau0, bool hsOnly) {
  cout << "mkdir returns: " << return_mkdir << endl;
  string outfreeze = dir;
  outfreeze.append("/freezeout.dat");
+ checkOutputDirectory(outfreeze,"");
+ outfreeze.append(".unfinished");
+ checkOutputDirectory(outfreeze,".unfinished");
  output::ffreeze.open(outfreeze.c_str());
  if (!hsOnly) {
   string outx = dir;
@@ -155,6 +160,29 @@ void Fluid::initOutput(const char *dir, double tau0, bool hsOnly) {
   outputGnuplot(tau0);
   output::faniz << "#  tau  <<v_T>>  e_p  e'_p  (to compare with SongHeinz)\n";
  }
+}
+
+void Fluid::renameOutput(const char *dir) {
+  // renames hypersurface output in case of clean exit
+  std::string directory = dir;
+  std::string oldFile = directory + "/freezeout.dat.unfinished";
+  std::string newFile = directory + "/freezeout.dat";
+  if (std::rename(oldFile.c_str(), newFile.c_str()) != 0)
+		perror("Error renaming freezeout.dat.unfinished!");
+}
+
+void Fluid::checkOutputDirectory(std::string freezeoutFile, std::string suffix) {
+  // remove old freezeout.dat(.unfinished) file
+  std::string checkFilePresent = "[ -f " + freezeoutFile + " ]";
+  int isFileThere = system(checkFilePresent.c_str());
+  if (isFileThere == 0) {
+    std::string file_warning = "Warning! A 'freezeout.dat" + suffix +
+                               "' is present in your output directory.\n" +
+                               "         It will be deleted automatically.\n";
+    std::cout << yellow << file_warning << reset;
+    std:string deleteFile = "rm " + freezeoutFile;
+    int isDeleted = system(deleteFile.c_str());
+  }
 }
 
 void Fluid::correctImagCells(void) {
