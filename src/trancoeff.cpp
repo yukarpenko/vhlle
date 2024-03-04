@@ -47,7 +47,7 @@ double TransportCoeff::zetaS(double e, double T)
  else if(zetaSparam==1)
  {
     if(T<0.180)
-       return 0.03+(0.08*exp(((T/T_p)-1.)/(0.0025)))+(0.22*exp(((T/T_p)-1)/(0.0022)));
+       return 0.03+(0.08*exp(((T/T_p)-1.)/(0.0025)))+(0.22*exp(((T/T_p)-1)/(0.022)));
     else if(T>=0.180 && T<0.200)
        return 27.55*(T/T_p)-13.45-(13.77*(T/T_p)*(T/T_p));
     else if(T>=0.200)
