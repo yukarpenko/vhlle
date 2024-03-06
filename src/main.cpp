@@ -30,6 +30,7 @@
 #include "icGlauber.h"
 #include "icGubser.h"
 #include "icGlissando.h"
+#include "icSuperMC.h"
 #include "icTrento.h"
 #include "icTrento3d.h"
 #include "eos.h"
@@ -382,6 +383,11 @@ int main(int argc, char **argv) {
    delete ic;  
 } else if(icModel==8){ // IC from Trento
    IcTrento3d *ic = new IcTrento3d(f, isInputFile.c_str(), tau0, collSystem.c_str());
+   ic->setIC(f, eos);
+   delete ic;
+} else if(icModel==9){ // IC from SuperMC
+   //For this setup collSystem MUST be a path to a file containing the parameters for superMC
+   ICSuperMC *ic = new ICSuperMC(isInputFile, tau0, collSystem);
    ic->setIC(f, eos);
    delete ic;
  } else {
