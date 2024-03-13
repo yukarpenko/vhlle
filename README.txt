@@ -81,6 +81,8 @@ The following branches may be particularly useful:
  
  The latest version of the ROOT package is also available at http://root.cern.ch/
  From commit f1dbe5a onwards, ROOT6 is required to compile the code.
+ As of commit 589b7cb , C++17 is required (because of calls to std::filesystem),
+ therefore make sure `root-config --cflags` retruns '-std=c++17' among the options.
  
  Optionally, to run Gluplot scripts provided in the program package one has to
  install Gnuplot and awk (gawk).
@@ -89,6 +91,8 @@ The following branches may be particularly useful:
  git clone https://github.com/yukarpenko/vhlle.git
  cd vhlle
  git checkout stable_ebe
+ mkdir obj
+ make
 
  3) clone another repository, which contains the equation of state,
     sample initial state tables and related sample parameter files:
