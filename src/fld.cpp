@@ -20,6 +20,8 @@
 #include <iomanip>
 #include <cmath>
 #include <algorithm>
+#include <cstdio>
+#include <filesystem>
 #include "inc.h"
 #include "rmn.h"
 #include "fld.h"
@@ -27,6 +29,7 @@
 #include "eos.h"
 #include "trancoeff.h"
 #include "cornelius.h"
+#include "colour.h"
 
 #define OUTPI
 
@@ -114,12 +117,13 @@ Fluid::~Fluid() {
 void Fluid::initOutput(const char *dir, double tau0, bool hsOnly) {
  // hsOnly (default false):
  // if true only the hypersurface output is initialized
- char command[255];
- sprintf(command, "mkdir -p %s", dir);
- int return_mkdir = system(command);
+ std::string outfreeze = dir;
+ bool return_mkdir = std::filesystem::create_directory(outfreeze);
  cout << "mkdir returns: " << return_mkdir << endl;
- string outfreeze = dir;
  outfreeze.append("/freezeout.dat");
+ checkOutputDirectory(outfreeze);
+ outfreeze.append(".unfinished");
+ checkOutputDirectory(outfreeze);
  output::ffreeze.open(outfreeze.c_str());
  if (!hsOnly) {
   string outx = dir;
@@ -155,6 +159,28 @@ void Fluid::initOutput(const char *dir, double tau0, bool hsOnly) {
   outputGnuplot(tau0);
   output::faniz << "#  tau  <<v_T>>  e_p  e'_p  (to compare with SongHeinz)\n";
  }
+}
+
+void Fluid::renameOutput(const char *dir) {
+  // renames hypersurface output in case of clean exit
+  std::string directory = dir;
+  std::string oldFile = directory + "/freezeout.dat.unfinished";
+  std::string newFile = directory + "/freezeout.dat";
+  if (std::rename(oldFile.c_str(), newFile.c_str()) != 0)
+		perror("Error renaming freezeout.dat.unfinished!");
+}
+
+void Fluid::checkOutputDirectory(std::string freezeoutFile) {
+  // remove old freezeout.dat(.unfinished) file
+  bool isFilePresent = std::filesystem::exists(freezeoutFile);
+  std::string filename = std::filesystem::path(freezeoutFile).filename();
+  if (isFilePresent) {
+    std::string file_warning = "Warning! A '" + filename +
+                               "' is present in your output directory.\n" +
+                               "         It will be deleted automatically.\n";
+    std::cout << yellow << file_warning << reset;
+    bool isDeleted = std::filesystem::remove(freezeoutFile);
+  }
 }
 
 void Fluid::correctImagCells(void) {
