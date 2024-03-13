@@ -21,6 +21,7 @@
 #include <cmath>
 #include <algorithm>
 #include <cstdio>
+#include <filesystem>
 #include "inc.h"
 #include "rmn.h"
 #include "fld.h"
@@ -116,15 +117,13 @@ Fluid::~Fluid() {
 void Fluid::initOutput(const char *dir, double tau0, bool hsOnly) {
  // hsOnly (default false):
  // if true only the hypersurface output is initialized
- char command[255];
- sprintf(command, "mkdir -p %s", dir);
- int return_mkdir = system(command);
+ std::string outfreeze = dir;
+ bool return_mkdir = std::filesystem::create_directory(outfreeze);
  cout << "mkdir returns: " << return_mkdir << endl;
- string outfreeze = dir;
  outfreeze.append("/freezeout.dat");
- checkOutputDirectory(outfreeze,"");
+ checkOutputDirectory(outfreeze);
  outfreeze.append(".unfinished");
- checkOutputDirectory(outfreeze,".unfinished");
+ checkOutputDirectory(outfreeze);
  output::ffreeze.open(outfreeze.c_str());
  if (!hsOnly) {
   string outx = dir;
@@ -171,17 +170,16 @@ void Fluid::renameOutput(const char *dir) {
 		perror("Error renaming freezeout.dat.unfinished!");
 }
 
-void Fluid::checkOutputDirectory(std::string freezeoutFile, std::string suffix) {
+void Fluid::checkOutputDirectory(std::string freezeoutFile) {
   // remove old freezeout.dat(.unfinished) file
-  std::string checkFilePresent = "[ -f " + freezeoutFile + " ]";
-  int isFileThere = system(checkFilePresent.c_str());
-  if (isFileThere == 0) {
-    std::string file_warning = "Warning! A 'freezeout.dat" + suffix +
+  bool isFilePresent = std::filesystem::exists(freezeoutFile);
+  std::string filename = std::filesystem::path(freezeoutFile).filename();
+  if (isFilePresent) {
+    std::string file_warning = "Warning! A '" + filename +
                                "' is present in your output directory.\n" +
                                "         It will be deleted automatically.\n";
     std::cout << yellow << file_warning << reset;
-    std:string deleteFile = "rm " + freezeoutFile;
-    int isDeleted = system(deleteFile.c_str());
+    bool isDeleted = std::filesystem::remove(freezeoutFile);
   }
 }
 
