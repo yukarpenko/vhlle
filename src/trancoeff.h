@@ -32,7 +32,7 @@ public:
  }
  // isViscous tells whether the fluid is viscous or inviscid
  inline bool isViscous() {
-  if (etaS0 > 0. || zetaS0 > 0. || etaSparam>0)
+  if (etaS0 > 0. || zetaS0 > 0. || etaSparam>0 || zetaSparam>0)
    return true;
   else
    return false;
