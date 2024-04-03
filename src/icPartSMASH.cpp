@@ -15,6 +15,13 @@
 
 using namespace std;
 
+IcPartSMASH::IcPartSMASH(Fluid *f, const char *filename, double _sNN, double _Rgt_Alpha, double _Rgt_Beta, 
+double _Rgz_Alpha, double _Rgz_Beta, int _smoothingType) {
+  double Rgt = _Rgt_Alpha*_sNN + _Rgt_Beta;
+  double Rgz = _Rgz_Alpha*_sNN + _Rgz_Beta;
+  IcPartSMASH(f, filename, Rgt, Rgz, _smoothingType);
+}
+
 IcPartSMASH::IcPartSMASH(Fluid* f, const char* filename, double _Rgt, double _Rgz,
                          int _smoothingType) {
 
@@ -199,7 +206,8 @@ IcPartSMASH::IcPartSMASH(Fluid* f, const char* filename, double _Rgt, double _Rg
   std::cout << "Running vHLLE on averaged initial state from SMASH\n";
  }
  std::cout << "particle E = " << E_smash/ nevents << "  Nbar = " << B_smash / nevents 
-      << "  Ncharge = " << Q_smash / nevents << " Ns = " << S_smash / nevents << std::endl;
+      << "  Ncharge = " << Q_smash / nevents << " Ns = " << S_smash / nevents <<
+      "Rgt = " << _Rgt << "Rgz = " << _Rgz << std::endl;
 }
 
 IcPartSMASH::~IcPartSMASH() {

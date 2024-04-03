@@ -330,6 +330,9 @@ int main(int argc, char **argv) {
   ic->setIC(f, eos, tau0);
   delete ic;
  } else if (icModel == 3) {  // UrQMD IC
+  if(smearing_mode !="fixed"){
+    std::cout << "Energy-dependent smearing is only implemented for SMASH IC. \n";
+  }
   IcPartUrqmd *ic = new IcPartUrqmd(f, isInputFile.c_str(), Rgt, Rgz, tau0);
   ic->setIC(f, eos);
   delete ic;
@@ -342,8 +345,17 @@ int main(int argc, char **argv) {
    ic->setIC(f, eos);
    delete ic;
  } else if (icModel == 6){ // SMASH IC
-   IcPartSMASH *ic = new IcPartSMASH(f, isInputFile.c_str(), Rgt, Rgz, smoothingType);
-   tau0 = ic->getTau0();
+   IcPartSMASH *ic;
+   if(smearing_mode =="fixed"){
+      ic = new IcPartSMASH(f, isInputFile.c_str(), Rgt, Rgz, tau0, smoothingType);
+       tau0 = ic->getTau0();
+   } else if (smearing_mode == "energy_dependent"){
+      ic = new IcPartSMASH(f, isInputFile.c_str(), sNN, Rgt_Alpha, Rgt_Beta, Rgz_Alpha, Rgz_Beta, tau0, smoothingType);
+      tau0 = ic->getTau0();
+   }else{
+      std::cout << "Unknown smearing mode. Please choose either \"fixed\" or \"energy_dependent\".\n";
+      return 0;
+   }
    ic->setIC(f, eos);
    delete ic;
  } else if(icModel==7){ // IC from Trento
