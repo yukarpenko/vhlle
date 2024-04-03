@@ -5,14 +5,18 @@ class EoS;
 // taupi (\tau_\pi) and tauPi (\tau_\Pi)
 class TransportCoeff {
 
- double etaS0, zetaS0, taupi, tauPi, ah, al, aRho, etaSMin, eEtaSMin, T0;
+ double etaS0, zetaS0, taupi, tauPi, ah, al, aRho, etaSMin, etaSEpsilonMin, T0, etaSAlphaMuB, etaSScaleMuB,
+  zetaSPeakEpsilon, zetaSScaleBeta, zetaSSigmaMinus, zetaSSigmaPlus;
  EoS *eos;  // EoS instance is needed optionally for zeta/s or eta/s parametrization,
  int zetaSparam, etaSparam;
             // which depends on the speed of sound
  double zetaS(double e, double T);
- double etaS(double e,double rho, double T);
+ double etaS(double e,double rho, double T, double muB);
 public:
- TransportCoeff(double _etaS, double _zetaS, int _zetaSparam, EoS *_eos, int _etaSparam, double _ah, double _al, double _aRho, double _T0, double _etaSMin, double _eEtaSMin);
+ TransportCoeff(double _etaS, double _zetaS, int _zetaSparam, EoS *_eos, int _etaSparam, double _ah,
+  double _al, double _aRho, double _T0, double _etaSMin, double etaSEpsilonMin, double _etaSAlphaMuB,
+  double _etaSScaleMuB, double _zetaSPeakEpsilon, double _zetaSScaleBeta, double _zetaSSigmaMinus,
+  double _zetaSSigmaPlus);
  ~TransportCoeff(){};
  void printZetaT();
  // returns (optionally temperature dependent) eta/s and zeta/s
