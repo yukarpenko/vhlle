@@ -75,7 +75,7 @@ int nx {100}, ny {100}, nz {100}, eosType {1}, etaSparam {0}, zetaSparam {0}, eo
 bool vtk_cartesian {false}, vtk {false}, freezeoutOnly {false}, freezeoutExtend {false}; 
 double xmin {-5.0}, xmax {5.0}, ymin {-5.0}, ymax {5.0}, etamin {-5.0}, 
   etamax {5.0}, tau0 {1.0}, tauMax {20.0}, tauResize {4.0}, dtau {0.05},
-  etaS {0.08}, zetaS {0.0}, eCrit {0.5}, etaSEpsilonMin {-1.}, 
+  etaS {0.0}, zetaS {0.0}, eCrit {0.5}, etaSEpsilonMin {-1.}, 
   al {std::numeric_limits<double>::quiet_NaN()}, ah {std::numeric_limits<double>::quiet_NaN()}, 
   aRho {std::numeric_limits<double>::quiet_NaN()}, T0 {-1.}, etaSMin {-1.},
   etaSAlphaMuB {std::numeric_limits<double>::quiet_NaN()}, 
