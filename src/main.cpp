@@ -230,9 +230,9 @@ void printParameters() {
     cout << "etaSMin = " << etaSMin << endl;
     cout << "etaSScaleMuB = " << etaSScaleMuB << endl;
  }
- if (zetaSparam == 3){
+ if (zetaSparam == 4){
     if (zetaSPeakEpsilon < 0. || zetaSScaleBeta < 0. || zetaSSigmaMinus < 0. || zetaSSigmaPlus < 0.){
-        cout << "zetaSparam 3 parameters not set properly\n";
+        cout << "zetaSparam 4 parameters not set properly\n";
         exit(1);
     }
     cout << "zetaSPeakEpsilon = " << zetaSPeakEpsilon << endl;
@@ -357,7 +357,8 @@ int main(int argc, char **argv) {
 
 
  // transport coefficients
- trcoeff = new TransportCoeff(etaS, zetaS, zetaSparam, eos, etaSparam, ah, al, aRho, T0, etaSMin, etaSEpsilonMin);
+ trcoeff = new TransportCoeff(etaS, zetaS, zetaSparam, eos, etaSparam, ah, al, aRho, T0, etaSMin, 
+ etaSEpsilonMin, etaSAlphaMuB, etaSScaleMuB, zetaSPeakEpsilon, zetaSScaleBeta, zetaSSigmaMinus, zetaSSigmaPlus);
 
  f = new Fluid(eos, eosH, trcoeff, nx, ny, nz, xmin, xmax, ymin, ymax, etamin,
                etamax, dtau, eCrit);
