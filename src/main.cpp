@@ -21,7 +21,6 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <limits>
 #include <map>
 #include <sstream>
 #include "fld.h"
@@ -50,7 +49,6 @@
 #include "colour.h"
 
 
-
 using namespace std;
 
 void checkGridDimension(int n, char _x) {
@@ -75,12 +73,9 @@ int nx {100}, ny {100}, nz {100}, eosType {1}, etaSparam {0}, zetaSparam {0}, eo
 bool vtk_cartesian {false}, vtk {false}, freezeoutOnly {false}, freezeoutExtend {false}; 
 double xmin {-5.0}, xmax {5.0}, ymin {-5.0}, ymax {5.0}, etamin {-5.0}, 
   etamax {5.0}, tau0 {1.0}, tauMax {20.0}, tauResize {4.0}, dtau {0.05},
-  etaS {0.0}, zetaS {0.0}, eCrit {0.5}, etaSEpsilonMin {-1.}, 
-  al {std::numeric_limits<double>::quiet_NaN()}, ah {std::numeric_limits<double>::quiet_NaN()}, 
-  aRho {std::numeric_limits<double>::quiet_NaN()}, T0 {-1.}, etaSMin {-1.},
-  etaSAlphaMuB {std::numeric_limits<double>::quiet_NaN()}, 
-  etaSScaleMuB {std::numeric_limits<double>::quiet_NaN()}, zetaSPeakEpsilon {-1.}, 
-  zetaSScaleBeta {-1}, zetaSSigmaMinus {-1.}, zetaSSigmaPlus {-1.}, epsilon0, Rgt {1.0},
+  etaS {0.08}, zetaS {0.0}, eCrit {0.5}, etaSEpsilonMin {5.}, al {0.}, ah {0.}, aRho {0.}, T0 {0.15}, 
+  etaSMin {0.08}, etaSAlphaMuB {1.}, etaSScaleMuB {0.}, zetaSPeakEpsilon {5.}, 
+  zetaSScaleBeta {0.103}, zetaSSigmaMinus {0.1}, zetaSSigmaPlus {0.1}, epsilon0, Rgt {1.0},
   Rgz {1.0}, Rgt_Alpha {0.01}, Rgz_Alpha {0.01}, Rgt_Beta {1.}, Rgz_Beta {1.}, sNN {200.},
   impactPar, s0ScaleFactor;
 string collSystem, outputDir {"data"}, isInputFile, vtk_values {""}, smearing_mode {"fixed"};
@@ -198,58 +193,21 @@ void printParameters() {
     cout << "eta/s = " << etaS << endl;
  }
  else if (etaSparam == 1){
-    if ( isnan(al) || isnan(ah) || etaSMin <  0. || T0 < 0.){
-        cout << "etaSparam 1 parameters not set properly\n";
-        exit(1);
-    }
     cout << "al = " << al << endl;
     cout << "ah = " << ah << endl;
     cout << "etaSMin = " << etaSMin << endl;
     cout << "T0 = " << T0 << endl;
  }
  else if (etaSparam == 2){
-    if ( isnan(al) || isnan(ah) || isnan(aRho) || etaSMin <  0. || etaSEpsilonMin < 0.){
-        cout << "etaSparam 2 parameters not set properly\n";
-        exit(1);
-    }
     cout << "al = " << al << endl;
     cout << "ah = " << ah << endl;
     cout << "aRho = " << aRho << endl;
     cout << "etaSMin = " << etaSMin << endl;
     cout << "etaSEpsilonMin = " << etaSEpsilonMin << endl;
  }
- else if (etaSparam == 3){
-    if ( isnan(al) || isnan(ah) || T0 < 0. || etaSAlphaMuB < 0. || etaSScaleMuB < 0. || etaSMin <  0.){
-        cout << "etaSparam 3 parameters not set properly\n";
-        exit(1);
-    }
-    cout << "al = " << al << endl;
-    cout << "ah = " << ah << endl;
-    cout << "T0 = " << T0 << endl;
-    cout << "etaSAlphaMuB = " << etaSAlphaMuB << endl;
-    cout << "etaSMin = " << etaSMin << endl;
-    cout << "etaSScaleMuB = " << etaSScaleMuB << endl;
- }
- if (zetaSparam == 4){
-    if (zetaSPeakEpsilon < 0. || zetaSScaleBeta < 0. || zetaSSigmaMinus < 0. || zetaSSigmaPlus < 0.){
-        cout << "zetaSparam 4 parameters not set properly\n";
-        exit(1);
-    }
-    cout << "zetaSPeakEpsilon = " << zetaSPeakEpsilon << endl;
-    cout << "zetaSScaleBeta = " << zetaSScaleBeta << endl;
-    cout << "zetaSSigmaMinus = " << zetaSSigmaMinus << endl;
-    cout << "zetaSSigmaPlus = " << zetaSSigmaPlus << endl;
- }
  cout << "zeta/s = " << zetaS << endl;
  cout << "epsilon0 = " << epsilon0 << endl;
- if (smearing_mode == "fixed"){
-  cout << "Rgt = " << Rgt << "  Rgz = " << Rgz << endl;
- }else{
-  cout << "Rgt_alpha = " << Rgt_Alpha << "  Rgz_alpha = " << Rgz_Alpha << endl;
-  cout << "Rgt_beta = " << Rgt_Beta << "  Rgz_beta = " << Rgz_Beta << endl;
-  cout << "sNN = " << sNN << endl;
- }
- 
+ cout << "Rgt = " << Rgt << "  Rgz = " << Rgz << endl;
  cout << "smoothingType = " << smoothingType << endl;
  cout << "impactPar = " << impactPar << endl;
  cout << "s0ScaleFactor = " << s0ScaleFactor << endl;
@@ -340,7 +298,7 @@ int main(int argc, char **argv) {
      eos = new EoSCMFe();
  else {
   cout << "eosType != 0,1,2,3,4\n";
-  return 1;
+  return 0;
  }
 
  // hadronic EoS for hypersurface creation
@@ -352,13 +310,12 @@ int main(int argc, char **argv) {
    cout << "Unknown hadronic EoS type for hypersurface creation.\n" <<
            "eosTypeHadron should be either \"0\" (PDG hadronic EoS) or " <<
            "\"1\" (SMASH hadronic EoS).\n";
-   return 1;
+   return 0;
  }
 
 
  // transport coefficients
- trcoeff = new TransportCoeff(etaS, zetaS, zetaSparam, eos, etaSparam, ah, al, aRho, T0, etaSMin, 
- etaSEpsilonMin, etaSAlphaMuB, etaSScaleMuB, zetaSPeakEpsilon, zetaSScaleBeta, zetaSSigmaMinus, zetaSSigmaPlus);
+ trcoeff = new TransportCoeff(etaS, zetaS, zetaSparam, eos, etaSparam, ah, al, aRho, T0, etaSMin, etaSEpsilonMin);
 
  f = new Fluid(eos, eosH, trcoeff, nx, ny, nz, xmin, xmax, ymin, ymax, etamin,
                etamax, dtau, eCrit);
@@ -390,14 +347,14 @@ int main(int argc, char **argv) {
  } else if (icModel == 6){ // SMASH IC
    IcPartSMASH *ic;
    if(smearing_mode =="fixed"){
-      ic = new IcPartSMASH(f, isInputFile.c_str(), Rgt, Rgz, tau0, smoothingType);
+      ic = new IcPartSMASH(f, isInputFile.c_str(), Rgt, Rgz, smoothingType);
        tau0 = ic->getTau0();
    } else if (smearing_mode == "energy_dependent"){
-      ic = new IcPartSMASH(f, isInputFile.c_str(), sNN, Rgt_Alpha, Rgt_Beta, Rgz_Alpha, Rgz_Beta, tau0, smoothingType);
+      ic = new IcPartSMASH(f, isInputFile.c_str(), sNN, Rgt_Alpha, Rgt_Beta, Rgz_Alpha, Rgz_Beta, smoothingType);
       tau0 = ic->getTau0();
    }else{
       std::cout << "Unknown smearing mode. Please choose either \"fixed\" or \"energy_dependent\".\n";
-      return 1;
+      return 0;
    }
    ic->setIC(f, eos);
    delete ic;
