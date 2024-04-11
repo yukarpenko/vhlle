@@ -84,9 +84,9 @@ double TransportCoeff::etaS(double e,double rho, double T, double muB, double s,
 
 void TransportCoeff::getTau(double e, double rho, double T, double muB, double s, double P, double &_taupi, double &_tauPi) {
  if (T > 0.) {
-   //based on 1403.0962
+   //based on 1403.0962.  As no cs2 table is available, we approximate it by 0.228
   _taupi = (5./5.068)* s * etaS(e,rho, T, muB, s, P) / (e + P);
-  _tauPi =  (1./5.068)*zetaS(e,T, s, P) * s /(15 *  (1. / 3. - eos->cs2(e)) * (e + P));
+  _tauPi =  (6./5.068)*zetaS(e,T, s, P) * s / (e + P);
  } else {
   _taupi = _tauPi = 0.;
  }
