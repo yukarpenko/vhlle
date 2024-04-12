@@ -205,9 +205,35 @@ void printParameters() {
     cout << "etaSMin = " << etaSMin << endl;
     cout << "etaSEpsilonMin = " << etaSEpsilonMin << endl;
  }
+ else if (etaSparam == 3){
+    cout << "al = " << al << endl;
+    cout << "ah = " << ah << endl;
+    cout << "T0 = " << T0 << endl;
+    cout << "etaSMin = " << etaSMin << endl;
+    cout << "etaSAlphaMuB = " << etaSAlphaMuB << endl;
+    cout << "etaSScaleMuB = " << etaSScaleMuB << endl;
+ }
  cout << "zeta/s = " << zetaS << endl;
+ if (zetaSparam == 4){
+    cout << "zetaSPeakEpsilon = " << zetaSPeakEpsilon << endl;
+    cout << "zetaSScaleBeta = " << zetaSScaleBeta << endl;
+    cout << "zetaSSigmaMinus = " << zetaSSigmaMinus << endl;
+    cout << "zetaSSigmaPlus = " << zetaSSigmaPlus << endl;
+ }
+ cout << smearing_mode << endl;
+ if (smearing_mode == "energy_dependent"){
+    cout << "Rgt_Alpha = " << Rgt_Alpha << endl;
+    cout << "Rgt_Beta = " << Rgt_Beta << endl;
+    cout << "Rgz_Alpha = " << Rgz_Alpha << endl;
+    cout << "Rgz_Beta = " << Rgz_Beta << endl;
+    cout << "sNN = " << sNN << endl;
+    cout << "Rgt = " << Rgt_Alpha*sNN + Rgt_Beta << endl;
+    cout << "Rgz = " << Rgz_Alpha*sNN + Rgz_Beta << endl;
+ } else {
+    cout << "Rgt = " << Rgt << endl;
+    cout << "Rgz = " << Rgz << endl;
+ }
  cout << "epsilon0 = " << epsilon0 << endl;
- cout << "Rgt = " << Rgt << "  Rgz = " << Rgz << endl;
  cout << "smoothingType = " << smoothingType << endl;
  cout << "impactPar = " << impactPar << endl;
  cout << "s0ScaleFactor = " << s0ScaleFactor << endl;
@@ -260,15 +286,6 @@ Fluid* expandGrid2x(Hydro* h, EoS* eos, EoS* eosH, TransportCoeff *trcoeff) {
  delete f;
  return fnew;
 }
-
-// program parameters, to be read from file
-// int nx, ny, nz, eosType ;
-// double xmin, xmax, ymin, ymax, zmin, zmax, tau0, tauMax, dtau ;
-// char outputDir[255], eosFile[255], chiBfile[255], chiSfile[255] ;
-// char icInputFile [255] ;
-// double T_ch, mu_b, mu_q, mu_s, gammaS, gammaFactor, exclVolume ;
-// int icModel, NPART, glauberVariable=1 ;
-// double epsilon0, alpha, impactPar, s0ScaleFactor ;
 
 int main(int argc, char **argv) {
  // pointers to all the main objects
