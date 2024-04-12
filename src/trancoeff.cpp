@@ -54,7 +54,10 @@ double TransportCoeff::zetaS(double e, double T, double s, double P)
     else if(T>=T_peak2)
        return B_norm2*exp(-((T-T_peak2)*(T-T_peak2)/(B2*B2)));
  }else if(zetaSparam==4)
- {
+ {  
+    if (abs(s) < 1e-10 || T < 1e-10) {
+            return 0;
+         }
     if ( e < zetaSPeakEpsilon)
       return ((e+P)/(s*T))*zetaS0 * exp(pow(zetaSScaleBeta*(pow(e,0.25)-pow(zetaSPeakEpsilon,0.25)),2) / 2.0*pow(zetaSSigmaMinus,2));
     else
@@ -78,12 +81,16 @@ double TransportCoeff::etaS(double e,double rho, double T, double muB, double s,
    else if (etaSparam == 2){
          return std::max(0.0, etaSMin + ((e>etaSEpsilonMin) ? ( (ah*(e-etaSEpsilonMin)+aRho*rho) ): al*(e-etaSEpsilonMin)+aRho*rho));
    }else if (etaSparam == 3){
+         if (abs(s) < 1e-10 || T < 1e-10) {
+            return 0;
+         }
          return ((e+P)/(s*T))*std::max(0.0, (etaSMin + ((T>T0) ? ah*(T-T0) :  al*(T-T0)))*(1 + etaSScaleMuB*(pow(muB/0.938, etaSAlphaMuB))));
+         //problem: s, T e, P 0 -> have to fix
    }
 }
 
 void TransportCoeff::getTau(double e, double rho, double T, double muB, double s, double P, double &_taupi, double &_tauPi) {
- if (T > 0.) {
+ if (T > 0. && abs(e + P) > 1.e-10) {
    //based on 1403.0962.  As no cs2 table is available, we approximate it by 0.228
   _taupi = (5./5.068)* s * etaS(e,rho, T, muB, s, P) / (e + P);
   _tauPi =  (6./5.068)*zetaS(e,T, s, P) * s / (e + P);
