@@ -5,17 +5,17 @@ class EoS;
 // taupi (\tau_\pi) and tauPi (\tau_\Pi)
 class TransportCoeff {
 public:
-  const double etaS0, zetaS0, ah, al, aRho, T0, etaSMin, etaSEpsilonMin, etaSAlphaMuB,
+  const double etaS0, zetaS0, ah, al, aRho, T0, etaSMin, etaSEpsilonMin, etaSShiftMuB,
     etaSScaleMuB, zetaSPeakEpsilon, zetaSScaleBeta, zetaSSigmaMinus, zetaSSigmaPlus;
   EoS *eos;  // EoS instance is needed optionally for zeta/s or eta/s parametrization,
   const int etaSparam, zetaSparam;
   double zetaS(double e, double T, double s, double P);
   double etaS(double e,double rho, double T, double muB, double s, double P);
   TransportCoeff(double _etaS0, double _zetaS0, double _ah, double _al, double _aRho, double _T0, 
-    double _etaSMin, double _etaSEpsilonMin, double _etaSAlphaMuB, double _etaSScaleMuB, double _zetaSPeakEpsilon,
+    double _etaSMin, double _etaSEpsilonMin, double _etaSShiftMuB, double _etaSScaleMuB, double _zetaSPeakEpsilon,
     double _zetaSScaleBeta, double _zetaSSigmaMinus, double _zetaSSigmaPlus, EoS *_eos, 
     int _etaSparam, int _zetaSparam) : etaS0(_etaS0), zetaS0(_zetaS0),  ah(_ah), al(_al), aRho(_aRho), T0(_T0),
-    etaSMin(_etaSMin), etaSEpsilonMin(_etaSEpsilonMin), etaSAlphaMuB(_etaSAlphaMuB), etaSScaleMuB(_etaSScaleMuB),
+    etaSMin(_etaSMin), etaSEpsilonMin(_etaSEpsilonMin), etaSShiftMuB(_etaSShiftMuB), etaSScaleMuB(_etaSScaleMuB),
     zetaSPeakEpsilon(_zetaSPeakEpsilon), zetaSScaleBeta(_zetaSScaleBeta), zetaSSigmaMinus(_zetaSSigmaMinus), 
     zetaSSigmaPlus(_zetaSSigmaPlus), eos(_eos), etaSparam(_etaSparam), zetaSparam(_zetaSparam){};
   ~TransportCoeff(){};

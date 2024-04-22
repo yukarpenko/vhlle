@@ -84,8 +84,8 @@ double TransportCoeff::etaS(double e,double rho, double T, double muB, double s,
          if (abs(s) < 1e-10 || T < 1e-1) {
             return 0;
          }
-         return ((e+P)/(s*T))*std::max(0.0, (etaSMin + ((T>T0) ? ah*(T-T0) :  al*(T-T0)))*(1 + etaSScaleMuB*(pow(muB/0.938, etaSAlphaMuB))));
-         //problem: s, T e, P 0 -> have to fix
+         double Tc=T0+etaSShiftMuB*(muB/0.938);
+         return ((e+P)/(s*T))*std::max(0.0, (etaSMin + ((T>Tc) ? ah*(T-Tc) :  al*(T-Tc)))*(1 + etaSScaleMuB*(muB/0.938)));
    }
 }
 

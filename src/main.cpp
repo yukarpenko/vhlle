@@ -74,7 +74,7 @@ bool vtk_cartesian {false}, vtk {false}, freezeoutOnly {false}, freezeoutExtend 
 double xmin {-5.0}, xmax {5.0}, ymin {-5.0}, ymax {5.0}, etamin {-5.0}, 
   etamax {5.0}, tau0 {1.0}, tauMax {20.0}, tauResize {4.0}, dtau {0.05},
   etaS {0.08}, zetaS {0.0}, eCrit {0.5}, etaSEpsilonMin {5.}, al {0.}, ah {0.}, aRho {0.}, T0 {0.15}, 
-  etaSMin {0.08}, etaSAlphaMuB {1.}, etaSScaleMuB {0.}, zetaSPeakEpsilon {5.}, 
+  etaSMin {0.08}, etaSShiftMuB {0.}, etaSScaleMuB {0.}, zetaSPeakEpsilon {5.}, 
   zetaSScaleBeta {0.103}, zetaSSigmaMinus {0.1}, zetaSSigmaPlus {0.1}, epsilon0, Rgt {1.0},
   Rgz {1.0}, Rgt_Alpha {0.01}, Rgz_Alpha {0.01}, Rgt_Beta {1.}, Rgz_Beta {1.}, sNN {200.},
   impactPar, s0ScaleFactor;
@@ -138,7 +138,7 @@ void readParameters(char *parFile) {
         {"T0", [](const string& value) { T0 = atof(value.c_str()); }},
         {"etaSEpsilonMin", [](const string& value) { etaSEpsilonMin = atof(value.c_str()); }},
         {"etaSMin", [](const string& value) { etaSMin = atof(value.c_str()); }},
-        {"etaSAlphaMuB", [](const string& value) { etaSAlphaMuB = atof(value.c_str()); }},
+        {"etaSShiftMuB", [](const string& value) { etaSShiftMuB = atof(value.c_str()); }},
         {"etaSScaleMuB", [](const string& value) { etaSScaleMuB = atof(value.c_str()); }},
         {"freezeoutOnly", [](const string& value) { freezeoutOnly = atoi(value.c_str()); }},
         {"smoothingType", [](const string& value) { smoothingType = atoi(value.c_str()); }},
@@ -210,7 +210,7 @@ void printParameters() {
     cout << "ah = " << ah << endl;
     cout << "T0 = " << T0 << endl;
     cout << "etaSMin = " << etaSMin << endl;
-    cout << "etaSAlphaMuB = " << etaSAlphaMuB << endl;
+    cout << "etaSShiftMuB = " << etaSShiftMuB << endl;
     cout << "etaSScaleMuB = " << etaSScaleMuB << endl;
  }
  cout << "zeta/s = " << zetaS << endl;
@@ -332,7 +332,7 @@ int main(int argc, char **argv) {
 
 
  // transport coefficients
- trcoeff = new TransportCoeff(etaS, zetaS, ah, al, aRho, T0, etaSMin, etaSEpsilonMin, etaSAlphaMuB,
+ trcoeff = new TransportCoeff(etaS, zetaS, ah, al, aRho, T0, etaSMin, etaSEpsilonMin, etaSShiftMuB,
   etaSScaleMuB, zetaSPeakEpsilon, zetaSScaleBeta, zetaSSigmaMinus, zetaSSigmaPlus,  eos, etaSparam, zetaSparam);
 
  f = new Fluid(eos, eosH, trcoeff, nx, ny, nz, xmin, xmax, ymin, ymax, etamin,
