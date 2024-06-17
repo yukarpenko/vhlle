@@ -15,11 +15,6 @@
 
 using namespace std;
 
-IcPartSMASH::IcPartSMASH(Fluid *f, const char *filename, double _sNN, double _Rgt_Alpha, double _Rgt_Beta, 
-double _Rgz_Alpha, double _Rgz_Beta, int _smoothingType) : IcPartSMASH(f, filename,
- _Rgt_Alpha*_sNN + _Rgt_Beta, _Rgz_Alpha*_sNN + _Rgz_Beta, _smoothingType) 
- {}
-
 IcPartSMASH::IcPartSMASH(Fluid* f, const char* filename, double _Rgt, double _Rgz,
                          int _smoothingType) {
 

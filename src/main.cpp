@@ -76,9 +76,8 @@ double xmin {-5.0}, xmax {5.0}, ymin {-5.0}, ymax {5.0}, etamin {-5.0},
   etaS {0.08}, zetaS {0.0}, eCrit {0.5}, etaSEpsilonMin {5.}, al {0.}, ah {0.}, aRho {0.}, T0 {0.15}, 
   etaSMin {0.08}, etaSShiftMuB {0.}, etaSScaleMuB {0.}, zetaSPeakEpsilon {5.}, 
   zetaSScaleBeta {0.103}, zetaSSigmaMinus {0.1}, zetaSSigmaPlus {0.1}, epsilon0, Rgt {1.0},
-  Rgz {1.0}, Rgt_Alpha {0.01}, Rgz_Alpha {0.01}, Rgt_Beta {1.}, Rgz_Beta {1.}, sNN {200.},
-  impactPar, s0ScaleFactor;
-string collSystem, outputDir {"data"}, isInputFile, vtk_values {""}, smearing_mode {"fixed"};
+  Rgz {1.0}, impactPar, s0ScaleFactor;
+string collSystem, outputDir {"data"}, isInputFile, vtk_values {""};
 int icModel {1},glauberVariable  {1};  // icModel=1 for pure Glauber, 2 for table input (Glissando etc) 
 int smoothingType {0}; // 0 for kernel contracted in eta, 1 for invariant kernel 
 
@@ -118,14 +117,8 @@ void readParameters(char *parFile) {
         {"zetaSSigmaMinus", [](const string& value) { zetaSSigmaMinus = atof(value.c_str()); }},
         {"zetaSSigmaPlus", [](const string& value) { zetaSSigmaPlus = atof(value.c_str()); }},
         {"epsilon0", [](const string& value) { epsilon0 = atof(value.c_str()); }},
-        {"smearing_mode", [](const string& value) { smearing_mode = value.c_str(); }},
         {"Rg", [](const string& value) { Rgt = atof(value.c_str()); }},
         {"Rgz", [](const string& value) { Rgz = atof(value.c_str()); }},
-        {"Rg_alpha", [](const string& value) { Rgt_Alpha = atof(value.c_str()); }},
-        {"Rgz_alpha", [](const string& value) { Rgz_Alpha = atof(value.c_str()); }},
-        {"Rg_beta", [](const string& value) { Rgt_Beta = atof(value.c_str()); }},
-        {"Rgz_beta", [](const string& value) { Rgz_Beta = atof(value.c_str()); }},
-        {"sNN", [](const string& value) { sNN = atof(value.c_str()); }},
         {"impactPar", [](const string& value) { impactPar = atof(value.c_str()); }},
         {"s0ScaleFactor", [](const string& value) { s0ScaleFactor = atof(value.c_str()); }},
         {"VTK_output", [](const string& value) { vtk = atoi(value.c_str()); }},
@@ -220,19 +213,8 @@ void printParameters() {
     cout << "zetaSSigmaMinus = " << zetaSSigmaMinus << endl;
     cout << "zetaSSigmaPlus = " << zetaSSigmaPlus << endl;
  }
- cout << smearing_mode << endl;
- if (smearing_mode == "energy_dependent"){
-    cout << "Rgt_Alpha = " << Rgt_Alpha << endl;
-    cout << "Rgt_Beta = " << Rgt_Beta << endl;
-    cout << "Rgz_Alpha = " << Rgz_Alpha << endl;
-    cout << "Rgz_Beta = " << Rgz_Beta << endl;
-    cout << "sNN = " << sNN << endl;
-    cout << "Rgt = " << Rgt_Alpha*sNN + Rgt_Beta << endl;
-    cout << "Rgz = " << Rgz_Alpha*sNN + Rgz_Beta << endl;
- } else {
-    cout << "Rgt = " << Rgt << endl;
-    cout << "Rgz = " << Rgz << endl;
- }
+ cout << "Rgt = " << Rgt << endl;
+ cout << "Rgz = " << Rgz << endl;
  cout << "epsilon0 = " << epsilon0 << endl;
  cout << "smoothingType = " << smoothingType << endl;
  cout << "impactPar = " << impactPar << endl;
@@ -348,9 +330,6 @@ int main(int argc, char **argv) {
   ic->setIC(f, eos, tau0);
   delete ic;
  } else if (icModel == 3) {  // UrQMD IC
-  if(smearing_mode !="fixed"){
-    std::cout << "Energy-dependent smearing is only implemented for SMASH IC. \n";
-  }
   IcPartUrqmd *ic = new IcPartUrqmd(f, isInputFile.c_str(), Rgt, Rgz, tau0);
   ic->setIC(f, eos);
   delete ic;
@@ -364,15 +343,8 @@ int main(int argc, char **argv) {
    delete ic;
  } else if (icModel == 6){ // SMASH IC
    IcPartSMASH *ic;
-   if(smearing_mode =="fixed"){
-      ic = new IcPartSMASH(f, isInputFile.c_str(), Rgt, Rgz, smoothingType);
-       tau0 = ic->getTau0();
-   } else if (smearing_mode == "energy_dependent"){
-      ic = new IcPartSMASH(f, isInputFile.c_str(), sNN, Rgt_Alpha, Rgt_Beta, Rgz_Alpha, Rgz_Beta, smoothingType);
-      tau0 = ic->getTau0();
-   }else{
-      std::cout << "Unknown smearing mode. Please choose either \"fixed\" or \"energy_dependent\".\n";
-      return 0;
+  ic = new IcPartSMASH(f, isInputFile.c_str(), Rgt, Rgz, smoothingType);
+  tau0 = ic->getTau0();
    }
    ic->setIC(f, eos);
    delete ic;
