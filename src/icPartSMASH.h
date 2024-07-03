@@ -75,6 +75,7 @@ private:
 
 public:
  IcPartSMASH(Fluid *f, const char *filename, double _Rgt, double _Rgz, int _smoothingType);
+ IcPartSMASH(Fluid *f, const char *filename, double _sNN, double _Rgt_Alpha, double _Rgt_Beta, double _Rgz_Alpha, double _Rgz_Beta, int _smoothingType);
  ~IcPartSMASH();
  void setIC(Fluid *f, EoS *eos); 
  inline double getTau0() { return tau0; }

@@ -199,7 +199,8 @@ IcPartSMASH::IcPartSMASH(Fluid* f, const char* filename, double _Rgt, double _Rg
   std::cout << "Running vHLLE on averaged initial state from SMASH\n";
  }
  std::cout << "particle E = " << E_smash/ nevents << "  Nbar = " << B_smash / nevents 
-      << "  Ncharge = " << Q_smash / nevents << " Ns = " << S_smash / nevents << std::endl;
+      << "  Ncharge = " << Q_smash / nevents << " Ns = " << S_smash / nevents <<
+      "Rgt = " << _Rgt << "Rgz = " << _Rgz << std::endl;
 }
 
 IcPartSMASH::~IcPartSMASH() {

@@ -15,11 +15,13 @@
 *                                                                             *
 *******************************************************************************/
 
-#include <iostream>
-#include <fstream>
-#include <iomanip>
 #include <cstring>
 #include <ctime>
+#include <functional>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <map>
 #include <sstream>
 #include "fld.h"
 #include "hdo.h"
@@ -49,27 +51,6 @@
 
 using namespace std;
 
-// program parameters, to be read from file
-int nx, ny, nz, eosType, etaSparam = 0, zetaSparam = 0,vtk = 0;
-bool vtk_cartesian=false;
-std::string vtk_values;
-int eosTypeHadron = 0;
-double xmin, xmax, ymin, ymax, etamin, etamax, tau0, tauMax, tauResize, dtau;
-std::string collSystem, isInputFile;
-std::string outputDir {"data"};
-double etaS, zetaS, eCrit, eEtaSMin, al, ah, aRho, T0, etaSMin;
-int icModel,glauberVariable =1;  // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
-double epsilon0, impactPar, s0ScaleFactor;
-double Rgt {1.0};
-double Rgz {1.0}; // smearing parameters used in hadron transport input
-bool freezeoutOnly {false};  // only FO hypersurface output: {0,1}
-bool freezeoutExtend {false}; // freezeout output extended by e,nb: {0,1}
-int smoothingType {0}; // 0 for kernel contracted in eta, 1 for invariant kernel 
-
-void setDefaultParameters() {
- tauResize = 4.0;
-}
-
 void checkGridDimension(int n, char _x) {
   if (n < 5) {
    std::cerr << red << "FATAL: The number of cells in the hydrodynamic grid is too small! \n";
@@ -86,111 +67,93 @@ void checkGridBorders(double min, double max, std::string _x) {
   }
 }
 
+
+int nx {100}, ny {100}, nz {100}, eosType {1}, etaSparam {0}, zetaSparam {0}, eosTypeHadron {0};
+// only FO hypersurface output: {0,1};  freezeout output extended by e,nb: {0,1}
+bool vtk_cartesian {false}, vtk {false}, freezeoutOnly {false}, freezeoutExtend {false}; 
+double xmin {-5.0}, xmax {5.0}, ymin {-5.0}, ymax {5.0}, etamin {-5.0}, 
+  etamax {5.0}, tau0 {1.0}, tauMax {20.0}, tauResize {4.0}, dtau {0.05},
+  etaS {0.08}, zetaS {0.0}, eCrit {0.5}, etaSEpsilonMin {5.}, al {0.}, ah {0.}, aRho {0.}, T0 {0.15}, 
+  etaSMin {0.08}, etaSShiftMuB {0.}, etaSScaleMuB {0.}, zetaSPeakEpsilon {5.}, 
+  zetaSScaleBeta {0.103}, zetaSSigmaMinus {0.1}, zetaSSigmaPlus {0.1}, epsilon0, Rgt {1.0},
+  Rgz {1.0}, impactPar, s0ScaleFactor;
+string collSystem, outputDir {"data"}, isInputFile, vtk_values {""};
+int icModel {1},glauberVariable  {1};  // icModel=1 for pure Glauber, 2 for table input (Glissando etc) 
+int smoothingType {0}; // 0 for kernel contracted in eta, 1 for invariant kernel 
+
 void readParameters(char *parFile) {
- char parName[255], parValue[255];
- ifstream fin(parFile);
- if (!fin.is_open()) {
-  cout << "cannot open parameters file " << parFile << endl;
-  exit(1);
- }
- cout << "vhlle: reading parameters from " << parFile << endl;
- while (fin.good()) {
-  string line;
-  getline(fin, line);
-  istringstream sline(line);
-  sline >> parName >> parValue;
-  if (strcmp(parName, "eosType") == 0)
-   eosType = atoi(parValue);
-  else if (strcmp(parName, "eosTypeHadron") == 0)
-   eosTypeHadron = atoi(parValue);
-  else if (strcmp(parName, "nx") == 0) {
-   nx = atoi(parValue);
-   checkGridDimension(nx, 'x');
-  }
-  else if (strcmp(parName, "ny") == 0) {
-   ny = atoi(parValue);
-   checkGridDimension(ny, 'y');
-  }
-  else if (strcmp(parName, "nz") == 0) {
-   nz = atoi(parValue);
-   checkGridDimension(nz, 'z');
-  }
-  else if (strcmp(parName, "icModel") == 0)
-   icModel = atoi(parValue);
-  else if (strcmp(parName, "glauberVar") == 0)
-   glauberVariable = atoi(parValue);
-  else if (strcmp(parName, "xmin") == 0)
-   xmin = atof(parValue);
-  else if (strcmp(parName, "xmax") == 0)
-   xmax = atof(parValue);
-  else if (strcmp(parName, "ymin") == 0)
-   ymin = atof(parValue);
-  else if (strcmp(parName, "ymax") == 0)
-   ymax = atof(parValue);
-  else if (strcmp(parName, "etamin") == 0)
-   etamin = atof(parValue);
-  else if (strcmp(parName, "etamax") == 0)
-   etamax = atof(parValue);
-  else if (strcmp(parName, "tau0") == 0)
-   tau0 = atof(parValue);
-  else if (strcmp(parName, "tauMax") == 0)
-   tauMax = atof(parValue);
-  else if (strcmp(parName, "tauGridResize") == 0)
-   tauResize = atof(parValue);
-  else if (strcmp(parName, "dtau") == 0)
-   dtau = atof(parValue);
-  else if (strcmp(parName, "e_crit") == 0)
-   eCrit = atof(parValue);
-  else if (strcmp(parName, "etaS") == 0)
-   etaS = atof(parValue);
-  else if (strcmp(parName, "zetaS") == 0)
-   zetaS = atof(parValue);
-  else if (strcmp(parName, "zetaSparam") == 0)
-   zetaSparam = atoi(parValue);
-  else if (strcmp(parName, "epsilon0") == 0)
-   epsilon0 = atof(parValue);
-  else if (strcmp(parName, "Rg") == 0)
-   Rgt = atof(parValue);
-  else if (strcmp(parName, "Rgz") == 0)
-   Rgz = atof(parValue);
-  else if (strcmp(parName, "impactPar") == 0)
-   impactPar = atof(parValue);
-  else if (strcmp(parName, "s0ScaleFactor") == 0)
-   s0ScaleFactor = atof(parValue);
-  else if (strcmp(parName, "VTK_output") == 0)
-   vtk = atoi(parValue);
-  else if (strcmp(parName, "VTK_output_values") == 0)
-   vtk_values = parValue;
-  else if (strcmp(parName, "VTK_cartesian") == 0)
-   vtk_cartesian = parValue;
-  else if (strcmp(parName, "etaSparam") == 0)
-   etaSparam = atoi(parValue);
-  else if (strcmp(parName, "aRho") == 0)
-   aRho = atof(parValue);
-  else if (strcmp(parName, "ah") == 0)
-   ah = atof(parValue);
-  else if (strcmp(parName, "al") == 0)
-   al = atof(parValue);
-  else if (strcmp(parName, "T0") == 0)
-   T0 = atof(parValue);
-  else if (strcmp(parName, "eEtaSMin") == 0)
-   eEtaSMin = atof(parValue);
-  else if (strcmp(parName, "etaSMin") == 0)
-   etaSMin = atof(parValue);
-  else if (strcmp(parName, "freezeoutOnly") == 0)
-   freezeoutOnly = atoi(parValue);
-  else if (strcmp(parName, "freezeoutExtend") == 0)
-   freezeoutExtend = atoi(parValue);
-  else if (strcmp(parName, "smoothingType") == 0)
-   smoothingType = atoi(parValue);
-  else if (parName[0] == '!')
-   cout << "CCC " << sline.str() << endl;
-  else
-   cout << "UUU " << sline.str() << endl;
- }
- checkGridBorders(xmin, xmax, "x");
- checkGridBorders(ymin, ymax, "y");
- checkGridBorders(etamin, etamax, "eta");
+    char parName[255], parValue[255];
+    ifstream fin(parFile);
+    if (!fin.is_open()) {
+        cout << "cannot open parameters file " << parFile << endl;
+        exit(1);
+    }
+    cout << "vhlle: reading parameters from " << parFile << endl;
+
+    map<string, function<void(const string&)>> handlers = {
+        {"eosType", [](const string& value) { eosType = atoi(value.c_str()); }},
+        {"eosTypeHadron", [](const string& value) { eosTypeHadron = atoi(value.c_str()); }},
+        {"nx", [](const string& value) { nx = atoi(value.c_str()); }},
+        {"ny", [](const string& value) { ny = atoi(value.c_str()); }},
+        {"nz", [](const string& value) { nz = atoi(value.c_str()); }},
+        {"icModel", [](const string& value) { icModel = atoi(value.c_str()); }},
+        {"glauberVar", [](const string& value) { glauberVariable = atoi(value.c_str()); }},
+        {"xmin", [](const string& value) { xmin = atof(value.c_str()); }},
+        {"xmax", [](const string& value) { xmax = atof(value.c_str()); }},
+        {"ymin", [](const string& value) { ymin = atof(value.c_str()); }},
+        {"ymax", [](const string& value) { ymax = atof(value.c_str()); }},
+        {"etamin", [](const string& value) { etamin = atof(value.c_str()); }},
+        {"etamax", [](const string& value) { etamax = atof(value.c_str()); }},
+        {"tau0", [](const string& value) { tau0 = atof(value.c_str()); }},
+        {"tauMax", [](const string& value) { tauMax = atof(value.c_str()); }},
+        {"tauGridResize", [](const string& value) { tauResize = atof(value.c_str()); }},
+        {"dtau", [](const string& value) { dtau = atof(value.c_str()); }},
+        {"e_crit", [](const string& value) { eCrit = atof(value.c_str()); }},
+        {"etaS", [](const string& value) { etaS = atof(value.c_str()); }},
+        {"zetaS", [](const string& value) { zetaS = atof(value.c_str()); }},
+        {"zetaSparam", [](const string& value) { zetaSparam = atoi(value.c_str()); }},
+        {"zetaSScaleBeta", [](const string& value) { zetaSScaleBeta = atof(value.c_str()); }},
+        {"zetaSPeakEpsilon", [](const string& value) { zetaSPeakEpsilon = atof(value.c_str()); }},
+        {"zetaSSigmaMinus", [](const string& value) { zetaSSigmaMinus = atof(value.c_str()); }},
+        {"zetaSSigmaPlus", [](const string& value) { zetaSSigmaPlus = atof(value.c_str()); }},
+        {"epsilon0", [](const string& value) { epsilon0 = atof(value.c_str()); }},
+        {"Rg", [](const string& value) { Rgt = atof(value.c_str()); }},
+        {"Rgz", [](const string& value) { Rgz = atof(value.c_str()); }},
+        {"impactPar", [](const string& value) { impactPar = atof(value.c_str()); }},
+        {"s0ScaleFactor", [](const string& value) { s0ScaleFactor = atof(value.c_str()); }},
+        {"VTK_output", [](const string& value) { vtk = atoi(value.c_str()); }},
+        {"VTK_output_values", [](const string& value) { vtk_values = value; }},
+        {"VTK_cartesian", [](const string& value) { vtk_cartesian= atoi(value.c_str()); }},
+        {"etaSparam", [](const string& value) { etaSparam = atoi(value.c_str()); }},
+        {"aRho", [](const string& value) { aRho = atof(value.c_str()); }},
+        {"ah", [](const string& value) { ah = atof(value.c_str()); }},
+        {"al", [](const string& value) { al = atof(value.c_str()); }},
+        {"T0", [](const string& value) { T0 = atof(value.c_str()); }},
+        {"etaSEpsilonMin", [](const string& value) { etaSEpsilonMin = atof(value.c_str()); }},
+        {"etaSMin", [](const string& value) { etaSMin = atof(value.c_str()); }},
+        {"etaSShiftMuB", [](const string& value) { etaSShiftMuB = atof(value.c_str()); }},
+        {"etaSScaleMuB", [](const string& value) { etaSScaleMuB = atof(value.c_str()); }},
+        {"freezeoutOnly", [](const string& value) { freezeoutOnly = atoi(value.c_str()); }},
+        {"smoothingType", [](const string& value) { smoothingType = atoi(value.c_str()); }},
+    };
+
+    while (fin.good()) {
+        string line;
+        getline(fin, line);
+        istringstream sline(line);
+        sline >> parName >> parValue;
+        auto handler = handlers.find(parName);
+        if (handler != handlers.end()) {
+            handler->second(parValue);
+        } else if (parName[0] == '!') {
+            cout << "CCC " << sline.str() << endl;
+        } else {
+            cout << "UUU " << sline.str() << endl;
+        }
+    }
+    checkGridBorders(xmin, xmax, "x");
+    checkGridBorders(ymin, ymax, "y");
+    checkGridBorders(etamin, etamax, "eta");
 }
 
 void printParameters() {
@@ -233,11 +196,26 @@ void printParameters() {
     cout << "ah = " << ah << endl;
     cout << "aRho = " << aRho << endl;
     cout << "etaSMin = " << etaSMin << endl;
-    cout << "eEtaSMin = " << eEtaSMin << endl;
+    cout << "etaSEpsilonMin = " << etaSEpsilonMin << endl;
+ }
+ else if (etaSparam == 3){
+    cout << "al = " << al << endl;
+    cout << "ah = " << ah << endl;
+    cout << "T0 = " << T0 << endl;
+    cout << "etaSMin = " << etaSMin << endl;
+    cout << "etaSShiftMuB = " << etaSShiftMuB << endl;
+    cout << "etaSScaleMuB = " << etaSScaleMuB << endl;
  }
  cout << "zeta/s = " << zetaS << endl;
+ if (zetaSparam == 4){
+    cout << "zetaSPeakEpsilon = " << zetaSPeakEpsilon << endl;
+    cout << "zetaSScaleBeta = " << zetaSScaleBeta << endl;
+    cout << "zetaSSigmaMinus = " << zetaSSigmaMinus << endl;
+    cout << "zetaSSigmaPlus = " << zetaSSigmaPlus << endl;
+ }
+ cout << "Rgt = " << Rgt << endl;
+ cout << "Rgz = " << Rgz << endl;
  cout << "epsilon0 = " << epsilon0 << endl;
- cout << "Rgt = " << Rgt << "  Rgz = " << Rgz << endl;
  cout << "smoothingType = " << smoothingType << endl;
  cout << "impactPar = " << impactPar << endl;
  cout << "s0ScaleFactor = " << s0ScaleFactor << endl;
@@ -291,15 +269,6 @@ Fluid* expandGrid2x(Hydro* h, EoS* eos, EoS* eosH, TransportCoeff *trcoeff) {
  return fnew;
 }
 
-// program parameters, to be read from file
-// int nx, ny, nz, eosType ;
-// double xmin, xmax, ymin, ymax, zmin, zmax, tau0, tauMax, dtau ;
-// char outputDir[255], eosFile[255], chiBfile[255], chiSfile[255] ;
-// char icInputFile [255] ;
-// double T_ch, mu_b, mu_q, mu_s, gammaS, gammaFactor, exclVolume ;
-// int icModel, NPART, glauberVariable=1 ;
-// double epsilon0, alpha, impactPar, s0ScaleFactor ;
-
 int main(int argc, char **argv) {
  // pointers to all the main objects
  EoS *eos;
@@ -312,7 +281,6 @@ int main(int argc, char **argv) {
  time(&start);
 
  // read parameters from file
- setDefaultParameters();
  readCommandLine(argc, argv);
  printParameters();
 
@@ -346,7 +314,8 @@ int main(int argc, char **argv) {
 
 
  // transport coefficients
- trcoeff = new TransportCoeff(etaS, zetaS, zetaSparam, eos, etaSparam, ah, al, aRho, T0, etaSMin, eEtaSMin);
+ trcoeff = new TransportCoeff(etaS, zetaS, ah, al, aRho, T0, etaSMin, etaSEpsilonMin, etaSShiftMuB,
+  etaSScaleMuB, zetaSPeakEpsilon, zetaSScaleBeta, zetaSSigmaMinus, zetaSSigmaPlus,  eos, etaSparam, zetaSparam);
 
  f = new Fluid(eos, eosH, trcoeff, nx, ny, nz, xmin, xmax, ymin, ymax, etamin,
                etamax, dtau, eCrit);
@@ -373,8 +342,10 @@ int main(int argc, char **argv) {
    ic->setIC(f, eos);
    delete ic;
  } else if (icModel == 6){ // SMASH IC
-   IcPartSMASH *ic = new IcPartSMASH(f, isInputFile.c_str(), Rgt, Rgz, smoothingType);
-   tau0 = ic->getTau0();
+   IcPartSMASH *ic;
+  ic = new IcPartSMASH(f, isInputFile.c_str(), Rgt, Rgz, smoothingType);
+  tau0 = ic->getTau0();
+   }
    ic->setIC(f, eos);
    delete ic;
  } else if(icModel==7){ // IC from Trento
