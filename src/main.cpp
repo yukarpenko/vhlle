@@ -345,9 +345,6 @@ int main(int argc, char **argv) {
    IcPartSMASH *ic;
   ic = new IcPartSMASH(f, isInputFile.c_str(), Rgt, Rgz, smoothingType);
   tau0 = ic->getTau0();
-   }
-   ic->setIC(f, eos);
-   delete ic;
  } else if(icModel==7){ // IC from Trento
    IcTrento *ic = new IcTrento(f, isInputFile.c_str(), tau0, collSystem.c_str());
    ic->setIC(f, eos);
