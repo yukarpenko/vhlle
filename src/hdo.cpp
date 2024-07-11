@@ -721,10 +721,13 @@ void Hydro::ISformal() {
         for (int l = 0; l < 4; l++){
          c->addpiH0(i, j, (-c->getpi(i, k) * u[j] - c->getpi(j, k) * u[i]) * u[l] * dmu[l][k] * gmumu[k] / gamma * 0.5 * dt
           - 1. / 3. * Delta[index44(i,j)] * c->getpi(k, l) * ( phi7 * c->getpi(k, l) - taupipi * sigNS[k][l]) * gmumu[k] * gmumu[l] / gamma * 0.5 * dt);
-         c->addPiH0(lamPipi * c->getpi(k, l) * sigNS[k][l] / gamma * 0.5 * dt);
         }
        }
       }
+     for(int k = 0; k < 4; k++)
+     for(int l = 0; l < 4; l++) {
+      c->addPiH0(lamPipi * c->getpi(k, l) * sigNS[k][l] * gmumu[k] * gmumu[l] / gamma * 0.5 * dt);
+     }
      c->addPiH0(-delPiPi * c->getPi() * du / gamma * 0.5 * dt);
      // 1) relaxation(piH)+source(piH) terms for full-step
      for (int i = 0; i < 4; i++)
@@ -771,10 +774,13 @@ void Hydro::ISformal() {
         for (int l = 0; l < 4; l++){
          c->addpi0(i, j, ((-c->getpiH0(i, k) * u[j] - c->getpiH0(j, k) * u[i]) * u[l] * dmu[l][k] * gmumu[k]
           - 1. / 3. * Delta[index44(i,j)] * c->getpiH0(k, l) * ( phi7 * c->getpiH0(k, l) - taupipi * sigNS[k][l]) * gmumu[k] * gmumu[l]) / gamma * dt);
-         c->addPi0(lamPipi * c->getpiH0(k, l) * sigNS[k][l] / gamma * dt);
         }
        }
       }
+     for (int k = 0; k < 4; k++)
+     for (int l = 0; l < 4; l++) {
+      c->addPi0(lamPipi * c->getpiH0(k, l) * sigNS[k][l] * gmumu[k] * gmumu[l] / gamma * dt);
+     }
      c->addPi0(-delPiPi * c->getPiH0() * du / gamma * dt);
     }  // end non-empty cell
    }   // end loop #1
