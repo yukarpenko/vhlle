@@ -134,6 +134,7 @@ void readParameters(char *parFile) {
         {"etaSShiftMuB", [](const string& value) { etaSShiftMuB = atof(value.c_str()); }},
         {"etaSScaleMuB", [](const string& value) { etaSScaleMuB = atof(value.c_str()); }},
         {"freezeoutOnly", [](const string& value) { freezeoutOnly = atoi(value.c_str()); }},
+        {"freezeoutExtend", [](const string& value) { freezeoutExtend = atoi(value.c_str()); }},
         {"smoothingType", [](const string& value) { smoothingType = atoi(value.c_str()); }},
     };
 
