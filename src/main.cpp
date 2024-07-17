@@ -322,45 +322,47 @@ int main(int argc, char **argv) {
                etamax, dtau, eCrit);
  cout << "fluid allocation done\n";
  // initial conditions
- if (icModel == 1) {  // optical Glauber
+ if (icModel == 1) { // optical Glauber
   ICGlauber *ic = new ICGlauber(epsilon0, impactPar, tau0);
   ic->setIC(f, eos);
   delete ic;
- } else if (icModel == 2) {  // Glauber_table + parametrized rapidity dependence
+ } else if (icModel == 2) { // Glauber_table + parametrized rapidity dependence
   IC *ic = new IC(isInputFile.c_str(), s0ScaleFactor);
   ic->setIC(f, eos, tau0);
   delete ic;
- } else if (icModel == 3) {  // UrQMD IC
+ } else if (icModel == 3) { // UrQMD IC
   IcPartUrqmd *ic = new IcPartUrqmd(f, isInputFile.c_str(), Rgt, Rgz, tau0);
   ic->setIC(f, eos);
   delete ic;
- } else if (icModel == 4) {  // analytical Gubser solution
+ } else if (icModel == 4) { // analytical Gubser solution
   ICGubser *ic = new ICGubser();
   ic->setIC(f, eos, tau0);
   delete ic;
-  }else if(icModel==5){ // IC from GLISSANDO + rapidity dependence
+ } else if(icModel==5) { // IC from GLISSANDO + rapidity dependence
    IcGlissando *ic = new IcGlissando(f, isInputFile.c_str(), tau0, collSystem.c_str());
    ic->setIC(f, eos);
    delete ic;
- } else if (icModel == 6){ // SMASH IC
+ } else if (icModel == 6) { // SMASH IC
    IcPartSMASH *ic;
-  ic = new IcPartSMASH(f, isInputFile.c_str(), Rgt, Rgz, smoothingType);
-  tau0 = ic->getTau0();
- } else if(icModel==7){ // IC from Trento
+   ic = new IcPartSMASH(f, isInputFile.c_str(), Rgt, Rgz, smoothingType);
+   tau0 = ic->getTau0();
+   ic->setIC(f, eos);
+   delete ic;
+ } else if(icModel == 7) { // IC from Trento
    IcTrento *ic = new IcTrento(f, isInputFile.c_str(), tau0, collSystem.c_str());
    ic->setIC(f, eos);
    delete ic;  
-} else if(icModel==8){ // IC from Trento
+ } else if(icModel == 8) { // IC from Trento
    IcTrento3d *ic = new IcTrento3d(f, isInputFile.c_str(), tau0, collSystem.c_str());
    ic->setIC(f, eos);
    delete ic;
-} else if(icModel==9){ // IC from SuperMC
+ } else if(icModel == 9) { // IC from SuperMC
    //For this setup collSystem MUST be a path to a file containing the parameters for superMC
    ICSuperMC *ic = new ICSuperMC(isInputFile, tau0, collSystem);
    ic->setIC(f, eos);
    delete ic;
  } else {
-  cout << "icModel = " << icModel << " not implemented\n";
+   cout << "icModel = " << icModel << " not implemented\n";
  }
  cout << "IC done\n";
 
