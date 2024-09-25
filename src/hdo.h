@@ -4,6 +4,40 @@ class Fluid;
 class EoS;
 class TransportCoeff;
 
+using FourVector = std::array<double, 4>;
+
+// struct to store all relevant quantities for eos()
+struct EosData {
+    double e;
+    double nb;
+    double nq;
+    double ns;
+    double T;
+    double mub;
+    double muq;
+    double mus;
+    double p;
+};
+
+struct FluidState {
+    const EosData &eosData;   // Reference to EosData object
+    const FourVector &u;      // Reference to FourVector object
+
+    // Constructor to initialize the references
+    FluidState(const EosData &data, const FourVector &fourVector)
+        : eosData(data), u(fourVector) {}
+};
+
+// Set all quantities in the EosData struct that are known. p, T, muB muS and
+// muQ need to be declared only as eos() will calculate them
+void set_known_eos_data(EosData &data, double e, double nb, double nq, 
+                        double ns){
+    data.e = e;
+    data.nb = nb;
+    data.nq = nq;
+    data.ns = ns;
+}
+
 // this class implements the hydrodynamic evolution and
 // contains the hydrodynamic algorithm
 class Hydro {

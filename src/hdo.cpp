@@ -20,6 +20,7 @@
 #include <iomanip>
 #include <algorithm>
 #include <unistd.h>
+#include <array>
 #include "hdo.h"
 #include "inc.h"
 #include "rmn.h"
@@ -27,6 +28,7 @@
 #include "eos.h"
 #include "cll.h"
 #include "trancoeff.h"
+#include "vorticity.h"
 
 using namespace std;
 
@@ -40,6 +42,7 @@ double sign(double x) {
  else
   return 0.;
 }
+
 
 // this version contains NO PRE-ADVECTION for the IS solution
 
@@ -378,11 +381,21 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
  const double VMIN = 1e-2;
  const double UDIFF = 3.0;
  double e0, e1, p, nb, nq, ns, vx1, vy1, vz1, vx0, vy0, vz0, vxH, vyH, vzH;
- double ut0, ux0, uy0, uz0, ut1, ux1, uy1, uz1;
+ 
+ // Declare the Vorticity object that holds the thermal vorticity tensor
+ Vorticity vorticity;
+
+ // Declare two structs that store all variables to call eos() for the current
+ // and the previous cell
+ EosData eosData;
+ EosData prevEosData;
+
  //	double dmu [4][4] ; // \partial_\mu u^\nu matrix
  // coordinates: 0=tau, 1=x, 2=y, 3=eta
- double Z[4][4][4][4];  // Z[mu][nu][lambda][rho]
- double uuu[4];         // the 4-velocity
+ double Z[4][4][4][4];     // Z[mu][nu][lambda][rho]
+ FourVector u_now;         // 4-velocity at the current time
+ FourVector u_half;        // 4-velocity half a time step before
+ FourVector u_prev;        // 4-velocity at previous (full) time step
  double gmunu[4][4] = {{1, 0, 0, 0},
                        {0, -1, 0, 0},
                        {0, 0, -1, 0},
@@ -411,40 +424,58 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
  // centered differences with respect to the values at (it+1/2, ix, iy, iz)
  // d_tau u^\mu
  c->getPrimVarPrev(eos, tau - dt, e0, p, nb, nq, ns, vx0, vy0, vz0);
+ set_known_eos_data(eosData, e0, nb, nq, ns);
+
  c->getPrimVar(eos, tau, e1, p, nb, nq, ns, vx1, vy1, vz1);
+ set_known_eos_data(prevEosData, e1, nb, nq, ns);
+
  c->getPrimVarHCenter(eos, tau - 0.5 * dt, e1, p, nb, nq, ns, vxH, vyH, vzH);
+
  //############## get transport coefficients
  double T, mub, muq, mus;
  double etaS, zetaS;
  double s = eos->s(e1, nb, nq, ns);  // entropy density in the current cell
  eos->eos(e1, nb, nq, ns, T, mub, muq, mus, p);
  trcoeff->getEta(e1, nb, T, mub,  s,  p, etaS, zetaS);
- //##############
  // if(e1<0.00004) s=0. ; // negative pressure due to pi^zz for small e
- ut0 = 1.0 / sqrt(1.0 - vx0 * vx0 - vy0 * vy0 - vz0 * vz0);
- ux0 = ut0 * vx0;
- uy0 = ut0 * vy0;
- uz0 = ut0 * vz0;
- ut1 = 1.0 / sqrt(1.0 - vx1 * vx1 - vy1 * vy1 - vz1 * vz1);
- ux1 = ut1 * vx1;
- uy1 = ut1 * vy1;
- uz1 = ut1 * vz1;
- uuu[0] = 1.0 / sqrt(1.0 - vxH * vxH - vyH * vyH - vzH * vzH);
- uuu[1] = uuu[0] * vxH;
- uuu[2] = uuu[0] * vyH;
- uuu[3] = uuu[0] * vzH;
+ //##############
+ 
+ // calculate the 4-velocities at three times, now (tau), 
+ // half a time step before (tau - dt/2) and the previous one (tau - dt)
+ u_now[0] = 1.0 / sqrt(1.0 - vx1 * vx1 - vy1 * vy1 - vz1 * vz1);
+ u_now[1] = u_now[0] * vx1;
+ u_now[2] = u_now[0] * vy1;
+ u_now[3] = u_now[0] * vz1;
 
- dmu[0][0] = (ut1 * ut1 - ut0 * ut0) / 2. / uuu[0] / dt;
- dmu[0][1] = (ux1 * ux1 - ux0 * ux0) / 2. / uuu[1] / dt;
- dmu[0][2] = (uy1 * uy1 - uy0 * uy0) / 2. / uuu[2] / dt;
- dmu[0][3] = (uz1 * uz1 - uz0 * uz0) / 2. / uuu[3] / dt;
- if (fabs(0.5 * (ut1 + ut0) / ut1) > UDIFF) dmu[0][0] = (ut1 - ut0) / dt;
- if (fabs(uuu[1]) < VMIN || fabs(0.5 * (ux1 + ux0) / ux1) > UDIFF)
-  dmu[0][1] = (ux1 - ux0) / dt;
- if (fabs(uuu[2]) < VMIN || fabs(0.5 * (uy1 + uy0) / uy1) > UDIFF)
-  dmu[0][2] = (uy1 - uy0) / dt;
- if (fabs(uuu[3]) < VMIN || fabs(0.5 * (uz1 + uz0) / uz1) > UDIFF)
-  dmu[0][3] = (uz1 - uz0) / dt;
+ u_half[0] = 1.0 / sqrt(1.0 - vxH * vxH - vyH * vyH - vzH * vzH);
+ u_half[1] = u_half[0] * vxH;
+ u_half[2] = u_half[0] * vyH;
+ u_half[3] = u_half[0] * vzH;
+
+ u_prev[0] = 1.0 / sqrt(1.0 - vx0 * vx0 - vy0 * vy0 - vz0 * vz0);
+ u_prev[1] = u_prev[0] * vx0;
+ u_prev[2] = u_prev[0] * vy0;
+ u_prev[3] = u_prev[0] * vz0;
+
+ // store the fluid related data of the current and the previous time step to
+ // calculate dbeta
+ //TODO: add if(key_for_polarization) 
+ FluidState fluidData(eosData, u_now);
+ FluidState prevFluidData(prevEosData, u_prev);
+ vorticity.calculateDbeta(0, *f, *eos, fluidData, prevFluidData, dt, tau);
+
+ dmu[0][0] = (u_now[0] * u_now[0] - u_prev[0] * u_prev[0]) / 2. / u_half[0] / dt;
+ dmu[0][1] = (u_now[1] * u_now[1] - u_prev[1] * u_prev[1]) / 2. / u_half[1] / dt;
+ dmu[0][2] = (u_now[2] * u_now[2] - u_prev[2] * u_prev[2]) / 2. / u_half[2] / dt;
+ dmu[0][3] = (u_now[3] * u_now[3] - u_prev[3] * u_prev[3]) / 2. / u_half[3] / dt;
+
+ if (fabs(0.5 * (u_now[0] + u_prev[0]) / u_now[0]) > UDIFF) dmu[0][0] = (u_now[0] - u_prev[0]) / dt;
+ if (fabs(u_half[1]) < VMIN || fabs(0.5 * (u_now[1] + u_prev[1]) / u_now[1]) > UDIFF)
+  dmu[0][1] = (u_now[1] - u_prev[1]) / dt;
+ if (fabs(u_half[2]) < VMIN || fabs(0.5 * (u_now[2] + u_prev[2]) / u_now[2]) > UDIFF)
+  dmu[0][2] = (u_now[2] - u_prev[2]) / dt;
+ if (fabs(u_half[3]) < VMIN || fabs(0.5 * (u_now[3] + u_prev[3]) / u_now[3]) > UDIFF)
+  dmu[0][3] = (u_now[3] - u_prev[3]) / dt;
  if (e1 <= 0. || e0 <= 0.) {  // matter-vacuum
   dmu[0][0] = dmu[0][1] = dmu[0][2] = dmu[0][3] = 0.;
  }
@@ -454,57 +485,57 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
  f->getCell(ix - 1, iy, iz)
      ->getPrimVarHCenter(eos, tau, e0, p, nb, nq, ns, vx0, vy0, vz0);
  if (e1 > 0. && e0 > 0.) {
-  ut0 = 1.0 / sqrt(1.0 - vx0 * vx0 - vy0 * vy0 - vz0 * vz0);
-  ux0 = ut0 * vx0;
-  uy0 = ut0 * vy0;
-  uz0 = ut0 * vz0;
-  ut1 = 1.0 / sqrt(1.0 - vx1 * vx1 - vy1 * vy1 - vz1 * vz1);
-  ux1 = ut1 * vx1;
-  uy1 = ut1 * vy1;
-  uz1 = ut1 * vz1;
-  dmu[1][0] = 0.25 * (ut1 * ut1 - ut0 * ut0) / uuu[0] / dx;
-  dmu[1][1] = 0.25 * (ux1 * ux1 - ux0 * ux0) / uuu[1] / dx;
-  dmu[1][2] = 0.25 * (uy1 * uy1 - uy0 * uy0) / uuu[2] / dx;
-  dmu[1][3] = 0.25 * (uz1 * uz1 - uz0 * uz0) / uuu[3] / dx;
-  if (fabs(0.5 * (ut1 + ut0) / uuu[0]) > UDIFF)
-   dmu[1][0] = 0.5 * (ut1 - ut0) / dx;
-  if (fabs(uuu[1]) < VMIN || fabs(0.5 * (ux1 + ux0) / uuu[1]) > UDIFF)
-   dmu[1][1] = 0.5 * (ux1 - ux0) / dx;
-  if (fabs(uuu[2]) < VMIN || fabs(0.5 * (uy1 + uy0) / uuu[2]) > UDIFF)
-   dmu[1][2] = 0.5 * (uy1 - uy0) / dx;
-  if (fabs(uuu[3]) < VMIN || fabs(0.5 * (uz1 + uz0) / uuu[3]) > UDIFF)
-   dmu[1][3] = 0.5 * (uz1 - uz0) / dx;
+  u_prev[0] = 1.0 / sqrt(1.0 - vx0 * vx0 - vy0 * vy0 - vz0 * vz0);
+  u_prev[1] = u_prev[0] * vx0;
+  u_prev[2] = u_prev[0] * vy0;
+  u_prev[3] = u_prev[0] * vz0;
+  u_now[0] = 1.0 / sqrt(1.0 - vx1 * vx1 - vy1 * vy1 - vz1 * vz1);
+  u_now[1] = u_now[0] * vx1;
+  u_now[2] = u_now[0] * vy1;
+  u_now[3] = u_now[0] * vz1;
+  dmu[1][0] = 0.25 * (u_now[0] * u_now[0] - u_prev[0] * u_prev[0]) / u_half[0] / dx;
+  dmu[1][1] = 0.25 * (u_now[1] * u_now[1] - u_prev[1] * u_prev[1]) / u_half[1] / dx;
+  dmu[1][2] = 0.25 * (u_now[2] * u_now[2] - u_prev[2] * u_prev[2]) / u_half[2] / dx;
+  dmu[1][3] = 0.25 * (u_now[3] * u_now[3] - u_prev[3] * u_prev[3]) / u_half[3] / dx;
+  if (fabs(0.5 * (u_now[0] + u_prev[0]) / u_half[0]) > UDIFF)
+   dmu[1][0] = 0.5 * (u_now[0] - u_prev[0]) / dx;
+  if (fabs(u_half[1]) < VMIN || fabs(0.5 * (u_now[1] + u_prev[1]) / u_half[1]) > UDIFF)
+   dmu[1][1] = 0.5 * (u_now[1] - u_prev[1]) / dx;
+  if (fabs(u_half[2]) < VMIN || fabs(0.5 * (u_now[2] + u_prev[2]) / u_half[2]) > UDIFF)
+   dmu[1][2] = 0.5 * (u_now[2] - u_prev[2]) / dx;
+  if (fabs(u_half[3]) < VMIN || fabs(0.5 * (u_now[3] + u_prev[3]) / u_half[3]) > UDIFF)
+   dmu[1][3] = 0.5 * (u_now[3] - u_prev[3]) / dx;
  } else {  // matter-vacuum
   dmu[1][0] = dmu[1][1] = dmu[1][2] = dmu[1][3] = 0.;
  }
  if (fabs(dmu[1][3]) > 1e+10)
-  cout << "dmu[1][3]:  " << uz1 << "  " << uz0 << "  " << uuu[3] << endl;
+  cout << "dmu[1][3]:  " << u_now[3] << "  " << u_prev[3] << "  " << u_half[3] << endl;
  // d_y u^\mu
  f->getCell(ix, iy + 1, iz)
      ->getPrimVarHCenter(eos, tau, e1, p, nb, nq, ns, vx1, vy1, vz1);
  f->getCell(ix, iy - 1, iz)
      ->getPrimVarHCenter(eos, tau, e0, p, nb, nq, ns, vx0, vy0, vz0);
  if (e1 > 0. && e0 > 0.) {
-  ut0 = 1.0 / sqrt(1.0 - vx0 * vx0 - vy0 * vy0 - vz0 * vz0);
-  ux0 = ut0 * vx0;
-  uy0 = ut0 * vy0;
-  uz0 = ut0 * vz0;
-  ut1 = 1.0 / sqrt(1.0 - vx1 * vx1 - vy1 * vy1 - vz1 * vz1);
-  ux1 = ut1 * vx1;
-  uy1 = ut1 * vy1;
-  uz1 = ut1 * vz1;
-  dmu[2][0] = 0.25 * (ut1 * ut1 - ut0 * ut0) / uuu[0] / dy;
-  dmu[2][1] = 0.25 * (ux1 * ux1 - ux0 * ux0) / uuu[1] / dy;
-  dmu[2][2] = 0.25 * (uy1 * uy1 - uy0 * uy0) / uuu[2] / dy;
-  dmu[2][3] = 0.25 * (uz1 * uz1 - uz0 * uz0) / uuu[3] / dy;
-  if (fabs(0.5 * (ut1 + ut0) / uuu[0]) > UDIFF)
-   dmu[2][0] = 0.5 * (ut1 - ut0) / dy;
-  if (fabs(uuu[1]) < VMIN || fabs(0.5 * (ux1 + ux0) / uuu[1]) > UDIFF)
-   dmu[2][1] = 0.5 * (ux1 - ux0) / dy;
-  if (fabs(uuu[2]) < VMIN || fabs(0.5 * (uy1 + uy0) / uuu[2]) > UDIFF)
-   dmu[2][2] = 0.5 * (uy1 - uy0) / dy;
-  if (fabs(uuu[3]) < VMIN || fabs(0.5 * (uz1 + uz0) / uuu[3]) > UDIFF)
-   dmu[2][3] = 0.5 * (uz1 - uz0) / dy;
+  u_prev[0] = 1.0 / sqrt(1.0 - vx0 * vx0 - vy0 * vy0 - vz0 * vz0);
+  u_prev[1] = u_prev[0] * vx0;
+  u_prev[2] = u_prev[0] * vy0;
+  u_prev[3] = u_prev[0] * vz0;
+  u_now[0] = 1.0 / sqrt(1.0 - vx1 * vx1 - vy1 * vy1 - vz1 * vz1);
+  u_now[1] = u_now[0] * vx1;
+  u_now[2] = u_now[0] * vy1;
+  u_now[3] = u_now[0] * vz1;
+  dmu[2][0] = 0.25 * (u_now[0] * u_now[0] - u_prev[0] * u_prev[0]) / u_half[0] / dy;
+  dmu[2][1] = 0.25 * (u_now[1] * u_now[1] - u_prev[1] * u_prev[1]) / u_half[1] / dy;
+  dmu[2][2] = 0.25 * (u_now[2] * u_now[2] - u_prev[2] * u_prev[2]) / u_half[2] / dy;
+  dmu[2][3] = 0.25 * (u_now[3] * u_now[3] - u_prev[3] * u_prev[3]) / u_half[3] / dy;
+  if (fabs(0.5 * (u_now[0] + u_prev[0]) / u_half[0]) > UDIFF)
+   dmu[2][0] = 0.5 * (u_now[0] - u_prev[0]) / dy;
+  if (fabs(u_half[1]) < VMIN || fabs(0.5 * (u_now[1] + u_prev[1]) / u_half[1]) > UDIFF)
+   dmu[2][1] = 0.5 * (u_now[1] - u_prev[1]) / dy;
+  if (fabs(u_half[2]) < VMIN || fabs(0.5 * (u_now[2] + u_prev[2]) / u_half[2]) > UDIFF)
+   dmu[2][2] = 0.5 * (u_now[2] - u_prev[2]) / dy;
+  if (fabs(u_half[3]) < VMIN || fabs(0.5 * (u_now[3] + u_prev[3]) / u_half[3]) > UDIFF)
+   dmu[2][3] = 0.5 * (u_now[3] - u_prev[3]) / dy;
  } else {  // matter-vacuum
   dmu[2][0] = dmu[2][1] = dmu[2][2] = dmu[2][3] = 0.;
  }
@@ -514,32 +545,32 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
  f->getCell(ix, iy, iz - 1)
      ->getPrimVarHCenter(eos, tau, e0, p, nb, nq, ns, vx0, vy0, vz0);
  if (e1 > 0. && e0 > 0.) {
-  ut0 = 1.0 / sqrt(1.0 - vx0 * vx0 - vy0 * vy0 - vz0 * vz0);
-  ux0 = ut0 * vx0;
-  uy0 = ut0 * vy0;
-  uz0 = ut0 * vz0;
-  ut1 = 1.0 / sqrt(1.0 - vx1 * vx1 - vy1 * vy1 - vz1 * vz1);
-  ux1 = ut1 * vx1;
-  uy1 = ut1 * vy1;
-  uz1 = ut1 * vz1;
-  dmu[3][0] = 0.25 * (ut1 * ut1 - ut0 * ut0) / uuu[0] / dz / (tau + 0.5 * dt);
-  dmu[3][1] = 0.25 * (ux1 * ux1 - ux0 * ux0) / uuu[1] / dz / (tau + 0.5 * dt);
-  dmu[3][2] = 0.25 * (uy1 * uy1 - uy0 * uy0) / uuu[2] / dz / (tau + 0.5 * dt);
-  dmu[3][3] = 0.25 * (uz1 * uz1 - uz0 * uz0) / uuu[3] / dz / (tau + 0.5 * dt);
-  if (fabs(0.5 * (ut1 + ut0) / uuu[0]) > UDIFF)
-   dmu[3][0] = 0.5 * (ut1 - ut0) / dz / (tau + 0.5 * dt);
-  if (fabs(uuu[1]) < VMIN || fabs(0.5 * (ux1 + ux0) / uuu[1]) > UDIFF)
-   dmu[3][1] = 0.5 * (ux1 - ux0) / dz / (tau + 0.5 * dt);
-  if (fabs(uuu[2]) < VMIN || fabs(0.5 * (uy1 + uy0) / uuu[2]) > UDIFF)
-   dmu[3][2] = 0.5 * (uy1 - uy0) / dz / (tau + 0.5 * dt);
-  if (fabs(uuu[3]) < VMIN || fabs(0.5 * (uz1 + uz0) / uuu[3]) > UDIFF)
-   dmu[3][3] = 0.5 * (uz1 - uz0) / dz / (tau + 0.5 * dt);
+  u_prev[0] = 1.0 / sqrt(1.0 - vx0 * vx0 - vy0 * vy0 - vz0 * vz0);
+  u_prev[1] = u_prev[0] * vx0;
+  u_prev[2] = u_prev[0] * vy0;
+  u_prev[3] = u_prev[0] * vz0;
+  u_now[0] = 1.0 / sqrt(1.0 - vx1 * vx1 - vy1 * vy1 - vz1 * vz1);
+  u_now[1] = u_now[0] * vx1;
+  u_now[2] = u_now[0] * vy1;
+  u_now[3] = u_now[0] * vz1;
+  dmu[3][0] = 0.25 * (u_now[0] * u_now[0] - u_prev[0] * u_prev[0]) / u_half[0] / dz / (tau + 0.5 * dt);
+  dmu[3][1] = 0.25 * (u_now[1] * u_now[1] - u_prev[1] * u_prev[1]) / u_half[1] / dz / (tau + 0.5 * dt);
+  dmu[3][2] = 0.25 * (u_now[2] * u_now[2] - u_prev[2] * u_prev[2]) / u_half[2] / dz / (tau + 0.5 * dt);
+  dmu[3][3] = 0.25 * (u_now[3] * u_now[3] - u_prev[3] * u_prev[3]) / u_half[3] / dz / (tau + 0.5 * dt);
+  if (fabs(0.5 * (u_now[0] + u_prev[0]) / u_half[0]) > UDIFF)
+   dmu[3][0] = 0.5 * (u_now[0] - u_prev[0]) / dz / (tau + 0.5 * dt);
+  if (fabs(u_half[1]) < VMIN || fabs(0.5 * (u_now[1] + u_prev[1]) / u_half[1]) > UDIFF)
+   dmu[3][1] = 0.5 * (u_now[1] - u_prev[1]) / dz / (tau + 0.5 * dt);
+  if (fabs(u_half[2]) < VMIN || fabs(0.5 * (u_now[2] + u_prev[2]) / u_half[2]) > UDIFF)
+   dmu[3][2] = 0.5 * (u_now[2] - u_prev[2]) / dz / (tau + 0.5 * dt);
+  if (fabs(u_half[3]) < VMIN || fabs(0.5 * (u_now[3] + u_prev[3]) / u_half[3]) > UDIFF)
+   dmu[3][3] = 0.5 * (u_now[3] - u_prev[3]) / dz / (tau + 0.5 * dt);
  } else {  // matter-vacuum
   dmu[3][0] = dmu[3][1] = dmu[3][2] = dmu[3][3] = 0.;
  }
  // additional terms from Christoffel symbols :)
- dmu[3][0] += uuu[3] / (tau - 0.5 * dt);
- dmu[3][3] += uuu[0] / (tau - 0.5 * dt);
+ dmu[3][0] += u_half[3] / (tau - 0.5 * dt);
+ dmu[3][3] += u_half[0] / (tau - 0.5 * dt);
  // calculation of Z[mu][nu][lambda][rho]
  for (int i = 0; i < 4; i++)
   for (int j = 0; j < 4; j++)
@@ -551,11 +582,11 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
    for (int lam = 0; lam < 4; lam++)
     for (int rho = 0; rho < 4; rho++) {
      if (nu == rho)
-      Z[mu][nu][lam][rho] += 0.5 * (gmunu[mu][lam] - uuu[mu] * uuu[lam]);
+      Z[mu][nu][lam][rho] += 0.5 * (gmunu[mu][lam] - u_half[mu] * u_half[lam]);
      if (mu == rho)
-      Z[mu][nu][lam][rho] += 0.5 * (gmunu[nu][lam] - uuu[nu] * uuu[lam]);
+      Z[mu][nu][lam][rho] += 0.5 * (gmunu[nu][lam] - u_half[nu] * u_half[lam]);
      if (lam == rho)
-      Z[mu][nu][lam][rho] -= (gmunu[mu][nu] - uuu[mu] * uuu[nu]) / 3.0;
+      Z[mu][nu][lam][rho] -= (gmunu[mu][nu] - u_half[mu] * u_half[nu]) / 3.0;
     }
  // calculating sigma[mu][nu]
  for (int i = 0; i < 4; i++)
