@@ -21,6 +21,7 @@ private:
  double ecrit;
  double vEff, EtotSurf;  // cumulative effective volume and
  int compress2dOut;
+ bool vorticityOn = false;
 
 public:
  Fluid(EoS *_eos, EoS *_eosH, TransportCoeff *_trcoeff, int _nx, int _ny,
@@ -37,6 +38,7 @@ public:
 
  int output_nt, output_nx, output_ny;
 
+ inline void enableVorticity() { vorticityOn = true; }
  inline int getNX() { return nx; }
  inline int getNY() { return ny; }
  inline int getNZ() { return nz; }

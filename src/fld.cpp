@@ -20,6 +20,7 @@
 #include <iomanip>
 #include <cmath>
 #include <algorithm>
+#include <memory>
 #include <cstdio>
 #include <filesystem>
 #include "inc.h"
@@ -40,7 +41,7 @@ using namespace std;
 
 namespace output{  // a namespace containing all the output streams
   ofstream fkw, fkw_dim, fxvisc, fyvisc, fdiagvisc, fx,
-     fy, fdiag, fz, faniz, f2d, ffreeze;
+     fy, fdiag, fz, faniz, f2d, ffreeze, fbeta;
 }
 
 // returns the velocities in cartesian coordinates, fireball rest frame.
@@ -94,6 +95,7 @@ Fluid::Fluid(EoS *_eos, EoS *_eosH, TransportCoeff *_trcoeff, int _nx, int _ny,
     getCell(ix, iy, iz)->setPrev(Z_, getCell(ix, iy, iz - 1));
     getCell(ix, iy, iz)->setNext(Z_, getCell(ix, iy, iz + 1));
     getCell(ix, iy, iz)->setPos(ix, iy, iz);
+    if (vorticityOn) getCell(ix, iy, iz)->enableVorticity();
    }
 
  output_nt = 0;
@@ -125,6 +127,13 @@ void Fluid::initOutput(const char *dir, double tau0, bool hsOnly) {
  outfreeze.append(".unfinished");
  checkOutputDirectory(outfreeze);
  output::ffreeze.open(outfreeze.c_str());
+
+ if (vorticityOn) {
+  string outbeta = dir;
+  outbeta.append("/beta.dat");
+  output::fbeta.open(outbeta.c_str());
+ }
+
  if (!hsOnly) {
   string outx = dir;
   outx.append("/outx.dat");
@@ -580,6 +589,17 @@ int Fluid::outputSurface(double tau, bool extendFO) {
     //----- Cornelius stuff
     double QCube[2][2][2][2][7];
     double piSquare[2][2][2][10], PiSquare[2][2][2];
+    // initialize a unique pointer to a 2x2x2 cube of cells each containing dbeta
+    // of the corresponding cell. Allocation of memory is done only if vorticity
+    // is enabled. dbetaCube is a 2x2x2 cube of 4x4 matrices
+    std::unique_ptr<Cube> dbetaCube;
+    if(vorticityOn) {
+      dbetaCube =  std::make_unique<Cube>(2, 
+                   std::vector<std::vector<Matrix2D>>(2, 
+                   std::vector<Matrix2D>(2, 
+                   Matrix2D(4, 
+                   std::vector<double>(4)))));
+    }
     for (int jx = 0; jx < 2; jx++)
      for (int jy = 0; jy < 2; jy++)
       for (int jz = 0; jz < 2; jz++) {
@@ -592,10 +612,20 @@ int Fluid::outputSurface(double tau, bool extendFO) {
        cc->getQprev(QCube[0][jx][jy][jz]);
        ccube[0][jx][jy][jz] = e;
        // ---- get viscous tensor
-       for (int ii = 0; ii < 4; ii++)
-        for (int jj = 0; jj <= ii; jj++)
+       for (int ii = 0; ii < 4; ii++) {
+        for (int jj = 0; jj <= ii; jj++) {
          piSquare[jx][jy][jz][index44(ii, jj)] = cc->getpi(ii, jj);
+        }
+       }
        PiSquare[jx][jy][jz] = cc->getPi();
+       // ---- get dbeta if enabled
+       if(vorticityOn) {
+        for(int column = 0 ; column < 4 ; column++) {
+          for(int row = 0 ; row < 4 ; row++) {
+            (*dbetaCube)[jx][jy][jz][column][row] = cc -> getDbeta(column, row);
+          }
+        }
+       }
       }
     cornelius->find_surface_4d(ccube);
     const int Nsegm = cornelius->get_Nelements();

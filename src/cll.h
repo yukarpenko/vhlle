@@ -18,9 +18,14 @@
 #pragma once
 #include <iosfwd>
 #include <algorithm>
+#include <memory>
 #include <cmath>
 #include "inc.h"
 class EoS;
+
+// Alias for a 2D matrix and a cube holding one Matrix2D per cell 
+using Matrix2D = std::vector<std::vector<double>>;
+using Cube = std::vector<std::vector<std::vector<Matrix2D>>>;
 
 //#define NAN_DEBUG
 
@@ -32,24 +37,26 @@ class Cell {
 private:
  // Q usually denotes the conserved quantities, T^{0i}
  // here, Q, Qh, Qprev etc. ~tau*T^{0i}, like Hirano'01
- double Q[7];      // final values at a given timestep
- double Qh[7];     // half-step updated values
- double Qprev[7];  // values at the end of previous timestep
- double pi[10], piH[10];  // pi^{mu nu}, WITHOUT tau factor, final (pi) and
-                          // half-step updated (piH)
- double Pi,
-     PiH;  // Pi, WITHOUT tau factor, final (Pi) and half-step updated (PiH)
- double pi0[10], piH0[10];  // // pi^{mu nu}, WITHOUT tau factor, auxiliary
- double Pi0, PiH0;          // viscous, WITHOUT tau factor, auxiliary
- double flux[7];            // cumulative fluxes
- Cell *next[3];             // pointer to the next cell in a given direction
- Cell *prev[3];             // pointer to the previous cell in a given direction
- double m[3];               // extend of matter propagation inside cell [0...1]
- double dm[3];              // auxiliary
- int ix, iy, iz;            // cell coordinate on the grid
+ double Q[7];                     // final values at a given timestep
+ double Qh[7];                    // half-step updated values
+ double Qprev[7];                 // values at the end of previous timestep
+ double pi[10], piH[10];          // pi^{mu nu}, WITHOUT tau factor, final (pi)
+                                  // and half-step updated (piH)
+ double Pi, PiH;                  // Pi, WITHOUT tau factor, final (Pi) and half-step updated (PiH)
+ double pi0[10], piH0[10];        // pi^{mu nu}, WITHOUT tau factor, auxiliary
+ double Pi0, PiH0;                // viscous, WITHOUT tau factor, auxiliary
+ std::unique_ptr<Matrix2D> dbeta; // dynamically allocated 2D (4x4) array for the 
+                                  // vorticity tensor flattened into a 1D array
+ double flux[7];                  // cumulative fluxes
+ Cell *next[3];                   // pointer to the next cell in a given direction
+ Cell *prev[3];                   // pointer to the previous cell in a given direction
+ double m[3];                     // extend of matter propagation inside cell [0...1]
+ double dm[3];                    // auxiliary
+ int ix, iy, iz;                  // cell coordinate on the grid
  // viscCorrCut: flag if the viscous corrections are cut for this cell:
  // 1.0 = uncut, < 1 :  cut by this factor
  double viscCorrCut;
+ bool vorticityOn = false;        // flag indicating if vorticity is enabled
 
 public:
  Cell();
@@ -154,6 +161,24 @@ public:
    for (int j = 0; j < 4; j++) piH0[index44(i, j)] = values[i][j];
  }
 
+ inline void setDbeta(const double (&values)[4][4]) {
+    for (int i = 0; i < 4; i++)
+      for (int j = 0; j < 4; j++) {
+       (*dbeta)[i][j] = (*dbeta)[i][j];
+       (*dbeta)[i][j] = std::min((*dbeta)[i][j], 100.);
+       (*dbeta)[i][j] = std::max((*dbeta)[i][j], -100.);
+      }
+  }
+
+  inline void resetDbeta() {
+    for (int i = 0; i < 4; i++)
+      for (int j = 0; j < 4; j++) (*dbeta)[i][j] = 0.0;
+  }
+
+ inline double getDbeta(int i, int j) {
+  return (*dbeta)[i][j];
+ }
+
  // get the energy density, pressure, charge densities and flow velocity
  // components (e,p,n,v) from conserved quantities Q in the centre of the cell
  void getPrimVar(EoS *eos, double tau, double &_e, double &_p, double &_nb,
@@ -189,6 +214,9 @@ public:
  // calculate and set Q from (e,n,v)
  void setPrimVar(EoS *eos, double tau, double _e, double _nb, double _nq,
                  double _ns, double _vx, double _vy, double _vz);
+
+ // enable vorticity in the cell
+ inline void enableVorticity() { vorticityOn = true; }
 
  // update the cumulative fluxes through the cell
  inline void addFlux(double Ft, double Fx, double Fy, double Fz, double Fnb,

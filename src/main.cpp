@@ -70,7 +70,7 @@ void checkGridBorders(double min, double max, std::string _x) {
 
 int nx {100}, ny {100}, nz {100}, eosType {1}, etaSparam {0}, zetaSparam {0}, eosTypeHadron {0};
 // only FO hypersurface output: {0,1};  freezeout output extended by e,nb: {0,1}
-bool vtk_cartesian {false}, vtk {false}, freezeoutOnly {false}, freezeoutExtend {false}; 
+bool vtk_cartesian {false}, vtk {false}, freezeoutOnly {false}, freezeoutExtend {false}, vorticityOn {false}; 
 double xmin {-5.0}, xmax {5.0}, ymin {-5.0}, ymax {5.0}, etamin {-5.0}, 
   etamax {5.0}, tau0 {1.0}, tauMax {20.0}, tauResize {4.0}, dtau {0.05},
   etaS {0.08}, zetaS {0.0}, eCrit {0.5}, etaSEpsilonMin {5.}, al {0.}, ah {0.}, aRho {0.}, T0 {0.15}, 
@@ -135,6 +135,7 @@ void readParameters(char *parFile) {
         {"etaSScaleMuB", [](const string& value) { etaSScaleMuB = atof(value.c_str()); }},
         {"freezeoutOnly", [](const string& value) { freezeoutOnly = atoi(value.c_str()); }},
         {"freezeoutExtend", [](const string& value) { freezeoutExtend = atoi(value.c_str()); }},
+        {"vorticity", [](const string& value) { vorticityOn = atoi(value.c_str()); }},
         {"smoothingType", [](const string& value) { smoothingType = atoi(value.c_str()); }},
     };
 
@@ -162,6 +163,7 @@ void printParameters() {
  cout << "outputDir = " << outputDir << endl;
  cout << "freezeoutOnly = " << freezeoutOnly << endl;
  cout << "freezeoutExtend = " << freezeoutExtend << endl;
+ cout << "vorticity = " << vorticityOn << endl;
  cout << "eosType = " << eosType << endl;
  cout << "eosTypeHadron = " << eosTypeHadron << endl;
  cout << "nx = " << nx << endl;
@@ -365,6 +367,11 @@ int main(int argc, char **argv) {
    cout << "icModel = " << icModel << " not implemented\n";
  }
  cout << "IC done\n";
+
+ // Enable vorticity if key is set in the config file
+ if(vorticityOn) {
+  f->enableVorticity();
+ }
 
  // For calculating initial anisotropy without running full hydro, uncomment following line
  //f->InitialAnisotropies(tau0) ;

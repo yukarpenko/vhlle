@@ -49,6 +49,10 @@ Cell::Cell() {
  Pi0 = 0.0;
  PiH0 = 0.0;
  setAllM(0.);
+ // allocate memory for the vorticity tensor if vorticity is enabled
+ if(vorticityOn) {
+     dbeta = std::make_unique<Matrix2D>(4, std::vector<double>(4));
+ }
 }
 
 void Cell::importVars(Cell* c) {
