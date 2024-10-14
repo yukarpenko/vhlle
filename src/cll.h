@@ -25,7 +25,7 @@ class EoS;
 
 // Alias for a 2D matrix and a cube holding one Matrix2D per cell 
 using Matrix2D = std::vector<std::vector<double>>;
-using Cube = std::vector<std::vector<std::vector<Matrix2D>>>;
+using Block3D = std::vector<std::vector<std::vector<Matrix2D>>>;
 
 //#define NAN_DEBUG
 

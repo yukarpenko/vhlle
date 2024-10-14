@@ -589,17 +589,18 @@ int Fluid::outputSurface(double tau, bool extendFO) {
     //----- Cornelius stuff
     double QCube[2][2][2][2][7];
     double piSquare[2][2][2][10], PiSquare[2][2][2];
-    // initialize a unique pointer to a 2x2x2 cube of cells each containing dbeta
-    // of the corresponding cell. Allocation of memory is done only if vorticity
-    // is enabled. dbetaCube is a 2x2x2 cube of 4x4 matrices
-    std::unique_ptr<Cube> dbetaCube;
-    if(vorticityOn) {
-      dbetaCube =  std::make_unique<Cube>(2, 
-                   std::vector<std::vector<Matrix2D>>(2, 
-                   std::vector<Matrix2D>(2, 
-                   Matrix2D(4, 
-                   std::vector<double>(4)))));
-    }
+
+    // Initialize a unique pointer to a 2x2x2 cube (Block3D) of cells,
+    // each containing a 4x4 matrix (Matrix2D) for dbeta values.
+    // Memory allocation occurs only if vorticity is enabled (vorticityOn).
+    std::unique_ptr<Block3D> dbetaBlock = vorticityOn
+      ? std::make_unique<Block3D>(2,
+            std::vector<std::vector<Matrix2D>>(2,
+                std::vector<Matrix2D>(2,
+                    Matrix2D(4,
+                        std::vector<double>(4)))))
+      : nullptr;
+
     for (int jx = 0; jx < 2; jx++)
      for (int jy = 0; jy < 2; jy++)
       for (int jz = 0; jz < 2; jz++) {
@@ -622,7 +623,7 @@ int Fluid::outputSurface(double tau, bool extendFO) {
        if(vorticityOn) {
         for(int column = 0 ; column < 4 ; column++) {
           for(int row = 0 ; row < 4 ; row++) {
-            (*dbetaCube)[jx][jy][jz][column][row] = cc -> getDbeta(column, row);
+            (*dbetaBlock)[jx][jy][jz][column][row] = cc -> getDbeta(column, row);
           }
         }
        }
@@ -636,6 +637,13 @@ int Fluid::outputSurface(double tau, bool extendFO) {
              << setw(24) << getX(ix) + cornelius->get_centroid_elem(isegm, 1)
              << setw(24) << getY(iy) + cornelius->get_centroid_elem(isegm, 2)
              << setw(24) << getZ(iz) + cornelius->get_centroid_elem(isegm, 3);
+     if(vorticityOn) {
+      output::fbeta.precision(15);
+      output::fbeta << setw(24) << tau + cornelius->get_centroid_elem(isegm, 0)
+              << setw(24) << getX(ix) + cornelius->get_centroid_elem(isegm, 1)
+              << setw(24) << getY(iy) + cornelius->get_centroid_elem(isegm, 2)
+              << setw(24) << getZ(iz) + cornelius->get_centroid_elem(isegm, 3);
+     }
      // ---- interpolation procedure
      double vxC = 0., vyC = 0., vzC = 0., TC = 0., mubC = 0., muqC = 0.,
             musC = 0., piC[10], PiC = 0., nbC = 0.,
@@ -668,13 +676,28 @@ int Fluid::outputSurface(double tau, bool extendFO) {
       cout << "#### Error (surface): high T/mu_b (T=" << TC << "/mu_b=" << mubC << ") ####\n";
      }
      if (eC > ecrit * 2.0 || eC < ecrit * 0.5) nsusp++;
+
+     // define a unique pointer to a 4x4 matrix for the interpolated vorticity
+     // tensor. Allocation of memory is done only if vorticity is enabled.
+     std::unique_ptr<Matrix2D> dbetaInterpolated = vorticityOn
+        ? std::make_unique<Matrix2D>(4, std::vector<double>(4))
+        : nullptr;
+
      for (int jx = 0; jx < 2; jx++)
       for (int jy = 0; jy < 2; jy++)
        for (int jz = 0; jz < 2; jz++) {
-        for (int ii = 0; ii < 10; ii++)
-         piC[ii] +=
-             piSquare[jx][jy][jz][ii] * wCenX[jx] * wCenY[jy] * wCenZ[jz];
-        PiC += PiSquare[jx][jy][jz] * wCenX[jx] * wCenY[jy] * wCenZ[jz];
+        for (int ii = 0; ii < 10; ii++) {
+         piC[ii] += piSquare[jx][jy][jz][ii] * wCenX[jx] * wCenY[jy] * wCenZ[jz];
+        }
+         PiC += PiSquare[jx][jy][jz] * wCenX[jx] * wCenY[jy] * wCenZ[jz];
+         if (vorticityOn) {
+          for(int column = 0 ; column < 4 ; column++) {
+            for(int row = 0 ; row < 4 ; row++) {
+              (*dbetaInterpolated)[column][row] +=
+              (*dbetaBlock)[jx][jy][jz][column][row] * wCenX[jx] * wCenY[jy] * wCenZ[jz];
+            }
+          }
+         }
        }
      double v2C = vxC * vxC + vyC * vyC + vzC * vzC;
      if (v2C > 1.) {
@@ -706,7 +729,13 @@ int Fluid::outputSurface(double tau, bool extendFO) {
      for (int ii = 0; ii < 4; ii++) output::ffreeze << setw(24) << dsigma[ii];
      for (int ii = 0; ii < 4; ii++) output::ffreeze << setw(24) << uC[ii];
      output::ffreeze << setw(24) << TC << setw(24) << mubC << setw(24) << muqC
-             << setw(24) << musC;
+                     << setw(24) << musC;
+     if (vorticityOn) {
+      for (int ii = 0; ii < 4; ii++) output::fbeta << setw(24) << dsigma[ii];
+      for (int ii = 0; ii < 4; ii++) output::fbeta << setw(24) << uC[ii];
+      output::fbeta << setw(24) << TC << setw(24) << mubC << setw(24) << muqC
+                    << setw(24) << musC;
+     }
 #ifdef OUTPI
      double picart[10];
      /*pi00*/ picart[index44(0, 0)] = ch * ch * piC[index44(0, 0)] +
@@ -740,6 +769,40 @@ int Fluid::outputSurface(double tau, bool extendFO) {
 #else
      output::ffreeze << setw(24) << dVEff << endl;
 #endif
+     // Jacobian to transform covariant (lower index)
+     // vector from Milne to Cartesian coordinate system
+     const std::unique_ptr<Matrix2D> jacobian = vorticityOn
+      ? std::make_unique<Matrix2D>(Matrix2D{
+         {ch, 0., 0., -sh},
+         {0., 1., 0., 0.},
+         {0., 0., 1., 0.},
+         {-sh, 0., 0., ch}})
+      : nullptr;
+
+     // Transform dbeta to Cartesian coordinates. This calculates d_i beta_j
+     std::unique_ptr<Matrix2D> dbetaCartesian = vorticityOn
+       ? std::make_unique<Matrix2D>(Matrix2D(4, std::vector<double>(4)))
+       : nullptr;
+
+     if(vorticityOn) {
+      for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+          for (int k = 0; k < 4; k++) {
+            for (int l = 0; l < 4; l++) {
+              (*dbetaCartesian)[i][j] += (*jacobian)[i][k] * (*jacobian)[j][l]
+                                       * (*dbetaInterpolated)[k][l] * gmumu[l];
+            }
+          }
+        }
+      }
+      for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+          output::fbeta << setw(24) << (*dbetaCartesian)[i][j];
+        }
+      }
+      output::fbeta << endl;
+     }
+
      double dEsurfVisc = 0.;
      for (int i = 0; i < 4; i++)
       dEsurfVisc += picart[index44(0, i)] * dsigma[i];
