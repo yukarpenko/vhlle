@@ -161,10 +161,10 @@ public:
    for (int j = 0; j < 4; j++) piH0[index44(i, j)] = values[i][j];
  }
 
- inline void setDbeta(const double (&values)[4][4]) {
+ inline void setDbeta(const std::unique_ptr<Matrix2D> &values) {
     for (int i = 0; i < 4; i++)
       for (int j = 0; j < 4; j++) {
-       (*dbeta)[i][j] = (*dbeta)[i][j];
+       (*dbeta)[i][j] = (*values)[i][j];
        (*dbeta)[i][j] = std::min((*dbeta)[i][j], 100.);
        (*dbeta)[i][j] = std::max((*dbeta)[i][j], -100.);
       }

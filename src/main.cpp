@@ -67,7 +67,6 @@ void checkGridBorders(double min, double max, std::string _x) {
   }
 }
 
-
 int nx {100}, ny {100}, nz {100}, eosType {1}, etaSparam {0}, zetaSparam {0}, eosTypeHadron {0};
 // only FO hypersurface output: {0,1};  freezeout output extended by e,nb: {0,1}
 bool vtk_cartesian {false}, vtk {false}, freezeoutOnly {false}, freezeoutExtend {false}, vorticityOn {false}; 
@@ -368,11 +367,6 @@ int main(int argc, char **argv) {
  }
  cout << "IC done\n";
 
- // Enable vorticity if key is set in the config file
- if(vorticityOn) {
-  f->enableVorticity();
- }
-
  // For calculating initial anisotropy without running full hydro, uncomment following line
  //f->InitialAnisotropies(tau0) ;
 
@@ -383,6 +377,12 @@ int main(int argc, char **argv) {
 
  // hydro init
  h = new Hydro(f, eos, trcoeff, tau0, dtau);
+
+ // Enable vorticity if key is set in the config file
+ if (vorticityOn) {
+  h -> enableVorticity();
+ }
+
  start = 0;
  time(&start);
  // h->setNSvalues() ; // initialize viscous terms
