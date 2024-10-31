@@ -23,6 +23,7 @@
 #include <memory>
 #include <cstdio>
 #include <filesystem>
+#include <stdexcept>
 #include "inc.h"
 #include "rmn.h"
 #include "fld.h"
@@ -626,8 +627,13 @@ int Fluid::outputSurface(double tau, bool extendFO) {
         }
        }
        PiSquare[jx][jy][jz] = cc->getPi();
+
        // ---- get dbeta if enabled
        if(vorticityOn) {
+        // ensure that dbetaBlock is allocated
+        if(!dbetaBlock) {
+          std::runtime_error("dbetaBlock is a nullptr");
+        }
         for(int column = 0 ; column < 4 ; column++) {
           for(int row = 0 ; row < 4 ; row++) {
             (*dbetaBlock)[jx][jy][jz][column][row] = cc -> getDbeta(column, row);
@@ -698,6 +704,10 @@ int Fluid::outputSurface(double tau, bool extendFO) {
         }
          PiC += PiSquare[jx][jy][jz] * wCenX[jx] * wCenY[jy] * wCenZ[jz];
          if (vorticityOn) {
+          // ensure that dbetaBlock is allocated
+          if(!dbetaInterpolated) {
+            std::runtime_error("dbetaInterpolated is a nullptr");
+          }
           for(int column = 0 ; column < 4 ; column++) {
             for(int row = 0 ; row < 4 ; row++) {
               (*dbetaInterpolated)[column][row] +=
@@ -792,6 +802,10 @@ int Fluid::outputSurface(double tau, bool extendFO) {
        : nullptr;
 
      if(vorticityOn) {
+      // ensure that dbetaCartesian and jacobian are allocated
+      if (!dbetaCartesian || !jacobian) {
+        std::runtime_error("dbetaCartesian and/or jacobian is a nullptr");
+      }
       for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
           for (int k = 0; k < 4; k++) {
