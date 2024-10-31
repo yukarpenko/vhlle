@@ -95,7 +95,6 @@ Fluid::Fluid(EoS *_eos, EoS *_eosH, TransportCoeff *_trcoeff, int _nx, int _ny,
     getCell(ix, iy, iz)->setPrev(Z_, getCell(ix, iy, iz - 1));
     getCell(ix, iy, iz)->setNext(Z_, getCell(ix, iy, iz + 1));
     getCell(ix, iy, iz)->setPos(ix, iy, iz);
-    if (vorticityOn) getCell(ix, iy, iz)->enableVorticity();
    }
 
  output_nt = 0;
@@ -594,12 +593,20 @@ int Fluid::outputSurface(double tau, bool extendFO) {
     // each containing a 4x4 matrix (Matrix2D) for dbeta values.
     // Memory allocation occurs only if vorticity is enabled (vorticityOn).
     std::unique_ptr<Block3D> dbetaBlock = vorticityOn
-      ? std::make_unique<Block3D>(2,
-            std::vector<std::vector<Matrix2D>>(2,
-                std::vector<Matrix2D>(2,
-                    Matrix2D(4,
-                        std::vector<double>(4)))))
-      : nullptr;
+    ? std::make_unique<Block3D>(2,
+        std::vector<std::vector<Matrix2D>>(2,
+            std::vector<Matrix2D>(2,
+                Matrix2D{
+                    {0.0, 0.0, 0.0, 0.0},
+                    {0.0, 0.0, 0.0, 0.0},
+                    {0.0, 0.0, 0.0, 0.0},
+                    {0.0, 0.0, 0.0, 0.0}
+                }
+            )
+        )
+    )
+    : nullptr;
+
 
     for (int jx = 0; jx < 2; jx++)
      for (int jy = 0; jy < 2; jy++)
@@ -680,7 +687,7 @@ int Fluid::outputSurface(double tau, bool extendFO) {
      // define a unique pointer to a 4x4 matrix for the interpolated vorticity
      // tensor. Allocation of memory is done only if vorticity is enabled.
      std::unique_ptr<Matrix2D> dbetaInterpolated = vorticityOn
-        ? std::make_unique<Matrix2D>(4, std::vector<double>(4))
+        ? std::make_unique<Matrix2D>(Matrix2D(4, std::vector<double>(4)))
         : nullptr;
 
      for (int jx = 0; jx < 2; jx++)

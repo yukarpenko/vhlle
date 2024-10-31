@@ -38,7 +38,18 @@ public:
 
  int output_nt, output_nx, output_ny;
 
- inline void enableVorticity() { vorticityOn = true; }
+ inline void enableVorticity() {
+  vorticityOn = true;
+  // enable vorticity in all cells
+  for (int ix = 0; ix < nx; ix++) {
+    for (int iy = 0; iy < ny; iy++) {
+      for (int iz = 0; iz < nz; iz++) {
+        getCell(ix, iy, iz) -> enableVorticity();
+      }
+    }
+  }
+ }
+
  inline int getNX() { return nx; }
  inline int getNY() { return ny; }
  inline int getNZ() { return nz; }

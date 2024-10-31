@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <memory>
 #include <cmath>
+#include <stdexcept>
 #include "inc.h"
 class EoS;
 
@@ -161,7 +162,17 @@ public:
    for (int j = 0; j < 4; j++) piH0[index44(i, j)] = values[i][j];
  }
 
+ // enable vorticity in the cell
+ inline void enableVorticity() {
+  vorticityOn = true;
+  dbeta = std::make_unique<Matrix2D>(Matrix2D(4, std::vector<double>(4)));
+ }
+
+ // set the dbeta tensor element at position (i, j)
  inline void setDbeta(const std::unique_ptr<Matrix2D> &values) {
+  if (!dbeta) {
+    throw std::runtime_error("Error: dbeta is nullptr. Cannot set values.");
+  }
     for (int i = 0; i < 4; i++)
       for (int j = 0; j < 4; j++) {
        (*dbeta)[i][j] = (*values)[i][j];
@@ -170,12 +181,24 @@ public:
       }
   }
 
-  inline void resetDbeta() {
-    for (int i = 0; i < 4; i++)
-      for (int j = 0; j < 4; j++) (*dbeta)[i][j] = 0.0;
-  }
+ // set all elements of dbeta to zero if dbeta is allocated
+ inline void resetDbeta() {
+   if (!dbeta) {
+     throw std::runtime_error("Error: dbeta is nullptr. Cannot reset values.");
+   }
+   // reset values if dbeta is allocated
+   for (int i = 0; i < 4; i++) {
+       for (int j = 0; j < 4; j++) {
+         (*dbeta)[i][j] = 0.0;
+       }
+   }
+ }
 
+ // get the dbeta tensor element at position (i, j)
  inline double getDbeta(int i, int j) {
+  if (!dbeta) {
+   throw std::runtime_error("Error: dbeta is nullptr. Cannot get values.");
+  }
   return (*dbeta)[i][j];
  }
 
@@ -214,9 +237,6 @@ public:
  // calculate and set Q from (e,n,v)
  void setPrimVar(EoS *eos, double tau, double _e, double _nb, double _nq,
                  double _ns, double _vx, double _vy, double _vz);
-
- // enable vorticity in the cell
- inline void enableVorticity() { vorticityOn = true; }
 
  // update the cumulative fluxes through the cell
  inline void addFlux(double Ft, double Fx, double Fy, double Fz, double Fnb,

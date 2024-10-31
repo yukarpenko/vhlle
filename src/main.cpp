@@ -409,12 +409,14 @@ int main(int argc, char **argv) {
   }
   if(nSubSteps>1) {
    h->setDtau(h->getDtau() / nSubSteps);
-   for (int j = 0; j < nSubSteps; j++)
+   for (int j = 0; j < nSubSteps; j++){
     h->performStep();
+   }
    h->setDtau(h->getDtau() * nSubSteps);
    cout << "timestep reduced by " << nSubSteps << endl;
-  } else
+  } else {
    h->performStep();
+  }
   nelements = f->outputSurface(h->getTau(), freezeoutExtend);
   if (!freezeoutOnly)
    f->outputGnuplot(h->getTau());
