@@ -258,12 +258,15 @@ Fluid* expandGrid2x(Hydro* h, EoS* eos, EoS* eosH, TransportCoeff *trcoeff) {
  Fluid* fnew = new Fluid(eos, eosH, trcoeff, f->getNX(), f->getNY(), f->getNZ(),
    2.0*f->getX(0), 2.0*f->getX(f->getNX()-1), 2.0*f->getY(0), 2.0*f->getY(f->getNY()-1),
    f->getZ(0), f->getZ(f->getNZ()-1), 2.0*h->getDtau(), f->geteCrit());
+ if (vorticityOn) fnew->enableVorticity();
  // filling the new fluid
  for(int ix=0; ix<f->getNX(); ix++)
   for(int iy=0; iy<f->getNY(); iy++)
    for(int iz=0; iz<f->getNZ(); iz++) {
     fnew->getCell(ix, iy, iz)->importVars(f->getCell(2*(ix - f->getNX()/2) + f->getNX()/2,
       2*(iy - f->getNY()/2) + f->getNY()/2, iz));
+    // enable vorticity in all cells if it was enabled in the original fluid
+    if (vorticityOn) fnew->getCell(ix, iy, iz)->enableVorticity();
    }
  h->setFluid(fnew);  // now Hydro object operates on the new fluid
  h->setDtau(2.0*h->getDtau());
