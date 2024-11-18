@@ -21,6 +21,8 @@ private:
  double ecrit;
  double vEff, EtotSurf;  // cumulative effective volume and
  int compress2dOut;
+
+ int num_corona_cells = -1; // number of corona cells. -1 means not set yet
  bool vorticityOn = false;
 
 public:
@@ -29,6 +31,7 @@ public:
        double _minz, double _maxz, double dt, double eCrit);
  ~Fluid();
  void initOutput(const char *dir, double tau0, bool hsOnly);
+ void printDbetaHeader();
  void renameOutput(const char *dir);
  void checkOutputDirectory(std::string freezeoutFile);
  int output_xy_spacing;

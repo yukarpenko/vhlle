@@ -392,6 +392,7 @@ int main(int argc, char **argv) {
 
  f->initOutput(outputDir.c_str(), tau0, freezeoutOnly);
  f->outputCorona(tau0, freezeoutExtend);
+ if (vorticityOn) f->printDbetaHeader();
 
  bool resized = false; // flag if the grid has been resized
  

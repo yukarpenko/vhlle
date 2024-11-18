@@ -128,16 +128,11 @@ void Fluid::initOutput(const char *dir, double tau0, bool hsOnly) {
  checkOutputDirectory(outfreeze);
  output::ffreeze.open(outfreeze.c_str());
 
+ // initialize vorticity output if enabled
  if (vorticityOn) {
   string outbeta = dir;
   outbeta.append("/beta.dat");
   output::fbeta.open(outbeta.c_str());
-  // print header for beta output
-  output::fbeta << "# The derivatives of β are given in Cartesian coordinates and include a factor of 1/2, such that ∂ₘβₙ=1/2 * ∂ₘ(uₙ/T)" << endl;
-  output::fbeta << "#  τ  x  y  η  dΣ[0]  dΣ[1]  dΣ[2]  dΣ[3]  "
-                << "u[0]  u[1]  u[2]  u[3]  T  μB  μQ  μS  "
-                << "∂₀β₀  ∂₀β₁  ∂₀β₂  ∂₀β₃  ∂₁β₀  ∂₁β₁  ∂₁β₂  ∂₁β₃  "
-                << "∂₂β₀  ∂₂β₁  ∂₂β₂  ∂₂β₃  ∂₃β₀  ∂₃β₁  ∂₃β₂  ∂₃β₃  ϵ" << endl;
  }
 
  if (!hsOnly) {
@@ -174,6 +169,21 @@ void Fluid::initOutput(const char *dir, double tau0, bool hsOnly) {
   outputGnuplot(tau0);
   output::faniz << "#  tau  <<v_T>>  e_p  e'_p  (to compare with SongHeinz)\n";
  }
+}
+
+void Fluid::printDbetaHeader() {
+  // print header of beta.dat if vorticity is enabled
+  if (num_corona_cells == -1){
+    //throw error that header cannot be printed due to num_corona_cells not set
+    throw std::runtime_error("Error: num_corona_cells not set, cannot print header of beta.dat");
+  } else {
+    output::fbeta << "# The derivatives of β are given in Cartesian coordinates and include a factor of 1/2, such that ∂ₘβₙ=1/2 * ∂ₘ(uₙ/T)" << endl;
+    output::fbeta << "#  Number of corona cells: " << num_corona_cells << endl;
+    output::fbeta << "#  τ  x  y  η  dΣ[0]  dΣ[1]  dΣ[2]  dΣ[3]  "
+                  << "u[0]  u[1]  u[2]  u[3]  T  μB  μQ  μS  "
+                  << "∂₀β₀  ∂₀β₁  ∂₀β₂  ∂₀β₃  ∂₁β₀  ∂₁β₁  ∂₁β₂  ∂₁β₃  "
+                  << "∂₂β₀  ∂₂β₁  ∂₂β₂  ∂₂β₃  ∂₃β₀  ∂₃β₁  ∂₃β₂  ∂₃β₃  ϵ" << endl;
+  }
 }
 
 void Fluid::renameOutput(const char *dir) {
@@ -599,21 +609,15 @@ int Fluid::outputSurface(double tau, bool extendFO) {
     // Initialize a unique pointer to a 2x2x2 cube (Block3D) of cells,
     // each containing a 4x4 matrix (Matrix2D) for dbeta values.
     // Memory allocation occurs only if vorticity is enabled (vorticityOn).
-    std::unique_ptr<Block3D> dbetaBlock = vorticityOn
-    ? std::make_unique<Block3D>(2,
-        std::vector<std::vector<Matrix2D>>(2,
-            std::vector<Matrix2D>(2,
-                Matrix2D{
-                    {0.0, 0.0, 0.0, 0.0},
-                    {0.0, 0.0, 0.0, 0.0},
-                    {0.0, 0.0, 0.0, 0.0},
-                    {0.0, 0.0, 0.0, 0.0}
-                }
-            )
-        )
-    )
-    : nullptr;
-
+    std::unique_ptr<Block3D> dbetaBlock =
+            vorticityOn ? std::make_unique<Block3D>(
+                              2, std::vector<std::vector<Matrix2D>>(
+                                     2, std::vector<Matrix2D>(
+                                            2, Matrix2D{{0.0, 0.0, 0.0, 0.0},
+                                                        {0.0, 0.0, 0.0, 0.0},
+                                                        {0.0, 0.0, 0.0, 0.0},
+                                                        {0.0, 0.0, 0.0, 0.0}})))
+                        : nullptr;
 
     for (int jx = 0; jx < 2; jx++)
      for (int jy = 0; jy < 2; jy++)
@@ -1062,6 +1066,10 @@ output::f2d << endl;
     }
     //----- end Cornelius
    }
+ // Set number of corona cells in Fluid. This is needed for the
+ // header of beta.dat in case vorticity is used
+ num_corona_cells = nelements;
+
  E = E * dx * dy * dz;
  Efull = Efull * dx * dy * dz;
  S = S * dx * dy * dz;
