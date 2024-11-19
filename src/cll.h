@@ -165,7 +165,7 @@ public:
  // enable vorticity in the cell
  inline void enableVorticity() {
   vorticityOn = true;
-  dbeta = std::make_unique<Matrix2D>(Matrix2D(4, std::vector<double>(4)));
+  dbeta = std::make_unique<Matrix2D>(Matrix2D(4, std::vector<double>(4, 0.0)));
  }
 
  // set the dbeta tensor element at position (i, j)

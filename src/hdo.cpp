@@ -683,7 +683,7 @@ void Hydro::ISformal() {
  double e, p, nb, nq, ns, vx, vy, vz, T, mub, muq, mus;
  double piNS[4][4], sigNS[4][4], PiNS, dmu[4][4], du, pi[4][4], piH[4][4], Pi, PiH;
  std::unique_ptr<Matrix2D> dbeta = vorticityOn
-    ? std::make_unique<Matrix2D>(Matrix2D(4, std::vector<double>(4)))
+    ? std::make_unique<Matrix2D>(Matrix2D(4, std::vector<double>(4, 0.0)))
     : nullptr;
  const double gmumu[4] = {1., -1., -1., -1.};
 

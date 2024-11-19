@@ -703,7 +703,7 @@ int Fluid::outputSurface(double tau, bool extendFO) {
      // define a unique pointer to a 4x4 matrix for the interpolated vorticity
      // tensor. Allocation of memory is done only if vorticity is enabled.
      std::unique_ptr<Matrix2D> dbetaInterpolated = vorticityOn
-        ? std::make_unique<Matrix2D>(Matrix2D(4, std::vector<double>(4)))
+        ? std::make_unique<Matrix2D>(Matrix2D(4, std::vector<double>(4, 0.0)))
         : nullptr;
 
      for (int jx = 0; jx < 2; jx++)
@@ -808,7 +808,7 @@ int Fluid::outputSurface(double tau, bool extendFO) {
 
      // Transform dbeta to Cartesian coordinates. This calculates d_i beta_j
      std::unique_ptr<Matrix2D> dbetaCartesian = vorticityOn
-       ? std::make_unique<Matrix2D>(Matrix2D(4, std::vector<double>(4)))
+       ? std::make_unique<Matrix2D>(Matrix2D(4, std::vector<double>(4, 0.0)))
        : nullptr;
 
      if(vorticityOn) {
