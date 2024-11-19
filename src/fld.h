@@ -22,12 +22,16 @@ private:
  double vEff, EtotSurf;  // cumulative effective volume and
  int compress2dOut;
 
+ int num_corona_cells = -1; // number of corona cells. -1 means not set yet
+ bool vorticityOn = false;
+
 public:
  Fluid(EoS *_eos, EoS *_eosH, TransportCoeff *_trcoeff, int _nx, int _ny,
        int _nz, double _minx, double _maxx, double _miny, double _maxy,
        double _minz, double _maxz, double dt, double eCrit);
  ~Fluid();
  void initOutput(const char *dir, double tau0, bool hsOnly);
+ void printDbetaHeader();
  void renameOutput(const char *dir);
  void checkOutputDirectory(std::string freezeoutFile);
  int output_xy_spacing;
@@ -36,6 +40,18 @@ public:
  int output_eta_spacing;
 
  int output_nt, output_nx, output_ny;
+
+ inline void enableVorticity() {
+  vorticityOn = true;
+  // enable vorticity in all cells
+  for (int ix = 0; ix < nx; ix++) {
+    for (int iy = 0; iy < ny; iy++) {
+      for (int iz = 0; iz < nz; iz++) {
+        getCell(ix, iy, iz) -> enableVorticity();
+      }
+    }
+  }
+ }
 
  inline int getNX() { return nx; }
  inline int getNY() { return ny; }

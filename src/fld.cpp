@@ -20,8 +20,10 @@
 #include <iomanip>
 #include <cmath>
 #include <algorithm>
+#include <memory>
 #include <cstdio>
 #include <filesystem>
+#include <stdexcept>
 #include "inc.h"
 #include "rmn.h"
 #include "fld.h"
@@ -40,7 +42,7 @@ using namespace std;
 
 namespace output{  // a namespace containing all the output streams
   ofstream fkw, fkw_dim, fxvisc, fyvisc, fdiagvisc, fx,
-     fy, fdiag, fz, faniz, f2d, ffreeze;
+     fy, fdiag, fz, faniz, f2d, ffreeze, fbeta;
 }
 
 // returns the velocities in cartesian coordinates, fireball rest frame.
@@ -125,6 +127,14 @@ void Fluid::initOutput(const char *dir, double tau0, bool hsOnly) {
  outfreeze.append(".unfinished");
  checkOutputDirectory(outfreeze);
  output::ffreeze.open(outfreeze.c_str());
+
+ // initialize vorticity output if enabled
+ if (vorticityOn) {
+  string outbeta = dir;
+  outbeta.append("/beta.dat");
+  output::fbeta.open(outbeta.c_str());
+ }
+
  if (!hsOnly) {
   string outx = dir;
   outx.append("/outx.dat");
@@ -159,6 +169,21 @@ void Fluid::initOutput(const char *dir, double tau0, bool hsOnly) {
   outputGnuplot(tau0);
   output::faniz << "#  tau  <<v_T>>  e_p  e'_p  (to compare with SongHeinz)\n";
  }
+}
+
+void Fluid::printDbetaHeader() {
+  // print header of beta.dat if vorticity is enabled
+  if (num_corona_cells == -1){
+    //throw error that header cannot be printed due to num_corona_cells not set
+    throw std::runtime_error("Error: num_corona_cells not set, cannot print header of beta.dat");
+  } else {
+    output::fbeta << "# The derivatives of β are given in Cartesian coordinates and include a factor of 1/2, such that ∂ₘβₙ=1/2 * ∂ₘ(uₙ/T)" << endl;
+    output::fbeta << "#  Number of corona cells: " << num_corona_cells << endl;
+    output::fbeta << "#  τ  x  y  η  dΣ[0]  dΣ[1]  dΣ[2]  dΣ[3]  "
+                  << "u[0]  u[1]  u[2]  u[3]  T  μB  μQ  μS  "
+                  << "∂₀β₀  ∂₀β₁  ∂₀β₂  ∂₀β₃  ∂₁β₀  ∂₁β₁  ∂₁β₂  ∂₁β₃  "
+                  << "∂₂β₀  ∂₂β₁  ∂₂β₂  ∂₂β₃  ∂₃β₀  ∂₃β₁  ∂₃β₂  ∂₃β₃  ϵ" << endl;
+  }
 }
 
 void Fluid::renameOutput(const char *dir) {
@@ -580,6 +605,20 @@ int Fluid::outputSurface(double tau, bool extendFO) {
     //----- Cornelius stuff
     double QCube[2][2][2][2][7];
     double piSquare[2][2][2][10], PiSquare[2][2][2];
+
+    // Initialize a unique pointer to a 2x2x2 cube (Block3D) of cells,
+    // each containing a 4x4 matrix (Matrix2D) for dbeta values.
+    // Memory allocation occurs only if vorticity is enabled (vorticityOn).
+    std::unique_ptr<Block3D> dbetaBlock =
+            vorticityOn ? std::make_unique<Block3D>(
+                              2, std::vector<std::vector<Matrix2D>>(
+                                     2, std::vector<Matrix2D>(
+                                            2, Matrix2D{{0.0, 0.0, 0.0, 0.0},
+                                                        {0.0, 0.0, 0.0, 0.0},
+                                                        {0.0, 0.0, 0.0, 0.0},
+                                                        {0.0, 0.0, 0.0, 0.0}})))
+                        : nullptr;
+
     for (int jx = 0; jx < 2; jx++)
      for (int jy = 0; jy < 2; jy++)
       for (int jz = 0; jz < 2; jz++) {
@@ -592,10 +631,25 @@ int Fluid::outputSurface(double tau, bool extendFO) {
        cc->getQprev(QCube[0][jx][jy][jz]);
        ccube[0][jx][jy][jz] = e;
        // ---- get viscous tensor
-       for (int ii = 0; ii < 4; ii++)
-        for (int jj = 0; jj <= ii; jj++)
+       for (int ii = 0; ii < 4; ii++) {
+        for (int jj = 0; jj <= ii; jj++) {
          piSquare[jx][jy][jz][index44(ii, jj)] = cc->getpi(ii, jj);
+        }
+       }
        PiSquare[jx][jy][jz] = cc->getPi();
+
+       // ---- get dbeta if enabled
+       if(vorticityOn) {
+        // ensure that dbetaBlock is allocated
+        if(!dbetaBlock) {
+          std::runtime_error("dbetaBlock is a nullptr");
+        }
+        for(int column = 0 ; column < 4 ; column++) {
+          for(int row = 0 ; row < 4 ; row++) {
+            (*dbetaBlock)[jx][jy][jz][column][row] = cc -> getDbeta(column, row);
+          }
+        }
+       }
       }
     cornelius->find_surface_4d(ccube);
     const int Nsegm = cornelius->get_Nelements();
@@ -606,6 +660,13 @@ int Fluid::outputSurface(double tau, bool extendFO) {
              << setw(24) << getX(ix) + cornelius->get_centroid_elem(isegm, 1)
              << setw(24) << getY(iy) + cornelius->get_centroid_elem(isegm, 2)
              << setw(24) << getZ(iz) + cornelius->get_centroid_elem(isegm, 3);
+     if(vorticityOn) {
+      output::fbeta.precision(15);
+      output::fbeta << setw(24) << tau + cornelius->get_centroid_elem(isegm, 0)
+              << setw(24) << getX(ix) + cornelius->get_centroid_elem(isegm, 1)
+              << setw(24) << getY(iy) + cornelius->get_centroid_elem(isegm, 2)
+              << setw(24) << getZ(iz) + cornelius->get_centroid_elem(isegm, 3);
+     }
      // ---- interpolation procedure
      double vxC = 0., vyC = 0., vzC = 0., TC = 0., mubC = 0., muqC = 0.,
             musC = 0., piC[10], PiC = 0., nbC = 0.,
@@ -638,13 +699,32 @@ int Fluid::outputSurface(double tau, bool extendFO) {
       cout << "#### Error (surface): high T/mu_b (T=" << TC << "/mu_b=" << mubC << ") ####\n";
      }
      if (eC > ecrit * 2.0 || eC < ecrit * 0.5) nsusp++;
+
+     // define a unique pointer to a 4x4 matrix for the interpolated vorticity
+     // tensor. Allocation of memory is done only if vorticity is enabled.
+     std::unique_ptr<Matrix2D> dbetaInterpolated = vorticityOn
+        ? std::make_unique<Matrix2D>(Matrix2D(4, std::vector<double>(4, 0.0)))
+        : nullptr;
+
      for (int jx = 0; jx < 2; jx++)
       for (int jy = 0; jy < 2; jy++)
        for (int jz = 0; jz < 2; jz++) {
-        for (int ii = 0; ii < 10; ii++)
-         piC[ii] +=
-             piSquare[jx][jy][jz][ii] * wCenX[jx] * wCenY[jy] * wCenZ[jz];
-        PiC += PiSquare[jx][jy][jz] * wCenX[jx] * wCenY[jy] * wCenZ[jz];
+        for (int ii = 0; ii < 10; ii++) {
+         piC[ii] += piSquare[jx][jy][jz][ii] * wCenX[jx] * wCenY[jy] * wCenZ[jz];
+        }
+         PiC += PiSquare[jx][jy][jz] * wCenX[jx] * wCenY[jy] * wCenZ[jz];
+         if (vorticityOn) {
+          // ensure that dbetaBlock is allocated
+          if(!dbetaInterpolated) {
+            std::runtime_error("dbetaInterpolated is a nullptr");
+          }
+          for(int column = 0 ; column < 4 ; column++) {
+            for(int row = 0 ; row < 4 ; row++) {
+              (*dbetaInterpolated)[column][row] +=
+              (*dbetaBlock)[jx][jy][jz][column][row] * wCenX[jx] * wCenY[jy] * wCenZ[jz];
+            }
+          }
+         }
        }
      double v2C = vxC * vxC + vyC * vyC + vzC * vzC;
      if (v2C > 1.) {
@@ -675,8 +755,14 @@ int Fluid::outputSurface(double tau, bool extendFO) {
      vEff += dVEff;
      for (int ii = 0; ii < 4; ii++) output::ffreeze << setw(24) << dsigma[ii];
      for (int ii = 0; ii < 4; ii++) output::ffreeze << setw(24) << uC[ii];
-     output::ffreeze << setw(24) << TC << setw(24) << mubC << setw(24) << muqC
-             << setw(24) << musC;
+     output::ffreeze << setw(24) << TC << setw(24) << mubC
+                     << setw(24) << muqC << setw(24) << musC;
+     if (vorticityOn) {
+      for (int ii = 0; ii < 4; ii++) output::fbeta << setw(24) << dsigma[ii];
+      for (int ii = 0; ii < 4; ii++) output::fbeta << setw(24) << uC[ii];
+      output::fbeta << setw(24) << TC << setw(24) << mubC << setw(24) << muqC
+                    << setw(24) << musC;
+     }
 #ifdef OUTPI
      double picart[10];
      /*pi00*/ picart[index44(0, 0)] = ch * ch * piC[index44(0, 0)] +
@@ -710,6 +796,44 @@ int Fluid::outputSurface(double tau, bool extendFO) {
 #else
      output::ffreeze << setw(24) << dVEff << endl;
 #endif
+     // Jacobian to transform covariant (lower index)
+     // vector from Milne to Cartesian coordinate system
+     const std::unique_ptr<Matrix2D> jacobian = vorticityOn
+      ? std::make_unique<Matrix2D>(Matrix2D{
+         {ch, 0., 0., -sh},
+         {0., 1., 0., 0.},
+         {0., 0., 1., 0.},
+         {-sh, 0., 0., ch}})
+      : nullptr;
+
+     // Transform dbeta to Cartesian coordinates. This calculates d_i beta_j
+     std::unique_ptr<Matrix2D> dbetaCartesian = vorticityOn
+       ? std::make_unique<Matrix2D>(Matrix2D(4, std::vector<double>(4, 0.0)))
+       : nullptr;
+
+     if(vorticityOn) {
+      // ensure that dbetaCartesian and jacobian are allocated
+      if (!dbetaCartesian || !jacobian) {
+        std::runtime_error("dbetaCartesian and/or jacobian is a nullptr");
+      }
+      for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+          for (int k = 0; k < 4; k++) {
+            for (int l = 0; l < 4; l++) {
+              (*dbetaCartesian)[i][j] += (*jacobian)[i][k] * (*jacobian)[j][l]
+                                       * (*dbetaInterpolated)[k][l] * gmumu[l];
+            }
+          }
+        }
+      }
+      for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+          output::fbeta << setw(24) << (*dbetaCartesian)[i][j];
+        }
+      }
+      output::fbeta << setw(24) << eC << endl;
+     }
+
      double dEsurfVisc = 0.;
      for (int i = 0; i < 4; i++)
       dEsurfVisc += picart[index44(0, i)] * dsigma[i];
@@ -942,6 +1066,10 @@ output::f2d << endl;
     }
     //----- end Cornelius
    }
+ // Set number of corona cells in Fluid. This is needed for the
+ // header of beta.dat in case vorticity is used
+ num_corona_cells = nelements;
+
  E = E * dx * dy * dz;
  Efull = Efull * dx * dy * dz;
  S = S * dx * dy * dz;
