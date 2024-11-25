@@ -67,10 +67,9 @@ void checkGridBorders(double min, double max, std::string _x) {
   }
 }
 
-
 int nx {100}, ny {100}, nz {100}, eosType {1}, etaSparam {0}, zetaSparam {0}, eosTypeHadron {0};
 // only FO hypersurface output: {0,1};  freezeout output extended by e,nb: {0,1}
-bool vtk_cartesian {false}, vtk {false}, freezeoutOnly {false}, freezeoutExtend {false}; 
+bool vtk_cartesian {false}, vtk {false}, freezeoutOnly {false}, freezeoutExtend {false}, vorticityOn {false}; 
 double xmin {-5.0}, xmax {5.0}, ymin {-5.0}, ymax {5.0}, etamin {-5.0}, 
   etamax {5.0}, tau0 {1.0}, tauMax {20.0}, tauResize {4.0}, dtau {0.05},
   etaS {0.08}, zetaS {0.0}, eCrit {0.5}, etaSEpsilonMin {5.}, al {0.}, ah {0.}, aRho {0.}, T0 {0.15}, 
@@ -135,6 +134,7 @@ void readParameters(char *parFile) {
         {"etaSScaleMuB", [](const string& value) { etaSScaleMuB = atof(value.c_str()); }},
         {"freezeoutOnly", [](const string& value) { freezeoutOnly = atoi(value.c_str()); }},
         {"freezeoutExtend", [](const string& value) { freezeoutExtend = atoi(value.c_str()); }},
+        {"vorticity", [](const string& value) { vorticityOn = atoi(value.c_str()); }},
         {"smoothingType", [](const string& value) { smoothingType = atoi(value.c_str()); }},
     };
 
@@ -162,6 +162,7 @@ void printParameters() {
  cout << "outputDir = " << outputDir << endl;
  cout << "freezeoutOnly = " << freezeoutOnly << endl;
  cout << "freezeoutExtend = " << freezeoutExtend << endl;
+ cout << "vorticity = " << vorticityOn << endl;
  cout << "eosType = " << eosType << endl;
  cout << "eosTypeHadron = " << eosTypeHadron << endl;
  cout << "nx = " << nx << endl;
@@ -257,12 +258,15 @@ Fluid* expandGrid2x(Hydro* h, EoS* eos, EoS* eosH, TransportCoeff *trcoeff) {
  Fluid* fnew = new Fluid(eos, eosH, trcoeff, f->getNX(), f->getNY(), f->getNZ(),
    2.0*f->getX(0), 2.0*f->getX(f->getNX()-1), 2.0*f->getY(0), 2.0*f->getY(f->getNY()-1),
    f->getZ(0), f->getZ(f->getNZ()-1), 2.0*h->getDtau(), f->geteCrit());
+ if (vorticityOn) fnew->enableVorticity();
  // filling the new fluid
  for(int ix=0; ix<f->getNX(); ix++)
   for(int iy=0; iy<f->getNY(); iy++)
    for(int iz=0; iz<f->getNZ(); iz++) {
     fnew->getCell(ix, iy, iz)->importVars(f->getCell(2*(ix - f->getNX()/2) + f->getNX()/2,
       2*(iy - f->getNY()/2) + f->getNY()/2, iz));
+    // enable vorticity in all cells if it was enabled in the original fluid
+    if (vorticityOn) fnew->getCell(ix, iy, iz)->enableVorticity();
    }
  h->setFluid(fnew);  // now Hydro object operates on the new fluid
  h->setDtau(2.0*h->getDtau());
@@ -376,12 +380,19 @@ int main(int argc, char **argv) {
 
  // hydro init
  h = new Hydro(f, eos, trcoeff, tau0, dtau);
+
+ // Enable vorticity if key is set in the config file
+ if (vorticityOn) {
+  h -> enableVorticity();
+ }
+
  start = 0;
  time(&start);
  // h->setNSvalues() ; // initialize viscous terms
 
  f->initOutput(outputDir.c_str(), tau0, freezeoutOnly);
  f->outputCorona(tau0, freezeoutExtend);
+ if (vorticityOn) f->printDbetaHeader();
 
  bool resized = false; // flag if the grid has been resized
  
@@ -402,12 +413,14 @@ int main(int argc, char **argv) {
   }
   if(nSubSteps>1) {
    h->setDtau(h->getDtau() / nSubSteps);
-   for (int j = 0; j < nSubSteps; j++)
+   for (int j = 0; j < nSubSteps; j++){
     h->performStep();
+   }
    h->setDtau(h->getDtau() * nSubSteps);
    cout << "timestep reduced by " << nSubSteps << endl;
-  } else
+  } else {
    h->performStep();
+  }
   nelements = f->outputSurface(h->getTau(), freezeoutExtend);
   if (!freezeoutOnly)
    f->outputGnuplot(h->getTau());
