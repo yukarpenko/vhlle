@@ -1,8 +1,8 @@
 #pragma once
 #include <cmath>
 #include <string>
+#include <gsl/gsl_spline.h>
 
-class TGraph;
 
 // NOTATIONS:
 //  e = energy density (local rest frame), [GeV/fm^3]
@@ -43,7 +43,8 @@ public:
 // each variant is enabled by compiling with -D SIMPLE / -D TABLE
 class EoSs : public EoS {
 private:
- TGraph *gp, *gT, *gmu;
+ gsl_interp_accel *acc_p, *acc_T, *acc_mu;
+ gsl_spline *spline_p, *spline_T, *spline_mu;
 
 public:
  EoSs(std::string fname, int ncols);

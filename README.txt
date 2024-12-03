@@ -71,16 +71,15 @@ The following branches may be particularly useful:
  I. GETTING and BUILDING vHLLE on Linux
 
  1) The following software must be installed in order to compile the code:
- make, g++, binutils, ROOT
+ make, g++, binutils, GSL
  
  To install those packages,
- -> on Ubuntu 11.x - 16.x run:
- sudo apt-get install make g++ binutils root-system
- -> on Fedora 18 and above run: 
- sudo yum install make gcc binutils root
+ -> on Ubuntu run:
+ sudo apt install make g++ binutils gsl-bin
+ -> on Fedora run:
+ sudo yum install make gcc binutils gsl
  
- The latest version of the ROOT package is also available at http://root.cern.ch/
- From commit f1dbe5a onwards, ROOT6 is required to compile the code.
+ ROOT is not required to compile and run the code.
  As of commit 589b7cb , C++17 is required (because of calls to std::filesystem),
  therefore make sure `root-config --cflags` retruns '-std=c++17' among the options.
  

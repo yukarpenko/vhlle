@@ -1,9 +1,8 @@
 #include <fstream>
+#include <iostream>
 #include <iomanip>
-#include <iomanip>
-#include <TF1.h>
-#include <TF2.h>
-#include <TGraph.h>
+#include <gsl/gsl_integration.h>
+#include <gsl/gsl_monte_miser.h>
 
 #include "fld.h"
 #include "eos.h"
@@ -24,6 +23,11 @@ const double sigma = 4.0;  // NN cross section in fm^2
 
 const int nphi = 301;
 
+// forward declarations
+double WoodSaxon3D(double* x, size_t dim, void *params);
+double WoodSaxon(double x, void *params);
+
+
 ICGlauber::ICGlauber(double e, double impactPar, double _tau0) {
  epsilon = e;
  b = impactPar;
@@ -32,27 +36,34 @@ ICGlauber::ICGlauber(double e, double impactPar, double _tau0) {
 
 ICGlauber::~ICGlauber(void) {}
 
-double ICGlauber::eProfile(double x, double y) {
- prms[0] = sqrt((x + b / 2.0) * (x + b / 2.0) + y * y);
- iff->SetParameters(prms);
- const double tpp = iff->Integral(-3.0 * Ra, 3.0 * Ra, 1.0e-9);
- prms[0] = sqrt((x - b / 2.0) * (x - b / 2.0) + y * y);
- iff->SetParameters(prms);
- const double tmm = iff->Integral(-3.0 * Ra, 3.0 * Ra, 1.0e-9);
+double ICGlauber::eProfile(double x, double y, WS_params* params) {
+ gsl_integration_workspace * w = gsl_integration_workspace_alloc (1000);
+ gsl_function F;
+ F.function = &WoodSaxon;
+ double result, error;
+ params->r = sqrt((x + b / 2.0) * (x + b / 2.0) + y * y);
+ F.params = params;
+ gsl_integration_qags(&F, -3.0 * Ra, 3.0 * Ra, 0, 1e-7, 1000, w, &result, &error);
+ const double tpp = result;
+ params->r = sqrt((x - b / 2.0) * (x - b / 2.0) + y * y);
+ F.params = params;
+ gsl_integration_qags(&F, -3.0 * Ra, 3.0 * Ra, 0, 1e-7, 1000, w, &result, &error);
+ const double tmm = result;
+ gsl_integration_workspace_free(w);
  return epsilon *
         pow(1. / rho0 * (tpp * (1.0 - pow((1.0 - sigma * tmm / A), A)) +
                          tmm * (1.0 - pow((1.0 - sigma * tpp / A), A))),
             1.0);
 }
 
-void ICGlauber::findRPhi(void) {
+void ICGlauber::findRPhi(WS_params* params) {
  _rphi = new double[nphi];
  for (int iphi = 0; iphi < nphi; iphi++) {
   double phi = iphi * C_PI * 2. / (nphi - 1);
   double r = 0., r1 = 0., r2 = 2. * Ra;
   while (fabs((r2 - r1) / r2) > 0.001 && r2 > 0.001) {
    r = 0.5 * (r1 + r2);
-   if (eProfile(r * cos(phi), r * sin(phi)) > 0.5)
+   if (eProfile(r * cos(phi), r * sin(phi), params) > 0.5)
     r1 = r;
    else
     r2 = r;
@@ -75,34 +86,46 @@ void ICGlauber::setIC(Fluid *f, EoS *eos) {
  double e, nb, nq, vx = 0., vy = 0., vz = 0.;
  Cell *c;
  ofstream fvel("velocity_debug.txt");
-
- TF2 *ff = 0;
- double prms2[2], intgr2;
- cout << "finding normalization constant\n";
- ff = new TF2("ThicknessF", this, &ICGlauber::Thickness, -3.0 * Ra, 3.0 * Ra,
-              -3.0 * Ra, 3.0 * Ra, 2, "IC", "Thickness");
- prms2[0] = Ra;
- prms2[1] = dlt;
- ff->SetParameters(prms2);
- intgr2 = ff->Integral(-3.0 * Ra, 3.0 * Ra, -3.0 * Ra, 3.0 * Ra, 1.0e-9);
+ WS_params WSparams;
+ WSparams.r = 0.;
+ WSparams.norm = 1.0;
+ WSparams.Ra = Ra;
+ WSparams.delta = dlt;
+ // === rewriting using Monte Carlo here
+ double result, error;
+ const gsl_rng_type *gsl_T;
+ gsl_rng *gsl_r;
+ gsl_monte_function gsl_integrand = { &WoodSaxon3D, 3, &WSparams};
+ double xl[3] = {-3.0*Ra, -3.0*Ra, -3.0*Ra};
+ double xu[3] = {3.0*Ra, 3.0*Ra, 3.0*Ra};
+ size_t MC_calls = 500000;
+ gsl_rng_env_setup ();
+ gsl_T = gsl_rng_default;
+ gsl_r = gsl_rng_alloc (gsl_T);
+ gsl_monte_miser_state *gsl_miser_s = gsl_monte_miser_alloc(3);
+ gsl_monte_miser_integrate(&gsl_integrand, xl, xu, 3, MC_calls, gsl_r, gsl_miser_s, &result, &error);
+ double intgr2 = result;
+ gsl_monte_miser_free(gsl_miser_s);
  if (intgr2 == 0.0) {
-  cerr << "IC::setICGlauber Error! ff->Integral == 0; Return -1\n";
-  delete ff;
+  std::cerr << "IC::setICGlauber Error! ff->Integral == 0; Return -1\n";
   exit(1);
  }
- delete ff;
- cout << "a = " << A / intgr2 << endl;
- prms[1] = A / intgr2;
- prms[2] = Ra;
- prms[3] = dlt;
- iff = new TF1("WoodSaxonDF", this, &ICGlauber::WoodSaxon, -3.0 * Ra, 3.0 * Ra,
-               4, "IC", "WoodSaxon");
- //prms[0] = 0.0;
- iff->SetParameters(0.0, A / intgr2, Ra, dlt);
- const double tpp = iff->Integral(-3.0 * Ra, 3.0 * Ra, 1.0e-9);
+ std::cout << "a = " << A / intgr2 << endl;
+ WSparams.r = 0.;
+ WSparams.norm = A / intgr2;
+ WSparams.Ra = Ra;
+ WSparams.delta = dlt;
+ // --- computing the norm === new code
+ gsl_integration_workspace * w = gsl_integration_workspace_alloc (1000);
+ gsl_function F;
+ F.function = &WoodSaxon;
+ F.params = &WSparams;
+ gsl_integration_qags(&F, -3.0 * Ra, 3.0 * Ra, 0, 1e-7, 1000, w, &result, &error);
+ const double tpp = result;
  rho0 = 2.0 * tpp * (1.0 - pow((1.0 - sigma * tpp / A), A));
+ gsl_integration_workspace_free(w);
 
- findRPhi();  // fill in R(phi) table
+ findRPhi(&WSparams);  // fill in R(phi) table
  cout << "R(phi) =  ";
  for (int jj = 0; jj < 5; jj++) cout << rPhi(jj * C_PI / 2.) << "  ";  // test
  cout << endl;
@@ -120,7 +143,7 @@ void ICGlauber::setIC(Fluid *f, EoS *eos) {
     double etaFactor;
     double eta1 = fabs(eta) < 1.3 ? 0.0 : fabs(eta) - 1.3;
     etaFactor = exp(-eta1 * eta1 / 2.1 / 2.1) * (fabs(eta) < 5.3 ? 1.0 : 0.0);
-    e = eProfile(x, y) * etaFactor;
+    e = eProfile(x, y, &WSparams) * etaFactor;
     if (e < 0.5) e = 0.0;
     vx = vy = 0.0;
     nb = nq = 0.0;
@@ -144,22 +167,12 @@ void ICGlauber::setIC(Fluid *f, EoS *eos) {
       << Etotal * f->getDx() * f->getDy() * f->getDz() * tau0 << endl;
 }
 
-double ICGlauber::Thickness(double *x, double *p) {
- // p[0]: Ra radius; p[1]: delta = 0.54fm
- double intgrl, prms[4];
- TF1 *iff = 0;
- iff = new TF1("WoodSaxonDF", this, &ICGlauber::WoodSaxon, -3.0 * p[0],
-               3.0 * p[0], 4, "IC", "WoodSaxon");
- //prms[0] = sqrt(x[0] * x[0] + x[1] * x[1]);  //
- //prms[1] = 1.0;  // normalization parameter which must be found.
- //prms[2] = p[0];
- //prms[3] = p[1];
- iff->SetParameters(sqrt(x[0] * x[0] + x[1] * x[1]), 1.0, p[0], p[1]);
- intgrl = iff->Integral(-3.0 * p[0], 3.0 * p[0], 1.0e-9);
- if (iff) delete iff;
- return intgrl;
+double WoodSaxon3D(double* x, size_t dim, void *params) {
+ struct WS_params *p = (struct WS_params *)params;
+ return p->norm / (exp((sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]) - p->Ra) / p->delta) + 1.0);
 }
 
-double ICGlauber::WoodSaxon(double *x, double *p) {
- return p[1] / (exp((sqrt(x[0] * x[0] + p[0] * p[0]) - p[2]) / p[3]) + 1.0);
+double WoodSaxon(double x, void *params) {
+ struct WS_params *p = (struct WS_params *)params;
+ return p->norm / (exp((sqrt(x*x + p->r*p->r) - p->Ra) / p->delta) + 1.0);
 }
