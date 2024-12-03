@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <memory>
 #include <cmath>
+#include <vector>
 #include <stdexcept>
 #include "inc.h"
 class EoS;
