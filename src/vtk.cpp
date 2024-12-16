@@ -1,6 +1,7 @@
 #include "vtk.h"
 #include "hdo.h"
 #include "fld.h"
+#include "eos.h"
 
 #include <stdexcept>
 #include <iostream>
@@ -81,8 +82,8 @@ void VtkOutput::write_vtk_scalar(std::ofstream &file, const Hydro h, std::string
    
     for (int iy = 0; iy < h.getFluid()->getNY(); iy++) {
       for (int ix = 0; ix < h.getFluid()->getNX(); ix++) {
-         double e,p,nb,nq,ns,vx,vy,vz;
-         double e2,p2,nb2,nq2,ns2,vx2,vy2,vz2;
+         double e,p,nb,nq,ns,vx,vy,vz, T, mub, muq, mus;
+         double e2,p2,nb2,nq2,ns2,vx2,vy2,vz2, T2, mub2, muq2, mus2;
          Cell* cell=h.getFluid()->getCell(ix,iy,poseta);
          Cell* cell2;
          if(poseta>0){
@@ -103,6 +104,22 @@ void VtkOutput::write_vtk_scalar(std::ofstream &file, const Hydro h, std::string
            q=factor*nq+(factor-1)*nq2;
          } else if(quantity == "ns"){
            q=factor*ns+(factor-1)*ns2;
+         } else if(quantity == "T"){
+           eos_->eos(e, nb, nq, ns, T, mub, muq, mus, p);
+           eos_->eos(e2, nb2, nq2, ns2, T2, mub2, muq2, mus2, p2);
+           q=factor*T+(factor-1)*T2;
+          } else if(quantity == "mub"){
+           eos_->eos(e, nb, nq, ns, T, mub, muq, mus, p);
+           eos_->eos(e2, nb2, nq2, ns2, T2, mub2, muq2, mus2, p2);
+           q=factor*mub+(factor-1)*mub2;
+          } else if(quantity == "muq"){
+           eos_->eos(e, nb, nq, ns, T, mub, muq, mus, p);
+           eos_->eos(e2, nb2, nq2, ns2, T2, mub2, muq2, mus2, p2);
+           q=factor*muq+(factor-1)*muq2;
+          } else if(quantity == "mus"){
+           eos_->eos(e, nb, nq, ns, T, mub, muq, mus, p);
+           eos_->eos(e2, nb2, nq2, ns2, T2, mub2, muq2, mus2, p2);
+           q=factor*mus+(factor-1)*mus2;
          }else{
           std::cout<<"No quantity for VTK output specified"<<std::endl;
           return;
