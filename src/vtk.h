@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <string>
 #include <utility>
@@ -23,10 +24,23 @@ class VtkOutput {
      * The following vector contains all currently supported VTK quantities.
      * If multiple quantities are desired, the delimiter in the config file has
      * to be a comma without any whitespaces in between, for example:
-     * `VTK_output_valus eps,mub,nq,T`
+     * `VTK_output_valus eps,mub,nq,T,v,pi`
+     * For vector quantities only the corresponding three vector will be written
+     * to the output file.
      */
-    const std::vector<std::string> valid_quantities_ = {
-      "eps", "mub", "muq", "mus", "nb", "nq", "ns", "p", "T"
+    const std::map<std::string, std::string> valid_quantities_ = {
+      {"eps", "scalar"},        // energy density
+      {"mub", "scalar"},        // baryon chemical potential
+      {"muq", "scalar"},        // electric chemical potential
+      {"mus", "scalar"},        // strangeness chemical potential
+      {"nb", "scalar"},         // baryon density
+      {"nq", "scalar"},         // charge density
+      {"ns", "scalar"},         // strangeness density
+      {"p", "scalar"},          // pressure
+      {"Pi", "scalar"},         // bulk pressure
+      {"pi", "tensor"},         // shear stress tensor
+      {"T", "scalar"},          // temperature
+      {"v", "vector"}           // velocity
     };
 
   public:
@@ -55,6 +69,12 @@ class VtkOutput {
                       const std::string &description);
     void write_vtk_scalar(std::ofstream &file, const Hydro h,
                           std::string &quantity);
+    void write_vtk_vector(std::ofstream &file, const Hydro h,
+                          std::string &quantity);
+    void write_vtk_tensor(std::ofstream &file, const Hydro h,
+                          std::string &quantity);
     bool is_quantity_implemented(std::string &quantity);
+    std::vector<double> smearing_factor_and_poseta(const Hydro h, const int iz,
+                                    const int z_length);
     std::string make_filename (const std::string &descr, int counter);
 };
