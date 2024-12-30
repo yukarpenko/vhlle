@@ -44,24 +44,22 @@ std::vector<double> VtkOutput::smearing_factor_and_poseta(const Hydro h, const i
   if (cartesian_) {
     double total_length = h.getTau()*std::sinh(h.getFluid()->getDz()*(h.getFluid()->getNZ()/2));
     double pos = 0;
+    int ieta = 0;
+    int end_index_ieta = h.getFluid()->getNZ()/2;
     if (iz < z_length/2) {
       pos = -total_length+total_length/(z_length/2)*iz;
-      for (int ieta = 0; ieta < h.getFluid()->getNZ()/2; ieta++) {
-        if (h.getTau()*std::sinh(h.getFluid()->getDz()*(ieta-h.getFluid()->getNZ()/2)) > pos) {
-          factor = fabs((h.getTau()*std::sinh(h.getFluid()->getDz()*(ieta-h.getFluid()->getNZ()/2))-pos)/pos);
-          poseta = ieta;
-          break;
-        }
-      }
     } else {
       pos = total_length/(z_length/2)*(iz-z_length/2);
-      for (int ieta = h.getFluid()->getNZ()/2; ieta < h.getFluid()->getNZ(); ieta++) {
-        if (h.getTau()*std::sinh(h.getFluid()->getDz()*(ieta-h.getFluid()->getNZ()/2)) > pos) {
-          factor = fabs((h.getTau()*std::sinh(h.getFluid()->getDz()*(ieta-h.getFluid()->getNZ()/2))-pos)/pos);
-          poseta = ieta;
-          break;
-        }
+      ieta = h.getFluid()->getNZ()/2;
+      end_index_ieta = h.getFluid()->getNZ();
+    }
+    while (ieta < end_index_ieta) {
+      if (h.getTau()*std::sinh(h.getFluid()->getDz()*(ieta-h.getFluid()->getNZ()/2)) > pos) {
+        factor = fabs((h.getTau()*std::sinh(h.getFluid()->getDz()*(ieta-h.getFluid()->getNZ()/2))-pos)/pos);
+        poseta = ieta;
+        break;
       }
+      ieta++;
     }
     if (pos == 0) {
       factor = 1;
@@ -72,7 +70,7 @@ std::vector<double> VtkOutput::smearing_factor_and_poseta(const Hydro h, const i
 }
 
 void VtkOutput::write_vtk_scalar(std::ofstream &file, const Hydro h,
-                                 std::string &quantity) {
+                                 const std::string &quantity) {
   file << "SCALARS " << quantity << " double 1\n"
        << "LOOKUP_TABLE default\n";
   file << std::setprecision(3);
@@ -88,8 +86,8 @@ void VtkOutput::write_vtk_scalar(std::ofstream &file, const Hydro h,
     double poseta = factor_and_poseta.at(1);
     for (int iy = 0; iy < h.getFluid()->getNY(); iy++) {
       for (int ix = 0; ix < h.getFluid()->getNX(); ix++) {
-        double e, mub, muq, mus, nb, nq, ns, p, T, vx, vy, vz;
-        double e2, mub2, muq2, mus2, nb2, nq2, ns2, p2, T2, vx2, vy2, vz2;
+        double e, nb, nq, ns, p, vx, vy, vz;
+        double e2, nb2, nq2, ns2, p2, vx2, vy2, vz2;
         Cell* cell = h.getFluid()->getCell(ix,iy,poseta);
         Cell* cell2;
         if (poseta > 0) {
@@ -100,20 +98,9 @@ void VtkOutput::write_vtk_scalar(std::ofstream &file, const Hydro h,
         cell->getPrimVar(eos_, h.getTau(), e, p, nb, nq, ns, vx, vy, vz);
         cell2->getPrimVar(eos_, h.getTau(), e2, p2, nb2, nq2, ns2, vx2, vy2, vz2);
         double q = 0;
+        // scalar quantities
         if (quantity == "eps") {
           q = factor*e+(factor-1)*e2;
-        } else if (quantity == "mub") {
-          eos_->eos(e, nb, nq, ns, T, mub, muq, mus, p);
-          eos_->eos(e2, nb2, nq2, ns2, T2, mub2, muq2, mus2, p2);
-          q = factor*mub+(factor-1)*mub2;
-        } else if (quantity == "muq") {
-          eos_->eos(e, nb, nq, ns, T, mub, muq, mus, p);
-          eos_->eos(e2, nb2, nq2, ns2, T2, mub2, muq2, mus2, p2);
-          q = factor*muq+(factor-1)*muq2;
-        } else if (quantity == "mus") {
-          eos_->eos(e, nb, nq, ns, T, mub, muq, mus, p);
-          eos_->eos(e2, nb2, nq2, ns2, T2, mub2, muq2, mus2, p2);
-          q = factor*mus+(factor-1)*mus2;
         } else if (quantity == "nb") {
           q = factor*nb+(factor-1)*nb2;
         } else if (quantity == "nq") {
@@ -126,10 +113,22 @@ void VtkOutput::write_vtk_scalar(std::ofstream &file, const Hydro h,
           double Pi = cell->getPi();
           double Pi2 = cell2->getPi();
           q = factor*Pi+(factor-1)*Pi2;
-        } else if (quantity == "T") {
+        // scalar quantities that need eos()
+        } else if (quantity == "mub" || quantity == "muq" || quantity == "mus"
+                   || quantity == "T") {
+          double mub, muq, mus, T;
+          double mub2, muq2, mus2, T2;
           eos_->eos(e, nb, nq, ns, T, mub, muq, mus, p);
           eos_->eos(e2, nb2, nq2, ns2, T2, mub2, muq2, mus2, p2);
-          q = factor*T+(factor-1)*T2;
+          if (quantity == "mub") {
+            q = factor*mub+(factor-1)*mub2;
+          } else if (quantity == "muq") {
+            q = factor*muq+(factor-1)*muq2;
+          } else if (quantity == "mus") {
+            q = factor*mus+(factor-1)*mus2;
+          } else if (quantity == "T") {
+            q = factor*T+(factor-1)*T2;
+          }
         }
         file << q << " ";
       }
@@ -139,7 +138,7 @@ void VtkOutput::write_vtk_scalar(std::ofstream &file, const Hydro h,
 }
 
 void VtkOutput::write_vtk_vector(std::ofstream &file, const Hydro h,
-                                  std::string &quantity) {
+                                 const std::string &quantity) {
   file << "VECTORS " << quantity << " double\n";
   file << std::setprecision(3);
   file << std::fixed;
@@ -154,8 +153,8 @@ void VtkOutput::write_vtk_vector(std::ofstream &file, const Hydro h,
     double poseta = factor_and_poseta.at(1);
     for (int iy = 0; iy < h.getFluid()->getNY(); iy++) {
       for (int ix = 0; ix < h.getFluid()->getNX(); ix++) {
-        double e, p, nb, nq, ns, vx, vy, vz, T, mub, muq, mus;
-        double e2, p2, nb2, nq2, ns2, vx2, vy2, vz2, T2, mub2, muq2, mus2;
+        double e, p, nb, nq, ns, vx, vy, vz;
+        double e2, p2, nb2, nq2, ns2, vx2, vy2, vz2;
         Cell* cell = h.getFluid()->getCell(ix,iy,poseta);
         Cell* cell2;
         if (poseta > 0) {
@@ -176,7 +175,7 @@ void VtkOutput::write_vtk_vector(std::ofstream &file, const Hydro h,
 }
 
 void VtkOutput::write_vtk_tensor(std::ofstream &file, const Hydro h,
-                                  std::string &quantity) {
+                                 const std::string &quantity) {
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++ ) {
       file << "SCALARS " << quantity << std::to_string(i) << std::to_string(j)
@@ -219,7 +218,7 @@ void VtkOutput::write_vtk_tensor(std::ofstream &file, const Hydro h,
 
 std::vector<std::string> split (const std::string &s, char delim) {
   std::vector<std::string> result;
-  std::stringstream ss (s);
+  std::stringstream ss(s);
   std::string item;
 
   while (getline(ss, item, delim)) {
@@ -229,13 +228,13 @@ std::vector<std::string> split (const std::string &s, char delim) {
   return result;
 }
 
-bool VtkOutput::is_quantity_implemented(std::string &quantity) {
+bool VtkOutput::is_quantity_implemented(const std::string &quantity) {
   bool quantity_is_valid = (valid_quantities_.find(quantity)
                             != valid_quantities_.end());
   return quantity_is_valid;
 }
 
-void VtkOutput::write(const Hydro h, std::string &quantities) {
+void VtkOutput::write(const Hydro h, const std::string &quantities) {
   std::vector<std::string> quantities_list = split(quantities,',');
   for (std::string q : quantities_list){
     if (!is_quantity_implemented(q)) {

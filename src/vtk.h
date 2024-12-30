@@ -21,7 +21,7 @@ class VtkOutput {
     bool cartesian_;
     int vtk_output_counter_ = 0;  // Number of vtk output in current event
     /*
-     * The following vector contains all currently supported VTK quantities.
+     * The following map contains all currently supported VTK quantities.
      * If multiple quantities are desired, the delimiter in the config file has
      * to be a comma without any whitespaces in between, for example:
      * `VTK_output_valus eps,mub,nq,T,v,pi`
@@ -64,17 +64,17 @@ class VtkOutput {
                 cartesian_(cartesian)
               {}
 
-    void write(const Hydro h, std::string &quantity);
+    void write(const Hydro h, const std::string &quantities);
     void write_header(std::ofstream &file, const Hydro h,
                       const std::string &description);
     void write_vtk_scalar(std::ofstream &file, const Hydro h,
-                          std::string &quantity);
+                          const std::string &quantity);
     void write_vtk_vector(std::ofstream &file, const Hydro h,
-                          std::string &quantity);
+                          const std::string &quantity);
     void write_vtk_tensor(std::ofstream &file, const Hydro h,
-                          std::string &quantity);
-    bool is_quantity_implemented(std::string &quantity);
+                          const std::string &quantity);
+    bool is_quantity_implemented(const std::string &quantity);
     std::vector<double> smearing_factor_and_poseta(const Hydro h, const int iz,
-                                    const int z_length);
+                                                   const int z_length);
     std::string make_filename (const std::string &descr, int counter);
 };
