@@ -8,26 +8,22 @@
 #include "hdo.h"
 #include "vtk.h"
 
-void VtkOutput::write_header(std::ofstream &file, const Hydro h, const std::string &description) {
-  if (cartesian_) {
-    file << "# vtk DataFile Version 2.0\n"
-      << description << "\n"
-      << "ASCII\n"
-      << "DATASET STRUCTURED_POINTS\n"
-      << "DIMENSIONS " << h.getFluid()->getNX() << " " << h.getFluid()->getNY() << " " << (h.getFluid()->getNZ())*20 << "\n"
-      << "SPACING " << h.getFluid()->getDx() << " " << h.getFluid()->getDy() << " " << h.getTau()*std::sinh(h.getFluid()->getDz()*(h.getFluid()->getNZ()/2))/(20*h.getFluid()->getNZ()/2) << "\n"
-      << "ORIGIN " << xmin_ << " " << ymin_ << " " << etamin_ << "\n"
-      << "POINT_DATA " << h.getFluid()->getNX()*h.getFluid()->getNY()*(h.getFluid()->getNZ())*20 << "\n";
-  } else {
-    file << "# vtk DataFile Version 2.0\n"
-      << description << "\n"
-      << "ASCII\n"
-      << "DATASET STRUCTURED_POINTS\n"
-      << "DIMENSIONS " << h.getFluid()->getNX() << " " << h.getFluid()->getNY() << " " << h.getFluid()->getNZ() << "\n"
-      << "SPACING " << h.getFluid()->getDx() << " " << h.getFluid()->getDy() << " " << h.getFluid()->getDz() << "\n"
-      << "ORIGIN " << xmin_ << " " << ymin_ << " " << etamin_ << "\n"
-      << "POINT_DATA " << h.getFluid()->getNX()*h.getFluid()->getNY()*h.getFluid()->getNZ() << "\n";
-  }
+void VtkOutput::write_header(std::ofstream &file, const Hydro h,
+                             const std::string &description) {
+  num_of_cells_x_direction_ = h.getFluid()->getNX();
+  num_of_cells_y_direction_ = h.getFluid()->getNY();
+  num_of_cells_eta_direction_ = h.getFluid()->getNZ();
+  file << "# vtk DataFile Version 2.0\n"
+    << description << "\n"
+    << "ASCII\n"
+    << "DATASET STRUCTURED_POINTS\n"
+    << "DIMENSIONS " << num_of_cells_x_direction_ << " "
+      << num_of_cells_y_direction_ << " " << num_of_cells_eta_direction_ << "\n"
+    << "SPACING " << h.getFluid()->getDx() << " " << h.getFluid()->getDy()
+                  << " " << h.getFluid()->getDz() << "\n"
+    << "ORIGIN " << xmin_ << " " << ymin_ << " " << etamin_ << "\n"
+    << "POINT_DATA " << num_of_cells_x_direction_ * num_of_cells_y_direction_
+                        * num_of_cells_eta_direction_ << "\n";
 
   return;
 }
@@ -38,96 +34,46 @@ std::string VtkOutput::make_filename(const std::string &descr, int counter) {
   return path_ + std::string("/") + descr + std::string(suffix);
 }
 
-std::vector<double> VtkOutput::smearing_factor_and_poseta(const Hydro h, const int iz, const int z_length) {
-  double poseta = iz;
-  double factor = 1;
-  if (cartesian_) {
-    double total_length = h.getTau()*std::sinh(h.getFluid()->getDz()*(h.getFluid()->getNZ()/2));
-    double pos = 0;
-    int ieta = 0;
-    int end_index_ieta = h.getFluid()->getNZ()/2;
-    if (iz < z_length/2) {
-      pos = -total_length+total_length/(z_length/2)*iz;
-    } else {
-      pos = total_length/(z_length/2)*(iz-z_length/2);
-      ieta = h.getFluid()->getNZ()/2;
-      end_index_ieta = h.getFluid()->getNZ();
-    }
-    while (ieta < end_index_ieta) {
-      if (h.getTau()*std::sinh(h.getFluid()->getDz()*(ieta-h.getFluid()->getNZ()/2)) > pos) {
-        factor = fabs((h.getTau()*std::sinh(h.getFluid()->getDz()*(ieta-h.getFluid()->getNZ()/2))-pos)/pos);
-        poseta = ieta;
-        break;
-      }
-      ieta++;
-    }
-    if (pos == 0) {
-      factor = 1;
-    }
-  }
-  std::vector<double> factor_and_poseta = {factor, poseta};
-  return factor_and_poseta;
-}
-
 void VtkOutput::write_vtk_scalar(std::ofstream &file, const Hydro h,
                                  const std::string &quantity) {
   file << "SCALARS " << quantity << " double 1\n"
        << "LOOKUP_TABLE default\n";
   file << std::setprecision(3);
   file << std::fixed;
-  int z_length = h.getFluid()->getNZ();
-  if (cartesian_) {
-    z_length = 20*z_length;
-  }
 
-  for (int iz = 0; iz < z_length; iz++) {
-    std::vector<double> factor_and_poseta = smearing_factor_and_poseta(h, iz, z_length);
-    double factor = factor_and_poseta.at(0);
-    double poseta = factor_and_poseta.at(1);
-    for (int iy = 0; iy < h.getFluid()->getNY(); iy++) {
-      for (int ix = 0; ix < h.getFluid()->getNX(); ix++) {
+  for (int ieta = 0; ieta < num_of_cells_eta_direction_; ieta++) {
+    for (int iy = 0; iy < num_of_cells_y_direction_; iy++) {
+      for (int ix = 0; ix < num_of_cells_x_direction_; ix++) {
         double e, nb, nq, ns, p, vx, vy, vz;
-        double e2, nb2, nq2, ns2, p2, vx2, vy2, vz2;
-        Cell* cell = h.getFluid()->getCell(ix,iy,poseta);
-        Cell* cell2;
-        if (poseta > 0) {
-          cell2 = h.getFluid()->getCell(ix,iy,poseta-1);
-        } else {
-          cell2 = cell;
-        }
+        Cell* cell = h.getFluid()->getCell(ix,iy,ieta);
         cell->getPrimVar(eos_, h.getTau(), e, p, nb, nq, ns, vx, vy, vz);
-        cell2->getPrimVar(eos_, h.getTau(), e2, p2, nb2, nq2, ns2, vx2, vy2, vz2);
         double q = 0;
         // scalar quantities
         if (quantity == "eps") {
-          q = factor*e+(factor-1)*e2;
+          q = e;
         } else if (quantity == "nb") {
-          q = factor*nb+(factor-1)*nb2;
+          q = nb;
         } else if (quantity == "nq") {
-          q = factor*nq+(factor-1)*nq2;
+          q = nq;
         } else if (quantity == "ns") {
-          q = factor*ns+(factor-1)*ns2;
+          q = ns;
         } else if (quantity == "p") {
-          q = factor*p+(factor-1)*p2;
+          q = p;
         } else if (quantity == "Pi") {
-          double Pi = cell->getPi();
-          double Pi2 = cell2->getPi();
-          q = factor*Pi+(factor-1)*Pi2;
+          q = cell->getPi();
         // scalar quantities that need eos()
         } else if (quantity == "mub" || quantity == "muq" || quantity == "mus"
                    || quantity == "T") {
           double mub, muq, mus, T;
-          double mub2, muq2, mus2, T2;
           eos_->eos(e, nb, nq, ns, T, mub, muq, mus, p);
-          eos_->eos(e2, nb2, nq2, ns2, T2, mub2, muq2, mus2, p2);
           if (quantity == "mub") {
-            q = factor*mub+(factor-1)*mub2;
+            q = mub;
           } else if (quantity == "muq") {
-            q = factor*muq+(factor-1)*muq2;
+            q = muq;
           } else if (quantity == "mus") {
-            q = factor*mus+(factor-1)*mus2;
+            q = mus;
           } else if (quantity == "T") {
-            q = factor*T+(factor-1)*T2;
+            q = T;
           }
         }
         file << q << " ";
@@ -142,31 +88,16 @@ void VtkOutput::write_vtk_vector(std::ofstream &file, const Hydro h,
   file << "VECTORS " << quantity << " double\n";
   file << std::setprecision(3);
   file << std::fixed;
-  int z_length = h.getFluid()->getNZ();
-  if (cartesian_) {
-    z_length = 20*z_length;
-  }
 
-  for (int iz = 0; iz < z_length; iz++) {
-    std::vector<double> factor_and_poseta = smearing_factor_and_poseta(h, iz, z_length);
-    double factor = factor_and_poseta.at(0);
-    double poseta = factor_and_poseta.at(1);
-    for (int iy = 0; iy < h.getFluid()->getNY(); iy++) {
-      for (int ix = 0; ix < h.getFluid()->getNX(); ix++) {
+  for (int ieta = 0; ieta < num_of_cells_eta_direction_; ieta++) {
+    for (int iy = 0; iy < num_of_cells_y_direction_; iy++) {
+      for (int ix = 0; ix < num_of_cells_x_direction_; ix++) {
         double e, p, nb, nq, ns, vx, vy, vz;
-        double e2, p2, nb2, nq2, ns2, vx2, vy2, vz2;
-        Cell* cell = h.getFluid()->getCell(ix,iy,poseta);
-        Cell* cell2;
-        if (poseta > 0) {
-          cell2 = h.getFluid()->getCell(ix,iy,poseta-1);
-        } else {
-          cell2 = cell;
-        }
+        Cell* cell = h.getFluid()->getCell(ix,iy,ieta);
         cell->getPrimVar(eos_, h.getTau(), e, p, nb, nq, ns, vx, vy, vz);
-        cell2->getPrimVar(eos_, h.getTau(), e2, p2, nb2, nq2, ns2, vx2, vy2, vz2);
         std::vector<double> q = {0.,0.,0.};
         if (quantity == "v") {
-          q = {factor*vx+(factor-1)*vx2, factor*vy+(factor-1)*vy2, factor*vz+(factor-1)*vz2};
+          q = {vx, vy, vz};
         }
         file << q.at(0) << " " << q.at(1) << " " << q.at(2) << "\n";
       }
@@ -183,29 +114,14 @@ void VtkOutput::write_vtk_tensor(std::ofstream &file, const Hydro h,
            << "LOOKUP_TABLE default\n";
       file << std::setprecision(3);
       file << std::fixed;
-      int z_length = h.getFluid()->getNZ();
-      if (cartesian_) {
-        z_length = 20*z_length;
-      }
 
-      for (int iz = 0; iz < z_length; iz++) {
-        std::vector<double> factor_and_poseta = smearing_factor_and_poseta(h, iz, z_length);
-        double factor = factor_and_poseta.at(0);
-        double poseta = factor_and_poseta.at(1);
-        for (int iy = 0; iy < h.getFluid()->getNY(); iy++) {
-          for (int ix = 0; ix < h.getFluid()->getNX(); ix++) {
-            Cell* cell = h.getFluid()->getCell(ix,iy,poseta);
-            Cell* cell2;
-            if (poseta > 0) {
-              cell2 = h.getFluid()->getCell(ix,iy,poseta-1);
-            } else {
-              cell2 = cell;
-            }
+      for (int ieta = 0; ieta < num_of_cells_eta_direction_; ieta++) {
+        for (int iy = 0; iy < num_of_cells_y_direction_; iy++) {
+          for (int ix = 0; ix < num_of_cells_x_direction_; ix++) {
+            Cell* cell = h.getFluid()->getCell(ix,iy,ieta);
             double q = 0;
             if (quantity == "pi") {
-              double pi_ij = cell->getpi(i,j);
-              double pi2_ij = cell2->getpi(i,j);
-              q = factor*pi_ij+(factor-1)*pi2_ij;
+              q = cell->getpi(i,j);
             }
             file << q << " ";
           }

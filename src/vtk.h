@@ -18,7 +18,8 @@ class VtkOutput {
     std::string path_;
     EoS* eos_;
     double xmin_, ymin_, etamin_;
-    bool cartesian_;
+    int num_of_cells_x_direction_, num_of_cells_y_direction_,
+        num_of_cells_eta_direction_;
     int vtk_output_counter_ = 0;  // Number of vtk output in current event
     /*
      * The following map contains all currently supported VTK quantities.
@@ -52,16 +53,14 @@ class VtkOutput {
      * \param xmin x coordinate of the first cell (center of fluid cell).
      * \param ymin y coordinate of the first cell (center of fluid cell).
      * \param etamin eta coordinate of the first cell (center of fluid cell).
-     * \param cartesian Bool that states if Cartesian output is enabled.
      */
     VtkOutput(std::string path, EoS* eos, double xmin, double ymin,
-              double etamin, bool cartesian=false):
+              double etamin):
                 path_(path),
                 eos_(eos),
                 xmin_(xmin),
                 ymin_(ymin),
-                etamin_(etamin),
-                cartesian_(cartesian)
+                etamin_(etamin)
               {}
 
     void write(const Hydro h, const std::string &quantities);
@@ -74,7 +73,5 @@ class VtkOutput {
     void write_vtk_tensor(std::ofstream &file, const Hydro h,
                           const std::string &quantity);
     bool is_quantity_implemented(const std::string &quantity);
-    std::vector<double> smearing_factor_and_poseta(const Hydro h, const int iz,
-                                                   const int z_length);
     std::string make_filename (const std::string &descr, int counter);
 };
