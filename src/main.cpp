@@ -69,7 +69,7 @@ void checkGridBorders(double min, double max, std::string _x) {
 
 int nx {100}, ny {100}, nz {100}, eosType {1}, etaSparam {0}, zetaSparam {0}, eosTypeHadron {0};
 // only FO hypersurface output: {0,1};  freezeout output extended by e,nb: {0,1}
-bool vtk_cartesian {false}, freezeoutOnly {false}, freezeoutExtend {false}, vorticityOn {false};
+bool freezeoutOnly {false}, freezeoutExtend {false}, vorticityOn {false};
 double xmin {-5.0}, xmax {5.0}, ymin {-5.0}, ymax {5.0}, etamin {-5.0},
   etamax {5.0}, tau0 {1.0}, tauMax {20.0}, tauResize {4.0}, dtau {0.05},
   etaS {0.08}, zetaS {0.0}, eCrit {0.5}, etaSEpsilonMin {5.}, al {0.}, ah {0.}, aRho {0.}, T0 {0.15},
@@ -121,7 +121,6 @@ void readParameters(char *parFile) {
         {"impactPar", [](const string& value) { impactPar = atof(value.c_str()); }},
         {"s0ScaleFactor", [](const string& value) { s0ScaleFactor = atof(value.c_str()); }},
         {"VTK_output_values", [](const string& value) { vtk_values = value; }},
-        {"VTK_cartesian", [](const string& value) { vtk_cartesian= atoi(value.c_str()); }},
         {"etaSparam", [](const string& value) { etaSparam = atoi(value.c_str()); }},
         {"aRho", [](const string& value) { aRho = atof(value.c_str()); }},
         {"ah", [](const string& value) { ah = atof(value.c_str()); }},
@@ -220,8 +219,7 @@ void printParameters() {
  cout << "smoothingType = " << smoothingType << endl;
  cout << "impactPar = " << impactPar << endl;
  cout << "s0ScaleFactor = " << s0ScaleFactor << endl;
- cout << "VTK output values = " << vtk_values << endl;
- cout << "VTK cartesian = " << vtk_cartesian << endl;
+ cout << "VTK_output_values = " << vtk_values << endl;
  cout << "======= end parameters =======\n";
 }
 
@@ -395,7 +393,7 @@ int main(int argc, char **argv) {
  bool resized = false; // flag if the grid has been resized
 
  std::string dir=outputDir.c_str();
- VtkOutput vtk_out=VtkOutput(dir,eos,xmin,ymin,etamin,vtk_cartesian);
+ VtkOutput vtk_out=VtkOutput(dir,eos,xmin,ymin,etamin);
 
  int nelements = 0;
  do {
