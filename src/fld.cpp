@@ -178,7 +178,7 @@ void Fluid::printDbetaHeader() {
     throw std::runtime_error("Error: num_corona_cells not set, cannot print header of beta.dat");
   } else {
     output::fbeta << "# The derivatives of β are given in Cartesian coordinates and include a factor of 1/2, such that ∂ₘβₙ=1/2 * ∂ₘ(uₙ/T)" << endl;
-    output::fbeta << "#  Number of corona cells: " << num_corona_cells << endl;
+    output::fbeta << "# Number of corona cells: " << num_corona_cells << endl;
     output::fbeta << "#  τ  x  y  η  dΣ[0]  dΣ[1]  dΣ[2]  dΣ[3]  "
                   << "u[0]  u[1]  u[2]  u[3]  T  μB  μQ  μS  "
                   << "∂₀β₀  ∂₀β₁  ∂₀β₂  ∂₀β₃  ∂₁β₀  ∂₁β₁  ∂₁β₂  ∂₁β₃  "

@@ -21,6 +21,7 @@
 #include <memory>
 #include <cmath>
 #include <stdexcept>
+#include <vector>
 #include "inc.h"
 class EoS;
 
