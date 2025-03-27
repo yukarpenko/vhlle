@@ -179,7 +179,7 @@ void Fluid::printDbetaHeader() {
   } else {
     output::fbeta << "# The derivatives of β are given in Cartesian coordinates and include a factor of 1/2, such that ∂ₘβₙ=1/2 * ∂ₘ(uₙ/T)" << endl;
     output::fbeta << "# Number of corona cells: " << num_corona_cells << endl;
-    output::fbeta << "#  τ  x  y  η  dΣ[0]  dΣ[1]  dΣ[2]  dΣ[3]  "
+    output::fbeta << "# τ  x  y  η  dΣ[0]  dΣ[1]  dΣ[2]  dΣ[3]  "
                   << "u[0]  u[1]  u[2]  u[3]  T  μB  μQ  μS  "
                   << "∂₀β₀  ∂₀β₁  ∂₀β₂  ∂₀β₃  ∂₁β₀  ∂₁β₁  ∂₁β₂  ∂₁β₃  "
                   << "∂₂β₀  ∂₂β₁  ∂₂β₂  ∂₂β₃  ∂₃β₀  ∂₃β₁  ∂₃β₂  ∂₃β₃  ϵ" << endl;

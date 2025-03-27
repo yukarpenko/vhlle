@@ -454,9 +454,6 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
   (*dbeta)[0][1] = (ux1 / T1 - ux0 / T0) / dt;
   (*dbeta)[0][2] = (uy1 / T1 - uy0 / T0) / dt;
   (*dbeta)[0][3] = (uz1 / T1 - uz0 / T0) / dt;
-  if(e1 <= 0. || e0 <= 0. || T1<=0. || T0<=0.) {
-    (*dbeta)[0][0] = (*dbeta)[0][1] = (*dbeta)[0][2] = (*dbeta)[0][3] = 0.;
-  }
  }
  if (fabs(0.5 * (ut1 + ut0) / ut1) > UDIFF) dmu[0][0] = (ut1 - ut0) / dt;
  if (fabs(uuu[1]) < VMIN || fabs(0.5 * (ux1 + ux0) / ux1) > UDIFF)
@@ -468,6 +465,9 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
  if (e1 <= 0. || e0 <= 0.) {  // matter-vacuum
   dmu[0][0] = dmu[0][1] = dmu[0][2] = dmu[0][3] = 0.;
  }
+ if(e1 <= 0. || e0 <= 0. || T1<=0. || T0<=0.) {
+  (*dbeta)[0][0] = (*dbeta)[0][1] = (*dbeta)[0][2] = (*dbeta)[0][3] = 0.;
+}
  // d_x u^\mu
  f->getCell(ix + 1, iy, iz)
      ->getPrimVarHCenter(eos, tau, e1, p, nb, nq, ns, vx1, vy1, vz1);
@@ -497,9 +497,6 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
     (*dbeta)[1][1] = 0.5 * (ux1 / T1 - ux0 / T0) / dx;
     (*dbeta)[1][2] = 0.5 * (uy1 / T1 - uy0 / T0) / dx;
     (*dbeta)[1][3] = 0.5 * (uz1 / T1 - uz0 / T0) / dx;
-    if(e1 <= 0. || e0 <= 0. || T1<=0. || T0<=0.) {
-      (*dbeta)[1][0] = (*dbeta)[1][1] = (*dbeta)[1][2] = (*dbeta)[1][3] = 0.;
-    }
   }
   if (fabs(0.5 * (ut1 + ut0) / uuu[0]) > UDIFF)
    dmu[1][0] = 0.5 * (ut1 - ut0) / dx;
@@ -512,6 +509,9 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
  } else {  // matter-vacuum
   dmu[1][0] = dmu[1][1] = dmu[1][2] = dmu[1][3] = 0.;
  }
+ if(e1 <= 0. || e0 <= 0. || T1<=0. || T0<=0.) {
+  (*dbeta)[1][0] = (*dbeta)[1][1] = (*dbeta)[1][2] = (*dbeta)[1][3] = 0.;
+}
  if (fabs(dmu[1][3]) > 1e+10)
   cout << "dmu[1][3]:  " << uz1 << "  " << uz0 << "  " << uuu[3] << endl;
  // d_y u^\mu
@@ -543,9 +543,6 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
     (*dbeta)[2][1] = 0.5 * (ux1 / T1 - ux0 / T0) / dy;
     (*dbeta)[2][2] = 0.5 * (uy1 / T1 - uy0 / T0) / dy;
     (*dbeta)[2][3] = 0.5 * (uz1 / T1 - uz0 / T0) / dy;
-    if(e1 <= 0. || e0 <= 0. || T1<=0. || T0<=0.) {
-      (*dbeta)[2][0] = (*dbeta)[2][1] = (*dbeta)[2][2] = (*dbeta)[2][3] = 0.;
-    }
   }
   if (fabs(0.5 * (ut1 + ut0) / uuu[0]) > UDIFF)
    dmu[2][0] = 0.5 * (ut1 - ut0) / dy;
@@ -557,6 +554,9 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
    dmu[2][3] = 0.5 * (uz1 - uz0) / dy;
  } else {  // matter-vacuum
   dmu[2][0] = dmu[2][1] = dmu[2][2] = dmu[2][3] = 0.;
+ }
+ if(e1 <= 0. || e0 <= 0. || T1<=0. || T0<=0.) {
+  (*dbeta)[2][0] = (*dbeta)[2][1] = (*dbeta)[2][2] = (*dbeta)[2][3] = 0.;
  }
  // d_z u^\mu
  f->getCell(ix, iy, iz + 1)
@@ -587,9 +587,6 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
     (*dbeta)[3][1] = 0.5 * (ux1 / T1 - ux0 / T0) / (dz * (tau + 0.5 * dt));
     (*dbeta)[3][2] = 0.5 * (uy1 / T1 - uy0 / T0) / (dz * (tau + 0.5 * dt));
     (*dbeta)[3][3] = 0.5 * (uz1 / T1 - uz0 / T0) / (dz * (tau + 0.5 * dt));
-    if(e1 <= 0. || e0 <= 0. || T1<=0. || T0<=0.){
-      (*dbeta)[3][0] = (*dbeta)[3][1] = (*dbeta)[3][2] = (*dbeta)[3][3] = 0.;
- }
   }
   if (fabs(0.5 * (ut1 + ut0) / uuu[0]) > UDIFF)
    dmu[3][0] = 0.5 * (ut1 - ut0) / dz / (tau + 0.5 * dt);
@@ -601,6 +598,9 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
    dmu[3][3] = 0.5 * (uz1 - uz0) / dz / (tau + 0.5 * dt);
  } else {  // matter-vacuum
   dmu[3][0] = dmu[3][1] = dmu[3][2] = dmu[3][3] = 0.;
+ }
+ if(e1 <= 0. || e0 <= 0. || T1<=0. || T0<=0.){
+  (*dbeta)[3][0] = (*dbeta)[3][1] = (*dbeta)[3][2] = (*dbeta)[3][3] = 0.;
  }
  // additional terms from Christoffel symbols :)
  dmu[3][0] += uuu[3] / (tau - 0.5 * dt);
