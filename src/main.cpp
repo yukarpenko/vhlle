@@ -69,16 +69,16 @@ void checkGridBorders(double min, double max, std::string _x) {
 
 int nx {100}, ny {100}, nz {100}, eosType {1}, etaSparam {0}, zetaSparam {0}, eosTypeHadron {0};
 // only FO hypersurface output: {0,1};  freezeout output extended by e,nb: {0,1}
-bool vtk_cartesian {false}, vtk {false}, freezeoutOnly {false}, freezeoutExtend {false}, vorticityOn {false}; 
-double xmin {-5.0}, xmax {5.0}, ymin {-5.0}, ymax {5.0}, etamin {-5.0}, 
+bool freezeoutOnly {false}, freezeoutExtend {false}, vorticityOn {false};
+double xmin {-5.0}, xmax {5.0}, ymin {-5.0}, ymax {5.0}, etamin {-5.0},
   etamax {5.0}, tau0 {1.0}, tauMax {20.0}, tauResize {4.0}, dtau {0.05},
-  etaS {0.08}, zetaS {0.0}, eCrit {0.5}, etaSEpsilonMin {5.}, al {0.}, ah {0.}, aRho {0.}, T0 {0.15}, 
-  etaSMin {0.08}, etaSShiftMuB {0.}, etaSScaleMuB {0.}, zetaSPeakEpsilon {5.}, 
+  etaS {0.08}, zetaS {0.0}, eCrit {0.5}, etaSEpsilonMin {5.}, al {0.}, ah {0.}, aRho {0.}, T0 {0.15},
+  etaSMin {0.08}, etaSShiftMuB {0.}, etaSScaleMuB {0.}, zetaSPeakEpsilon {5.},
   zetaSScaleBeta {0.103}, zetaSSigmaMinus {0.1}, zetaSSigmaPlus {0.1}, epsilon0, Rgt {1.0},
   Rgz {1.0}, impactPar, s0ScaleFactor;
 string collSystem, outputDir {"data"}, isInputFile, vtk_values {""};
-int icModel {1},glauberVariable  {1};  // icModel=1 for pure Glauber, 2 for table input (Glissando etc) 
-int smoothingType {0}; // 0 for kernel contracted in eta, 1 for invariant kernel 
+int icModel {1},glauberVariable  {1};  // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
+int smoothingType {0}; // 0 for kernel contracted in eta, 1 for invariant kernel
 
 void readParameters(char *parFile) {
     char parName[255], parValue[255];
@@ -120,9 +120,7 @@ void readParameters(char *parFile) {
         {"Rgz", [](const string& value) { Rgz = atof(value.c_str()); }},
         {"impactPar", [](const string& value) { impactPar = atof(value.c_str()); }},
         {"s0ScaleFactor", [](const string& value) { s0ScaleFactor = atof(value.c_str()); }},
-        {"VTK_output", [](const string& value) { vtk = atoi(value.c_str()); }},
         {"VTK_output_values", [](const string& value) { vtk_values = value; }},
-        {"VTK_cartesian", [](const string& value) { vtk_cartesian= atoi(value.c_str()); }},
         {"etaSparam", [](const string& value) { etaSparam = atoi(value.c_str()); }},
         {"aRho", [](const string& value) { aRho = atof(value.c_str()); }},
         {"ah", [](const string& value) { ah = atof(value.c_str()); }},
@@ -221,9 +219,7 @@ void printParameters() {
  cout << "smoothingType = " << smoothingType << endl;
  cout << "impactPar = " << impactPar << endl;
  cout << "s0ScaleFactor = " << s0ScaleFactor << endl;
- cout << "VTK output = " << vtk << endl;
- cout << "VTK output values = " << vtk_values << endl;
- cout << "VTK cartesian = " << vtk_cartesian << endl;
+ cout << "VTK_output_values = " << vtk_values << endl;
  cout << "======= end parameters =======\n";
 }
 
@@ -355,7 +351,7 @@ int main(int argc, char **argv) {
  } else if(icModel == 7) { // IC from Trento
    IcTrento *ic = new IcTrento(f, isInputFile.c_str(), tau0, collSystem.c_str());
    ic->setIC(f, eos);
-   delete ic;  
+   delete ic;
  } else if(icModel == 8) { // IC from Trento
    IcTrento3d *ic = new IcTrento3d(f, isInputFile.c_str(), tau0, collSystem.c_str());
    ic->setIC(f, eos);
@@ -395,15 +391,15 @@ int main(int argc, char **argv) {
  if (vorticityOn) f->printDbetaHeader();
 
  bool resized = false; // flag if the grid has been resized
- 
+
  std::string dir=outputDir.c_str();
- VtkOutput vtk_out=VtkOutput(dir,eos,xmin,ymin,etamin, vtk_cartesian);
+ VtkOutput vtk_out=VtkOutput(dir,eos,xmin,ymin,etamin);
 
  int nelements = 0;
  do {
   // small tau: decrease timestep by making substeps, in order
   // to avoid instabilities in eta direction (signal velocity ~1/tau)
-  if(vtk>0) {
+  if (!vtk_values.empty()) {
     vtk_out.write(*h,vtk_values);
   }
   int nSubSteps = 1;
