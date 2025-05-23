@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <memory>
 #include <cmath>
+#include <vector>
 #include <stdexcept>
 #include <vector>
 #include "inc.h"
