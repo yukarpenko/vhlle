@@ -38,8 +38,8 @@ IcPartSMASH::IcPartSMASH(Fluid* f, const char* filename, double _Rgt, double _Rg
  Rgx = _Rgt;
  Rgy = _Rgt;
  Rgz = _Rgz;
- nsmoothx = (int)(6.0 * Rgx / dx);  // smoothly distribute to +- this many cells
- nsmoothy = (int)(6.0 * Rgy / dy);
+ nsmoothx = (int)(4.0 * Rgx / dx);  // smoothly distribute to +- this many cells
+ nsmoothy = (int)(4.0 * Rgy / dy);
  nsmoothz = (int)(1.5 * Rgz / dz);
 
  isKernelInvariant = _smoothingType;
