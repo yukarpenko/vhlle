@@ -21,7 +21,7 @@ The following branches may be particularly useful:
 + cpc_final branch corresponds to the code published in Comput. Phys. Commun.
   This branch is more useful to get familiarized with the structure of the code
   and reproduce the published test results.
-+ stable_ebe branch (RECOMMENDED) contains the most recent, feature-rich code
++ main branch (RECOMMENDED) contains the most recent, feature-rich code
   used for the actual event-by-event simulations, and includes:
   - different initial state modules (classes)
   - Cornelius module to reconstruct the elements of particlization hypersurface
@@ -89,7 +89,7 @@ The following branches may be particularly useful:
  2) clone the main vHLLE repository:
  git clone https://github.com/yukarpenko/vhlle.git
  cd vhlle
- git checkout stable_ebe
+ git checkout main
  mkdir obj
  make
 
