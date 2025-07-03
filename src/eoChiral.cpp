@@ -65,7 +65,7 @@ EoSaux::EoSaux(char* filename, int Ne, int Nn) {
    fin >> Ttab[ie][in] >> mubtab[ie][in] >> e[ie] >> ptab[ie][in] >> n[in] >>
        stab[ie][in] >> mustab[ie][in] >> a;
    Ttab[ie][in] /= 1000.0;    // --> T[GeV]
-   mubtab[ie][in] /= 1000.0;  // --> mub[GeV]
+   mubtab[ie][in] *= 3.0/1000.0;  // --> mub[GeV]
    mustab[ie][in] /= 1000.0;  // --> mus[GeV]
    ptab[ie][in] *= 0.146;     // --> p[GeV/fm3]
    stab[ie][in] *= 0.15;      // --> s[1/fm3]
