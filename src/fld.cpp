@@ -834,7 +834,7 @@ int Fluid::outputSurface(double tau, bool extendFO) {
      // ---- transform dsigma to lab.frame :
      if (cartesian) {
       for(int ii=0; ii<4; ii++)
-       dsigma[ii] = cornelius->get_normal_elem(0, ii);
+       dsigma[ii] = cornelius->get_normal_elem(isegm, ii);
      }
      else {
       const double tauC = tau + cornelius->get_centroid_elem(isegm, 0);
