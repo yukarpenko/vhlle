@@ -841,12 +841,12 @@ int Fluid::outputSurface(double tau, bool extendFO) {
       ch = cosh(etaC);
       sh = sinh(etaC);
       
-      dsigma[0] = tauC * (ch * cornelius->get_normal_elem(0, 0) -
-                         sh / tauC * cornelius->get_normal_elem(0, 3));
-      dsigma[3] = tauC * (-sh * cornelius->get_normal_elem(0, 0) +
-                         ch / tauC * cornelius->get_normal_elem(0, 3));
-      dsigma[1] = tauC * cornelius->get_normal_elem(0, 1);
-      dsigma[2] = tauC * cornelius->get_normal_elem(0, 2);
+      dsigma[0] = tauC * (ch * cornelius->get_normal_elem(isegm, 0) -
+                         sh / tauC * cornelius->get_normal_elem(isegm, 3));
+     dsigma[3] = tauC * (-sh * cornelius->get_normal_elem(isegm, 0) +
+                         ch / tauC * cornelius->get_normal_elem(isegm, 3));
+     dsigma[1] = tauC * cornelius->get_normal_elem(isegm, 1);
+     dsigma[2] = tauC * cornelius->get_normal_elem(isegm, 2);
      }
      
      // d(Veff) and dsigma_mu dsigma^mu computation
