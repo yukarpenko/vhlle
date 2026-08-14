@@ -129,7 +129,7 @@ void Fluid::initOutput(const char *dir, double tau0, bool hsOnly) {
  // hsOnly (default false):
  // if true only the hypersurface output is initialized
  std::string outfreeze = dir;
- bool return_mkdir = std::filesystem::create_directory(outfreeze);
+ bool return_mkdir = std::filesystem::create_directories(outfreeze);
  cout << "mkdir returns: " << return_mkdir << endl;
  outfreeze.append("/freezeout.dat");
  checkOutputDirectory(outfreeze);
