@@ -391,6 +391,8 @@ void Fluid::correctImagCellsFull(void) {
 }
 
 void Fluid::updateM(double tau, double dt) {
+ // pass 1 writes only dm of its own cell and reads only m of the neighbours
+ #pragma omp parallel for collapse(2) schedule(dynamic, 2)
  for (int ix = 0; ix < getNX(); ix++)
   for (int iy = 0; iy < getNY(); iy++)
    for (int iz = 0; iz < getNZ(); iz++) {
@@ -451,6 +453,8 @@ void Fluid::updateM(double tau, double dt) {
     }  // if
    }
 
+ // pass 2 is strictly per-cell (m += dm)
+ #pragma omp parallel for collapse(2) schedule(dynamic, 2)
  for (int ix = 0; ix < getNX(); ix++)
   for (int iy = 0; iy < getNY(); iy++)
    for (int iz = 0; iz < getNZ(); iz++) {
