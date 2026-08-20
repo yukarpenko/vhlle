@@ -1,8 +1,8 @@
 
 CXX           = g++
-CXXFLAGS      = -Wall -fPIC -O3
+CXXFLAGS      = -Wall -O3 -march=native -flto=auto -fno-math-errno
 LD            = g++
-LDFLAGS       = -O3
+LDFLAGS       = -O3 -march=native -flto=auto -fno-math-errno
 
 LIBS          = $(SYSLIBS) -lgsl -lgslcblas
 

@@ -86,6 +86,8 @@ void Hydro::setDtau(double deltaTau) {
 void Hydro::hlle_flux(Cell *left, Cell *right, int direction, int mode) {
  // for all variables, suffix "l" = left state, "r" = right state
  // with respect to the cell boundary
+ if(left->getQt()==0. && right->getQt()==0.)
+   return;
  double el, er, pl, pr, nbl, nql, nsl, nbr, nqr, nsr, vxl, vxr, vyl, vyr, vzl,
      vzr, bl = 0., br = 0., csb, vb, El, Er, dx = 0.;
  double Ftl = 0., Fxl = 0., Fyl = 0., Fzl = 0., Fbl = 0., Fql = 0., Fsl = 0.,

@@ -32,8 +32,22 @@ using Block3D = std::vector<std::vector<std::vector<Matrix2D>>>;
 
 //#define NAN_DEBUG
 
-// returns an index of pi^{mu nu} mu,nu component in a plain 1D array
-int index44(const int &i, const int &j);
+// returns an index of pi^{mu nu} mu,nu component in a plain 1D array.
+// Symmetric 4x4 -> 10-element packed lower triangle.  Implemented as a
+// compile-time table so the compiler emits a single load with no branches
+// and can constant-fold it entirely when i,j are loop constants.
+constexpr int idx44_tab[16] = {0, 1, 3, 6,
+                         1, 2, 4, 7,
+                         3, 4, 5, 8,
+                         6, 7, 8, 9};
+inline int index44(const int &i, const int &j) {
+#ifdef NAN_DEBUG
+ if (i > 3 || j > 3 || i < 0 || j < 0) {
+  throw std::runtime_error("index44: index out of range");
+ }
+#endif
+ return idx44_tab[i*4 + j];
+}
 
 // this class stores the information about an individual hydro cell
 class Cell {
@@ -124,6 +138,7 @@ public:
  inline void addPi0(const double &val) { Pi0 += val; }
  inline void addPiH0(const double &val) { PiH0 += val; }
 
+ inline double getQt(void) const { return Q[T_]; }  // cheap cell emptiness test
  inline void getQ(double *_Q) {
   for (int i = 0; i < 7; i++) _Q[i] = Q[i];
  }
