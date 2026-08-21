@@ -8,7 +8,7 @@
 #include "hdo.h"
 #include "vtk.h"
 
-void VtkOutput::write_header(std::ofstream &file, const Hydro h,
+void VtkOutput::write_header(std::ofstream &file, const Hydro &h,
                              const std::string &description) {
   num_of_cells_x_direction_ = h.getFluid()->getNX();
   num_of_cells_y_direction_ = h.getFluid()->getNY();
@@ -34,7 +34,7 @@ std::string VtkOutput::make_filename(const std::string &descr, int counter) {
   return path_ + std::string("/") + descr + std::string(suffix);
 }
 
-void VtkOutput::write_vtk_scalar(std::ofstream &file, const Hydro h,
+void VtkOutput::write_vtk_scalar(std::ofstream &file, const Hydro &h,
                                  const std::string &quantity) {
   file << "SCALARS " << quantity << " double 1\n"
        << "LOOKUP_TABLE default\n";
@@ -88,7 +88,7 @@ void VtkOutput::write_vtk_scalar(std::ofstream &file, const Hydro h,
   }
 }
 
-void VtkOutput::write_vtk_vector(std::ofstream &file, const Hydro h,
+void VtkOutput::write_vtk_vector(std::ofstream &file, const Hydro &h,
                                  const std::string &quantity) {
   file << "VECTORS " << quantity << " double\n";
   file << std::setprecision(3);
@@ -115,7 +115,7 @@ void VtkOutput::write_vtk_vector(std::ofstream &file, const Hydro h,
   }
 }
 
-void VtkOutput::write_vtk_tensor(std::ofstream &file, const Hydro h,
+void VtkOutput::write_vtk_tensor(std::ofstream &file, const Hydro &h,
                                  const std::string &quantity) {
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++ ) {
@@ -142,7 +142,7 @@ void VtkOutput::write_vtk_tensor(std::ofstream &file, const Hydro h,
   }
 }
 
-std::vector<std::string> split (const std::string &s, char delim) {
+std::vector<std::string> split (const std::string &s, const char delim) {
   std::vector<std::string> result;
   std::stringstream ss(s);
   std::string item;
@@ -160,7 +160,7 @@ bool VtkOutput::is_quantity_implemented(const std::string &quantity) {
   return quantity_is_valid;
 }
 
-void VtkOutput::write(const Hydro h, const std::string &quantities) {
+void VtkOutput::write(const Hydro &h, const std::string &quantities) {
   std::vector<std::string> quantities_list = split(quantities,',');
   for (std::string q : quantities_list){
     if (!is_quantity_implemented(q)) {
