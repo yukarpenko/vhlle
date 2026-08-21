@@ -65,14 +65,14 @@ class VtkOutput {
                 cartesian_(cartesian)
               {}
 
-    void write(const Hydro h, const std::string &quantities);
-    void write_header(std::ofstream &file, const Hydro h,
+    void write(const Hydro &h, const std::string &quantities);
+    void write_header(std::ofstream &file, const Hydro &h,
                       const std::string &description);
-    void write_vtk_scalar(std::ofstream &file, const Hydro h,
+    void write_vtk_scalar(std::ofstream &file, const Hydro &h,
                           const std::string &quantity);
-    void write_vtk_vector(std::ofstream &file, const Hydro h,
+    void write_vtk_vector(std::ofstream &file, const Hydro &h,
                           const std::string &quantity);
-    void write_vtk_tensor(std::ofstream &file, const Hydro h,
+    void write_vtk_tensor(std::ofstream &file, const Hydro &h,
                           const std::string &quantity);
     bool is_quantity_implemented(const std::string &quantity);
     std::string make_filename (const std::string &descr, int counter);
