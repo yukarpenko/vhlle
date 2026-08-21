@@ -1,3 +1,4 @@
+#include <vector>
 #include "cll.h"
 
 class EoS;
@@ -21,6 +22,14 @@ private:
  double ecrit;
  double vEff, EtotSurf;  // cumulative effective volume and
  int compress2dOut;
+
+ // ---- scratch buffers used by outputSurface().
+ // The freeze-out surface finder needs the energy density at 16 corners of
+ // every space-time cube.  Recovering them cell-by-cell means each cell's
+ // primitive variables are re-derived 8 times (once per cube it belongs to).
+ // Instead we recover them once per timestep into these flat arrays.
+ std::vector<double> foE, foEprev, foP, foNb, foNq, foNs, foVx, foVy, foVz;
+ void cachePrimVars(double tau);   // fills the buffers above
 
  int num_corona_cells = -1; // number of corona cells. -1 means not set yet
  bool vorticityOn = false;
@@ -67,6 +76,10 @@ public:
 
  void getCMFvariables(Cell *c, double tau, double &e, double &nb, double &nq,
                       double &ns, double &vx, double &vy, double &Y);
+
+ inline int cellIndex(int ix, int iy, int iz) const {
+  return ix + nx * iy + nx * ny * iz;
+ }
 
  inline Cell *getCell(int ix, int iy, int iz) {
   ix = ix > 0 ? ix : 0;

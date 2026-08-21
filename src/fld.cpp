@@ -25,6 +25,11 @@
 #include <filesystem>
 #include <stdexcept>
 #include "inc.h"
+#include <array>
+#include <sstream>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 #include "rmn.h"
 #include "fld.h"
 #include "cll.h"
@@ -390,6 +395,38 @@ void Fluid::correctImagCellsFull(void) {
   }
 }
 
+// Computes the primitive variables of every cell once and stores them in flat
+// arrays.  Must be called with the EoS that outputSurface() actually uses
+// (i.e. after the eos/eosH swap).  Both the current (Q) and the previous
+// timestep (Qprev) energy densities are cached, since the surface finder needs
+// the space-time cube corners at tau-dt and tau.
+void Fluid::cachePrimVars(double tau) {
+ const size_t ncells = (size_t)nx * ny * nz;
+ if (foE.size() != ncells) {
+  foE.assign(ncells, 0.);   foEprev.assign(ncells, 0.);
+  foP.assign(ncells, 0.);   foNb.assign(ncells, 0.);
+  foNq.assign(ncells, 0.);  foNs.assign(ncells, 0.);
+  foVx.assign(ncells, 0.);  foVy.assign(ncells, 0.);  foVz.assign(ncells, 0.);
+ }
+ const double tauNow  = (cartesian) ? 1.0 : tau;
+ const double tauPrev = (cartesian) ? 1.0 : tau - dt;
+ #pragma omp parallel for collapse(2) schedule(dynamic, 2)
+ for (int iz = 0; iz < nz; iz++)
+  for (int iy = 0; iy < ny; iy++)
+   for (int ix = 0; ix < nx; ix++) {
+    const int ind = cellIndex(ix, iy, iz);
+    Cell *c = &cell[ind];
+    double e, p, nb, nq, ns, vx, vy, vz;
+    c->getPrimVar(eos, tauNow, e, p, nb, nq, ns, vx, vy, vz);
+    foE[ind] = e;  foP[ind] = p;
+    foNb[ind] = nb; foNq[ind] = nq; foNs[ind] = ns;
+    foVx[ind] = vx; foVy[ind] = vy; foVz[ind] = vz;
+    double ep, pp, nbp, nqp, nsp, vxp, vyp, vzp;
+    c->getPrimVarPrev(eos, tauPrev, ep, pp, nbp, nqp, nsp, vxp, vyp, vzp);
+    foEprev[ind] = ep;
+   }
+}
+
 void Fluid::updateM(double tau, double dt) {
  // pass 1 writes only dm of its own cell and reads only m of the neighbours
  #pragma omp parallel for collapse(2) schedule(dynamic, 2)
@@ -575,30 +612,100 @@ int Fluid::outputSurface(double tau, bool extendFO) {
  int nelements = 0, nsusp = 0;  // all surface elements and suspicious ones
  int nCoreCells = 0,
      nCoreCutCells = 0;  // cells with e>eCrit and cells with cut visc.corr.
-                         //-- Cornelius: allocating memory for corner points
+                         //-- Cornelius: the corner-point cube is now
+                         // allocated per thread inside the ix loop below
+//----end Cornelius
+#ifdef SWAP_EOS
+ swap(eos, eosH);
+#endif
+ cachePrimVars(tau);   // one primitive-variable recovery pass over the active region
+ output::f2d << endl;
+ // box boundaries for particlization - skipping border cells
+ const int sx0 = 2, sx1 = nx - 2, sy0 = 2, sy1 = ny - 2, sz0 = 2, sz1 = nz - 2;
+ // cosh_int / sinh_int depend on eta (i.e. on iz) alone -- tabulate them once
+ // per call instead of evaluating four transcendentals in every cell.
+ std::vector<double> coshIntTab(nz, 0.), sinhIntTab(nz, 0.);
+ if (!cartesian)
+  for (int iz = 0; iz < nz; iz++) {
+   const double et = getZ(iz);
+   coshIntTab[iz] = (sinh(et + 0.5 * dz) - sinh(et - 0.5 * dz)) / dz;
+   sinhIntTab[iz] = (cosh(et + 0.5 * dz) - cosh(et - 0.5 * dz)) / dz;
+  }
+ // ---- parallel over ix slabs.
+ // Every accumulator and every stream write is buffered per ix slab and merged
+ // afterwards in ascending ix order, so the result is bit-identical to the
+ // serial run and independent of both thread count and schedule.  Cornelius
+ // and the corner cube are per-thread (the Fluid::cornelius member is mutable
+ // shared state and must not be used from a parallel region).
+ const int nSlab = (sx1 > sx0) ? (sx1 - sx0) : 0;
+ std::vector<std::ostringstream> bufFreeze(nSlab), bufBeta(nSlab);
+ // Per-slab partial sums.  Each member has exactly the name of the
+ // corresponding accumulator in the serial version, so the store at the end
+ // of the slab and the merge at the end of the function read like plain
+ // assignments rather than index bookkeeping.
+ struct SlabSums {
+  double E = 0., Ecore = 0., Efull = 0., S = 0., Px = 0.;
+  double vt_num = 0., vt_den = 0., vxvy_num = 0., vxvy_den = 0.;
+  double pi0x_num = 0., pi0x_den = 0., txxyy_num = 0., txxyy_den = 0.;
+  double Nb1 = 0., Nb2 = 0., Nbcore = 0.;
+  double vEff = 0., EtotSurf = 0.;
+  double EtotSurfPos = 0., EtotSurfPosVisc = 0., EtotSurfNeg = 0.;
+  double nbTotSurf = 0., nbTotSurfPos = 0., nbTotSurfNeg = 0.;
+  long long nelements = 0, nsusp = 0, nCoreCells = 0, nCoreCutCells = 0;
+ };
+ std::vector<SlabSums> acc(nSlab);
+ const double arrayDxLoc[4] = {dt, dx, dy, dz};
+ #pragma omp parallel for schedule(dynamic, 1)
+ for (int ix = sx0; ix < sx1; ix++) {
+  // --- per-thread Cornelius instance and corner cube
+  Cornelius corn;
+  corn.init(4, ecrit, const_cast<double *>(arrayDxLoc));
  double ****ccube = new double ***[2];
  for (int i1 = 0; i1 < 2; i1++) {
   ccube[i1] = new double **[2];
   for (int i2 = 0; i2 < 2; i2++) {
    ccube[i1][i2] = new double *[2];
-   for (int i3 = 0; i3 < 2; i3++) {
-    ccube[i1][i2][i3] = new double[2];
+    for (int i3 = 0; i3 < 2; i3++) ccube[i1][i2][i3] = new double[2];
    }
   }
+  // --- shadow every function-scope temporary and accumulator, so that the
+  // loop body below is unchanged and each slab works on private copies
+  double e, p, nb, nq, ns, T, mub, muq, mus, vx, vy, vz, Q[7];
+  double eta = 0., ch = 0., sh = 0., etaC = 0.;
+  double uC[4];
+  double E = 0., Ecore = 0., Efull = 0., S = 0., Px = 0., vt_num = 0.,
+         vt_den = 0., vxvy_num = 0., vxvy_den = 0., pi0x_num = 0.,
+         pi0x_den = 0., txxyy_num = 0., txxyy_den = 0., Nb1 = 0., Nb2 = 0.,
+         Nbcore = 0.;
+  double vEff = 0., EtotSurf = 0.;
+  double EtotSurfPos = 0., EtotSurfPosVisc = 0., EtotSurfNeg = 0.;
+  double nbTotSurf = 0., nbTotSurfPos = 0., nbTotSurfNeg = 0.;
+  int nelements = 0, nsusp = 0, nCoreCells = 0, nCoreCutCells = 0;
+  std::ostringstream &ffreezeBuf = bufFreeze[ix - sx0];
+  std::ostringstream &fbetaBuf = bufBeta[ix - sx0];
+  for (int iy = sy0; iy < sy1; iy++)
+   for (int iz = sz0; iz < sz1; iz++) {
+    const int cind = cellIndex(ix, iy, iz);
+    Cell *c = &cell[cind];
+    // block below: same as getCMFvariables(c, tau, ...) but reusing the cached prim. vars
+    e = foE[cind]; nb = foNb[cind]; nq = foNq[cind]; ns = foNs[cind];
+    vx = foVx[cind]; vy = foVy[cind];
+    if (cartesian) {
+     vz = foVz[cind];
+    } else {
+     const double etaLoc = getZ(iz);
+     const double vzLoc = foVz[cind];
+     vz = etaLoc + 0.5 * log((1. + vzLoc) / (1. - vzLoc));
+     const double coshY = cosh(vz);
+     // keep the original association exactly: (vx * cosh(Y-eta)) / cosh(Y),
+     // not vx * (cosh(Y-eta)/cosh(Y))
+     vx = vx * cosh(vz - etaLoc) / coshY;
+     vy = vy * cosh(vz - etaLoc) / coshY;
  }
-//----end Cornelius
-#ifdef SWAP_EOS
- swap(eos, eosH);
-#endif
- output::f2d << endl;
- for (int ix = 2; ix < nx - 2; ix++)
-  for (int iy = 2; iy < ny - 2; iy++)
-   for (int iz = 2; iz < nz - 2; iz++) {
-    Cell *c = getCell(ix, iy, iz);
-    getCMFvariables(c, tau, e, nb, nq, ns, vx, vy, vz);
     c->getQ(Q);
     eos->eos(e, nb, nq, ns, T, mub, muq, mus, p);
-    double s = eos->s(e, nb, nq, ns);
+    // EoS::s() would call eos() a second time; reuse what we already have
+    double s = (T > 0.) ? (e + p - mub * nb - muq * nq - mus * ns) / T : 0.;
     eta = getZ(iz);
     if (cartesian) {
      E += (e + p) / (1. - vx*vx - vy*vy - vz*vz) - p;
@@ -634,8 +741,8 @@ int Fluid::outputSurface(double tau, bool extendFO) {
      }
     }
     else {
-     const double cosh_int = (sinh(eta + 0.5 * dz) - sinh(eta - 0.5 * dz)) / dz;
-     const double sinh_int = (cosh(eta + 0.5 * dz) - cosh(eta - 0.5 * dz)) / dz;
+     const double cosh_int = coshIntTab[iz];
+     const double sinh_int = sinhIntTab[iz];
      E += tau * (e + p) / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz)) *
              (cosh_int - tanh(vz) * sinh_int) -
          tau * p * cosh_int;
@@ -688,6 +795,25 @@ int Fluid::outputSurface(double tau, bool extendFO) {
     }
         
     //----- Cornelius stuff
+    // ---- corner energy densities come straight from the cached arrays.
+    // Cornelius only produces surface elements when the cube is cut by the
+    // e = ecrit level set, so test that first and skip assembling the (much
+    // more expensive) Q / pi / Pi corner data -- and the Block3D allocation
+    // below -- for the vast majority of cubes that are entirely inside or
+    // entirely outside the surface.
+    int nAbove = 0;
+    for (int jx = 0; jx < 2; jx++)
+     for (int jy = 0; jy < 2; jy++)
+      for (int jz = 0; jz < 2; jz++) {
+       const int cci = cellIndex(ix + jx, iy + jy, iz + jz);
+       const double e_now = foE[cci], e_prev = foEprev[cci];
+       ccube[1][jx][jy][jz] = e_now;
+       ccube[0][jx][jy][jz] = e_prev;
+       if (e_now >= ecrit) nAbove++;
+       if (e_prev >= ecrit) nAbove++;
+      }
+    if (nAbove == 0 || nAbove == 16) continue;   // no surface in this cube
+
     double QCube[2][2][2][2][7];
     double piSquare[2][2][2][10], PiSquare[2][2][2];
 
@@ -707,24 +833,11 @@ int Fluid::outputSurface(double tau, bool extendFO) {
     for (int jx = 0; jx < 2; jx++)
      for (int jy = 0; jy < 2; jy++)
       for (int jz = 0; jz < 2; jz++) {
-       double e_now, e_prev;
-       double _p, _nb, _nq, _ns, _vx, _vy, _vz;
        Cell *cc = getCell(ix + jx, iy + jy, iz + jz);
 
        cc->getQ(QCube[1][jx][jy][jz]);
        cc->getQprev(QCube[0][jx][jy][jz]);
        
-       if (cartesian) {
-        cc->getPrimVar(eos, 1.0, e_now, _p, _nb, _nq, _ns, _vx, _vy, _vz);
-        cc->getPrimVarPrev(eos, 1.0, e_prev, _p, _nb, _nq, _ns, _vx, _vy, _vz);
-       }
-       else {
-        cc->getPrimVar(eos, tau, e_now, _p, _nb, _nq, _ns, _vx, _vy, _vz);
-        cc->getPrimVarPrev(eos, tau - dt, e_prev, _p, _nb, _nq, _ns, _vx, _vy, _vz);
-       }
-       ccube[1][jx][jy][jz] = e_now;
-       ccube[0][jx][jy][jz] = e_prev;
-
        // ---- get viscous tensor
        for (int ii = 0; ii < 4; ii++) {
         for (int jj = 0; jj <= ii; jj++) {
@@ -746,16 +859,16 @@ int Fluid::outputSurface(double tau, bool extendFO) {
         }
        }
       }
-    cornelius->find_surface_4d(ccube);
-    const int Nsegm = cornelius->get_Nelements();
+    corn.find_surface_4d(ccube);
+    const int Nsegm = corn.get_Nelements();
     for (int isegm = 0; isegm < Nsegm; isegm++) {
      nelements++;
      if(vorticityOn) {
-      output::fbeta.precision(15);
-      output::fbeta << setw(24) << tau + cornelius->get_centroid_elem(isegm, 0)
-              << setw(24) << getX(ix) + cornelius->get_centroid_elem(isegm, 1)
-              << setw(24) << getY(iy) + cornelius->get_centroid_elem(isegm, 2)
-              << setw(24) << getZ(iz) + cornelius->get_centroid_elem(isegm, 3);
+      fbetaBuf.precision(15);
+      fbetaBuf << setw(24) << tau + corn.get_centroid_elem(isegm, 0)
+              << setw(24) << getX(ix) + corn.get_centroid_elem(isegm, 1)
+              << setw(24) << getY(iy) + corn.get_centroid_elem(isegm, 2)
+              << setw(24) << getZ(iz) + corn.get_centroid_elem(isegm, 3);
      }
      // ---- interpolation procedure
      double vxC = 0., vyC = 0., vzC = 0., TC = 0., mubC = 0., muqC = 0.,
@@ -763,14 +876,14 @@ int Fluid::outputSurface(double tau, bool extendFO) {
             nqC = 0.;  // values at the centre, to be interpolated
      double QC[7] = {0.};
      double eC = 0., pC = 0.;
-     double wCenT[2] = {1. - cornelius->get_centroid_elem(isegm, 0) / dt,
-                        cornelius->get_centroid_elem(isegm, 0) / dt};
-     double wCenX[2] = {1. - cornelius->get_centroid_elem(isegm, 1) / dx,
-                        cornelius->get_centroid_elem(isegm, 1) / dx};
-     double wCenY[2] = {1. - cornelius->get_centroid_elem(isegm, 2) / dy,
-                        cornelius->get_centroid_elem(isegm, 2) / dy};
-     double wCenZ[2] = {1. - cornelius->get_centroid_elem(isegm, 3) / dz,
-                        cornelius->get_centroid_elem(isegm, 3) / dz};
+     double wCenT[2] = {1. - corn.get_centroid_elem(isegm, 0) / dt,
+                        corn.get_centroid_elem(isegm, 0) / dt};
+     double wCenX[2] = {1. - corn.get_centroid_elem(isegm, 1) / dx,
+                        corn.get_centroid_elem(isegm, 1) / dx};
+     double wCenY[2] = {1. - corn.get_centroid_elem(isegm, 2) / dy,
+                        corn.get_centroid_elem(isegm, 2) / dy};
+     double wCenZ[2] = {1. - corn.get_centroid_elem(isegm, 3) / dz,
+                        corn.get_centroid_elem(isegm, 3) / dz};
      for (int jt = 0; jt < 2; jt++)
       for (int jx = 0; jx < 2; jx++)
        for (int jy = 0; jy < 2; jy++)
@@ -781,7 +894,7 @@ int Fluid::outputSurface(double tau, bool extendFO) {
          }
      if (!cartesian) {
       for (int i = 0; i < 7; i++)
-       QC[i] = QC[i] / (tau + cornelius->get_centroid_elem(isegm, 0));
+       QC[i] = QC[i] / (tau + corn.get_centroid_elem(isegm, 0));
      }
      double _ns = 0.0;
      transformPV(eos, QC, eC, pC, nbC, nqC, _ns, vxC, vyC, vzC);
@@ -819,7 +932,7 @@ int Fluid::outputSurface(double tau, bool extendFO) {
        }
         
      if (!cartesian){
-      etaC = getZ(iz) + cornelius->get_centroid_elem(isegm, 3);
+      etaC = getZ(iz) + corn.get_centroid_elem(isegm, 3);
       transformToLab(etaC, vxC, vyC, vzC);  // viC is now in lab.frame!
      }
      
@@ -838,19 +951,19 @@ int Fluid::outputSurface(double tau, bool extendFO) {
      // ---- transform dsigma to lab.frame :
      if (cartesian) {
       for(int ii=0; ii<4; ii++)
-       dsigma[ii] = cornelius->get_normal_elem(isegm, ii);
+       dsigma[ii] = corn.get_normal_elem(isegm, ii);
      }
      else {
-      const double tauC = tau + cornelius->get_centroid_elem(isegm, 0);
+      const double tauC = tau + corn.get_centroid_elem(isegm, 0);
       ch = cosh(etaC);
       sh = sinh(etaC);
       
-      dsigma[0] = tauC * (ch * cornelius->get_normal_elem(isegm, 0) -
-                         sh / tauC * cornelius->get_normal_elem(isegm, 3));
-     dsigma[3] = tauC * (-sh * cornelius->get_normal_elem(isegm, 0) +
-                         ch / tauC * cornelius->get_normal_elem(isegm, 3));
-     dsigma[1] = tauC * cornelius->get_normal_elem(isegm, 1);
-     dsigma[2] = tauC * cornelius->get_normal_elem(isegm, 2);
+      dsigma[0] = tauC * (ch * corn.get_normal_elem(isegm, 0) -
+                         sh / tauC * corn.get_normal_elem(isegm, 3));
+     dsigma[3] = tauC * (-sh * corn.get_normal_elem(isegm, 0) +
+                         ch / tauC * corn.get_normal_elem(isegm, 3));
+     dsigma[1] = tauC * corn.get_normal_elem(isegm, 1);
+     dsigma[2] = tauC * corn.get_normal_elem(isegm, 2);
      }
      
      // d(Veff) and dsigma_mu dsigma^mu computation
@@ -867,19 +980,19 @@ int Fluid::outputSurface(double tau, bool extendFO) {
      if((dsigma2>0. and dsigma[0]>0.) or (dsigma2<0. and dEtotSurf>0.)) {
       EtotSurfPos += dEtotSurf;
       nbTotSurfPos += nbC * dVEff;
-      output::ffreeze.precision(15);
-      output::ffreeze << setw(24) << tau + cornelius->get_centroid_elem(isegm, 0)
-              << setw(24) << getX(ix) + cornelius->get_centroid_elem(isegm, 1)
-              << setw(24) << getY(iy) + cornelius->get_centroid_elem(isegm, 2)
-              << setw(24) << getZ(iz) + cornelius->get_centroid_elem(isegm, 3);
-      for (int ii = 0; ii < 4; ii++) output::ffreeze << setw(24) << dsigma[ii];
-      for (int ii = 0; ii < 4; ii++) output::ffreeze << setw(24) << uC[ii];
-     output::ffreeze << setw(24) << TC << setw(24) << mubC
+      ffreezeBuf.precision(15);
+      ffreezeBuf << setw(24) << tau + corn.get_centroid_elem(isegm, 0)
+              << setw(24) << getX(ix) + corn.get_centroid_elem(isegm, 1)
+              << setw(24) << getY(iy) + corn.get_centroid_elem(isegm, 2)
+              << setw(24) << getZ(iz) + corn.get_centroid_elem(isegm, 3);
+      for (int ii = 0; ii < 4; ii++) ffreezeBuf << setw(24) << dsigma[ii];
+      for (int ii = 0; ii < 4; ii++) ffreezeBuf << setw(24) << uC[ii];
+     ffreezeBuf << setw(24) << TC << setw(24) << mubC
                      << setw(24) << muqC << setw(24) << musC;
      if (vorticityOn) {
-      for (int ii = 0; ii < 4; ii++) output::fbeta << setw(24) << dsigma[ii];
-      for (int ii = 0; ii < 4; ii++) output::fbeta << setw(24) << uC[ii];
-      output::fbeta << setw(24) << TC << setw(24) << mubC << setw(24) << muqC
+      for (int ii = 0; ii < 4; ii++) fbetaBuf << setw(24) << dsigma[ii];
+      for (int ii = 0; ii < 4; ii++) fbetaBuf << setw(24) << uC[ii];
+      fbetaBuf << setw(24) << TC << setw(24) << mubC << setw(24) << muqC
                     << setw(24) << musC;
      }
       #ifdef OUTPI
@@ -913,16 +1026,16 @@ int Fluid::outputSurface(double tau, bool extendFO) {
                                           2. * sh * ch * piC[index44(0, 3)]; 
         }
       }
-      for (int ii = 0; ii < 10; ii++) output::ffreeze << setw(24) << picart[ii];
-     output::ffreeze << setw(24) << PiC;
+      for (int ii = 0; ii < 10; ii++) ffreezeBuf << setw(24) << picart[ii];
+     ffreezeBuf << setw(24) << PiC;
      if (extendFO) {
-      output::ffreeze << setw(24) << eC << setw(24) << nbC << endl;
+      ffreezeBuf << setw(24) << eC << setw(24) << nbC << endl;
      }
      else {
-      output::ffreeze << endl;
+      ffreezeBuf << endl;
      } 
 #else
-     output::ffreeze << setw(24) << dVEff << endl;
+     ffreezeBuf << setw(24) << dVEff << endl;
 #endif
      // Jacobian to transform covariant (lower index)
      // vector from Milne to Cartesian coordinate system
@@ -966,10 +1079,10 @@ int Fluid::outputSurface(double tau, bool extendFO) {
       }
       for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-          output::fbeta << setw(24) << (*dbetaCartesian)[i][j];
+          fbetaBuf << setw(24) << (*dbetaCartesian)[i][j];
         }
       }
-      output::fbeta << setw(24) << eC << endl;
+      fbetaBuf << setw(24) << eC << endl;
      }
 
      double dEsurfVisc = 0.;
@@ -980,9 +1093,71 @@ int Fluid::outputSurface(double tau, bool extendFO) {
       EtotSurfNeg += dEtotSurf;
       nbTotSurfNeg += nbC * dVEff;
     }
-    // if(cornelius->get_Nelements()>1) cout << "oops, Nelements>1\n" ;
+    // if(corn.get_Nelements()>1) cout << "oops, Nelements>1\n" ;
     //----- end Cornelius
    }
+  }
+  SlabSums &sums = acc[ix - sx0];
+  sums.E = E;                sums.Ecore = Ecore;
+  sums.Efull = Efull;        sums.S = S;
+  sums.Px = Px;              sums.vt_num = vt_num;
+  sums.vt_den = vt_den;      sums.vxvy_num = vxvy_num;
+  sums.vxvy_den = vxvy_den;  sums.pi0x_num = pi0x_num;
+  sums.pi0x_den = pi0x_den;  sums.txxyy_num = txxyy_num;
+  sums.txxyy_den = txxyy_den;
+  sums.Nb1 = Nb1;            sums.Nb2 = Nb2;
+  sums.Nbcore = Nbcore;      sums.vEff = vEff;
+  sums.EtotSurf = EtotSurf;
+  sums.EtotSurfPos = EtotSurfPos;
+  sums.EtotSurfPosVisc = EtotSurfPosVisc;
+  sums.EtotSurfNeg = EtotSurfNeg;
+  sums.nbTotSurf = nbTotSurf;
+  sums.nbTotSurfPos = nbTotSurfPos;
+  sums.nbTotSurfNeg = nbTotSurfNeg;
+  sums.nelements = nelements;      sums.nsusp = nsusp;
+  sums.nCoreCells = nCoreCells;    sums.nCoreCutCells = nCoreCutCells;
+  for (int i1 = 0; i1 < 2; i1++) {
+   for (int i2 = 0; i2 < 2; i2++) {
+    for (int i3 = 0; i3 < 2; i3++) delete[] ccube[i1][i2][i3];
+    delete[] ccube[i1][i2];
+   }
+   delete[] ccube[i1];
+  }
+  delete[] ccube;
+ }  // end parallel ix loop
+ // --- merge the slabs in ascending ix order (deterministic)
+ for (int k = 0; k < nSlab; k++) {
+  const SlabSums &sums = acc[k];
+  E += sums.E;
+  Ecore += sums.Ecore;
+  Efull += sums.Efull;
+  S += sums.S;
+  Px += sums.Px;
+  vt_num += sums.vt_num;
+  vt_den += sums.vt_den;
+  vxvy_num += sums.vxvy_num;
+  vxvy_den += sums.vxvy_den;
+  pi0x_num += sums.pi0x_num;
+  pi0x_den += sums.pi0x_den;
+  txxyy_num += sums.txxyy_num;
+  txxyy_den += sums.txxyy_den;
+  Nb1 += sums.Nb1;
+  Nb2 += sums.Nb2;
+  Nbcore += sums.Nbcore;
+  vEff += sums.vEff;
+  EtotSurf += sums.EtotSurf;
+  EtotSurfPos += sums.EtotSurfPos;
+  EtotSurfPosVisc += sums.EtotSurfPosVisc;
+  EtotSurfNeg += sums.EtotSurfNeg;
+  nbTotSurf += sums.nbTotSurf;
+  nbTotSurfPos += sums.nbTotSurfPos;
+  nbTotSurfNeg += sums.nbTotSurfNeg;
+  nelements += sums.nelements;
+  nsusp += sums.nsusp;
+  nCoreCells += sums.nCoreCells;
+  nCoreCutCells += sums.nCoreCutCells;
+  output::ffreeze << bufFreeze[k].str();
+  output::fbeta << bufBeta[k].str();
   }
  E = E * dx * dy * dz;
  Ecore = Ecore * dx * dy * dz;
@@ -1005,17 +1180,7 @@ int Fluid::outputSurface(double tau, bool extendFO) {
       << setw(13) << nbTotSurfPos << endl; // trim output line << setw(13) << nbTotSurfNeg << endl;
  cout << setw(10) << "core " << setw(13) << tau << setw(13) << Ecore
       << setw(13) << Nbcore << setw(13) << Nb2 << endl;
- //-- Cornelius: all done, let's free memory
- for (int i1 = 0; i1 < 2; i1++) {
-  for (int i2 = 0; i2 < 2; i2++) {
-   for (int i3 = 0; i3 < 2; i3++) {
-    delete[] ccube[i1][i2][i3];
-   }
-   delete[] ccube[i1][i2];
-  }
-  delete[] ccube[i1];
- }
- delete[] ccube;
+ //-- Cornelius: memory is freed per thread inside the ix loop
 //----end Cornelius
 #ifdef SWAP_EOS
  swap(eos, eosH);
