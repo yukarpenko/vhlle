@@ -34,6 +34,7 @@
 #include "icGubser.h"
 #include "icGlissando.h"
 #include "icSuperMC.h"
+#include "ic3DGlauberBar.h"
 #include "icTrento.h"
 #include "icTest.h"
 #include "icTrento3d.h"
@@ -399,6 +400,15 @@ int main(int argc, char **argv) {
  } else if(icModel==11){ // IC for testing purposes
    ICTest *ic = new ICTest();
    ic->setIC(f, eos, 1);
+   delete ic;
+ } else if(icModel==12) { // 3D Glauber + tilted/plateau baryon stopping,
+                          // arXiv:2211.16408, from GLISSANDO participant lists.
+                          // collSystem is either a preset name (AuAu7.7,
+                          // AuAu19.6, AuAu62.4, AuAu200) or a path to a
+                          // parameter file.
+   Ic3DGlauberBar *ic = new Ic3DGlauberBar(f, isInputFile.c_str(), tau0,
+                                           collSystem.c_str());
+   ic->setIC(f, eos);
    delete ic;
  } else {
    cout << "icModel = " << icModel << " not implemented\n";
