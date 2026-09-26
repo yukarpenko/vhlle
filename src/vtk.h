@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <iosfwd>
 #include <map>
 #include <string>
@@ -12,10 +13,10 @@ class VtkOutput {
   std::string path_;
   EoS* eos_;
   double xmin_, ymin_, etamin_;
-  int num_of_cells_x_direction_, num_of_cells_y_direction_,
-      num_of_cells_eta_direction_;
+  std::size_t num_of_cells_x_direction_{0}, num_of_cells_y_direction_{0},
+              num_of_cells_eta_direction_{0};
   bool cartesian_;
-  int vtk_output_counter_ = 0;  // Number of vtk output in current event
+  int vtk_output_counter_{0};  // Number of vtk output in current event
 
   /* The following map contains all currently supported VTK quantities.
    * If multiple quantities are desired, the delimiter in the config file has
@@ -46,7 +47,6 @@ class VtkOutput {
                         const std::string &quantity);
   void write_vtk_tensor(std::ofstream &file, const Hydro &h,
                         const std::string &quantity);
-  bool is_quantity_implemented(const std::string &quantity) const;
   std::string make_filename(const std::string &quantity, int counter) const;
 
  public:
