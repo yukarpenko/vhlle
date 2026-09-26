@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <filesystem>
 #include <iosfwd>
 #include <map>
 #include <string>
@@ -16,7 +17,7 @@ class VtkOutput {
     Tensor
   };
 
-  std::string path_;
+  std::filesystem::path output_path_;
   EoS &eos_;
   double xmin_, ymin_, etamin_;
   std::size_t num_of_cells_x_direction_{0}, num_of_cells_y_direction_{0},
@@ -24,10 +25,10 @@ class VtkOutput {
   bool cartesian_;
   int vtk_output_counter_{0};  // Number of vtk output in current event
 
-  /* The following map contains all currently supported VTK quantities.
-   * If multiple quantities are desired, the delimiter in the config file has
-   * to be a comma without any whitespaces in between, for example:
-   * `VTK_output_valus eps,mub,nq,T,v,pi`
+  /* The following map contains all currently supported VTK quantities. If
+   * multiple quantities are desired, the delimiter in the config file has to be
+   * a comma. For example: `VTK_output_values eps,mub,nq,T,v,pi`. Any whitespace
+   * will be stripped, i.e. `VTK_output_values T, eps` would also be possible.
    * For vector quantities only the corresponding three vector will be written
    * to the output file. */
   inline static const std::map<std::string, QuantityType> valid_quantities_ = {
@@ -53,21 +54,23 @@ class VtkOutput {
                         const std::string &quantity);
   void write_vtk_tensor(std::ofstream &file, const Hydro &h,
                         const std::string &quantity);
-  std::string make_filename(const std::string &quantity, int counter) const;
+  std::filesystem::path make_filename(const std::string &quantity,
+                                      int counter) const;
 
  public:
   /**
    * Create a new VTK output.
    *
-   * \param path Path to the output file.
+   * \param output_path Directory in which VTK files are written.
    * \param eos The equation of state.
    * \param xmin x coordinate of the first cell (center of fluid cell).
    * \param ymin y coordinate of the first cell (center of fluid cell).
    * \param etamin eta coordinate of the first cell (center of fluid cell).
+   * \param cartesian Whether the hydro simulation uses Cartesian coordinates.
    */
-  VtkOutput(std::string path, EoS &eos, double xmin, double ymin,
+  VtkOutput(std::string output_path, EoS &eos, double xmin, double ymin,
             double etamin, bool cartesian):
-              path_(path),
+              output_path_(output_path),
               eos_(eos),
               xmin_(xmin),
               ymin_(ymin),
