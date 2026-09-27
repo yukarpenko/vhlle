@@ -10,6 +10,12 @@ class Hydro;
 
 class VtkOutput {
  private:
+  enum class QuantityType {
+    Scalar,
+    Vector,
+    Tensor
+  };
+
   std::string path_;
   EoS* eos_;
   double xmin_, ymin_, etamin_;
@@ -24,19 +30,19 @@ class VtkOutput {
    * `VTK_output_valus eps,mub,nq,T,v,pi`
    * For vector quantities only the corresponding three vector will be written
    * to the output file. */
-  const std::map<std::string, std::string> valid_quantities_ = {
-    {"eps", "scalar"},        // energy density
-    {"mub", "scalar"},        // baryon chemical potential
-    {"muq", "scalar"},        // electric chemical potential
-    {"mus", "scalar"},        // strangeness chemical potential
-    {"nb", "scalar"},         // baryon density
-    {"nq", "scalar"},         // charge density
-    {"ns", "scalar"},         // strangeness density
-    {"p", "scalar"},          // pressure
-    {"Pi", "scalar"},         // bulk pressure
-    {"pi", "tensor"},         // shear stress tensor
-    {"T", "scalar"},          // temperature
-    {"v", "vector"}           // velocity
+  inline static const std::map<std::string, QuantityType> valid_quantities_ = {
+    {"eps", QuantityType::Scalar},        // energy density
+    {"mub", QuantityType::Scalar},        // baryon chemical potential
+    {"muq", QuantityType::Scalar},        // electric chemical potential
+    {"mus", QuantityType::Scalar},        // strangeness chemical potential
+    {"nb", QuantityType::Scalar},         // baryon density
+    {"nq", QuantityType::Scalar},         // charge density
+    {"ns", QuantityType::Scalar},         // strangeness density
+    {"p", QuantityType::Scalar},          // pressure
+    {"Pi", QuantityType::Scalar},         // bulk pressure
+    {"pi", QuantityType::Tensor},         // shear stress tensor
+    {"T", QuantityType::Scalar},          // temperature
+    {"v", QuantityType::Vector}           // velocity
   };
 
   void write_header(std::ofstream &file, const Hydro &h,

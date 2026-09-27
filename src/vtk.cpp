@@ -175,17 +175,18 @@ void VtkOutput::write(const Hydro &h, const std::string &quantities) {
 
     file.open(make_filename(q, vtk_output_counter_), std::ios::out);
     write_header(file, h, q);
-    const std::string &quantity_type = quantity_it->second;
-    if (quantity_type == "scalar") {
+    switch (quantity_it->second) {
+    case QuantityType::Scalar:
       write_vtk_scalar(file, h, q);
-    } else if (quantity_type == "vector") {
+      break;
+    case QuantityType::Vector:
       write_vtk_vector(file, h, q);
-    } else if (quantity_type == "tensor") {
+      break;
+    case QuantityType::Tensor:
       write_vtk_tensor(file, h, q);
-    } else {
-      std::cerr << "Quantity '" << q << "' is neither stated to be a scalar, "
-        "nor a vector, nor a tensor. Skipping this quantity. Please check the "
-        "map in file src/vtk.h.\n";
+      break;
+    default:
+      throw std::logic_error("Unhandled VTK quantity type '" + q + "'.");
     }
     file.close();
   }
