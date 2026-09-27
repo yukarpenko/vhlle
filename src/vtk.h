@@ -17,7 +17,7 @@ class VtkOutput {
   };
 
   std::string path_;
-  EoS* eos_;
+  EoS &eos_;
   double xmin_, ymin_, etamin_;
   std::size_t num_of_cells_x_direction_{0}, num_of_cells_y_direction_{0},
               num_of_cells_eta_direction_{0};
@@ -65,7 +65,7 @@ class VtkOutput {
    * \param ymin y coordinate of the first cell (center of fluid cell).
    * \param etamin eta coordinate of the first cell (center of fluid cell).
    */
-  VtkOutput(std::string path, EoS* eos, double xmin, double ymin,
+  VtkOutput(std::string path, EoS &eos, double xmin, double ymin,
             double etamin, bool cartesian):
               path_(path),
               eos_(eos),
