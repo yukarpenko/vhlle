@@ -59,9 +59,9 @@ double TransportCoeff::zetaS(double e, double T, double s, double P)
             return 0;
          }
     if ( e < zetaSPeakEpsilon)
-      return ((e+P)/(s*T))*zetaS0 * exp(pow(zetaSScaleBeta*(pow(e,0.25)-pow(zetaSPeakEpsilon,0.25)),2) / 2.0*pow(zetaSSigmaMinus,2));
+      return ((e+P)/(s*T))*zetaS0 * exp(-pow(zetaSScaleBeta*(pow(e,0.25)-pow(zetaSPeakEpsilon,0.25)),2) / (2.0*pow(zetaSSigmaMinus,2)));
     else
-      return ((e+P)/(s*T))*zetaS0 * exp(pow(zetaSScaleBeta*(pow(e,0.25)-pow(zetaSPeakEpsilon,0.25)),2) / 2.0*pow(zetaSSigmaPlus,2));
+      return ((e+P)/(s*T))*zetaS0 * exp(-pow(zetaSScaleBeta*(pow(e,0.25)-pow(zetaSPeakEpsilon,0.25)),2) / (2.0*pow(zetaSSigmaPlus,2)));
  }
 }
 
