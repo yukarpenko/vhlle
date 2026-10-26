@@ -22,7 +22,6 @@ class VtkOutput {
   double xmin_, ymin_, etamin_;
   std::size_t num_of_cells_x_direction_{0}, num_of_cells_y_direction_{0},
               num_of_cells_eta_direction_{0};
-  bool cartesian_;
   int vtk_output_counter_{0};  // Number of vtk output in current event
 
   /* The following map contains all currently supported VTK quantities. If
@@ -66,16 +65,14 @@ class VtkOutput {
    * \param xmin x coordinate of the first cell (center of fluid cell).
    * \param ymin y coordinate of the first cell (center of fluid cell).
    * \param etamin eta coordinate of the first cell (center of fluid cell).
-   * \param cartesian Whether the hydro simulation uses Cartesian coordinates.
    */
   VtkOutput(std::string output_path, EoS &eos, double xmin, double ymin,
-            double etamin, bool cartesian):
+            double etamin):
               output_path_(output_path),
               eos_(eos),
               xmin_(xmin),
               ymin_(ymin),
-              etamin_(etamin),
-              cartesian_(cartesian)
+              etamin_(etamin)
             {}
 
   void write(const Hydro &h, const std::string &quantities);
