@@ -420,7 +420,7 @@ int main(int argc, char **argv) {
  bool resized = false; // flag if the grid has been resized
 
  std::string dir=outputDir.c_str();
- VtkOutput vtk_out = VtkOutput(dir, *eos, xmin, ymin, etamin, cartesian);
+ VtkOutput vtk_out = VtkOutput(dir, *eos, xmin, ymin, etamin);
  int nelements = 1;
 
  // ############### THE TIMESTEP LOOP ##############
