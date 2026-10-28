@@ -38,7 +38,7 @@ void ICSuperMC::setIC(Fluid* f,  EoS *eos) {
  int prevId=1; //used to distinguish events
  size_t size_grid = nx*ny*nz;
  vector<double> T00_xyz(size_grid,0),T0z_xyz(size_grid,0), baryon_density(size_grid,0);
- vector<double> eventxA, eventxB, eventyA, eventyB; //vector of wounded nuclei for single event 
+ vector<double> eventxA, eventxB, eventyA, eventyB; //vector of wounded nuclei for single event
 
  ifstream fin(name_file);
  if (!fin.good()) {
@@ -50,8 +50,8 @@ void ICSuperMC::setIC(Fluid* f,  EoS *eos) {
  string line;
  istringstream instream;
 
- double ci = C(eta0, sigmaeta); 
- 
+ double ci = C(eta0, sigmaeta);
+
  while (!fin.eof()) {
   getline(fin, line);
   instream.str(line);
@@ -59,7 +59,7 @@ void ICSuperMC::setIC(Fluid* f,  EoS *eos) {
   instream.clear();
   // Read line
   instream >> dummyX >> dummyY >> dummyId;
-  
+
   if(prevId == 2 && dummyId == 1){ //if event changes, compute quantities
     xcdmA = accumulate(eventxA.begin(),eventxA.end(),0.0)/eventxA.size();
     ycdmA = accumulate(eventyA.begin(),eventyA.end(),0.0)/eventyA.size();
@@ -68,7 +68,7 @@ void ICSuperMC::setIC(Fluid* f,  EoS *eos) {
 
     maxRA = max_distance_from_center(eventxA,eventyA,xcdmA,ycdmA);
     maxRB = max_distance_from_center(eventxB,eventyB,xcdmB,ycdmB);
-    
+
     for (int ix = 0; ix < nx; ix++){
       for (int iy = 0; iy < ny; iy++){
         double thickA  = T(f->getX(ix),f->getY(iy),eventxA,eventyA, xcdmA, ycdmA, maxRA);
@@ -76,18 +76,18 @@ void ICSuperMC::setIC(Fluid* f,  EoS *eos) {
         double y_CM = yCM(thickA, thickB, ybeam);
         double mass= Mass(thickA, thickB, ybeam, mN);
         double norm = normalization(mass, ci, sigmaeta, eta0);
-  
+
         for(int iz = 0; iz < nz; iz++){
           double En = energy(norm, f->getZ(iz), (1-eff)*y_CM, eta0, sigmaeta,ybeam);
           T00_xyz[iz + nz*iy + nz*ny*ix]+= En*cosh(eff*y_CM);
-          T0z_xyz[iz + nz*iy + nz*ny*ix]+= En*sinh(eff*y_CM); //not needed to divide by tau0 because Q[Z_] already takes that into account      
+          T0z_xyz[iz + nz*iy + nz*ny*ix]+= En*sinh(eff*y_CM); //not needed to divide by tau0 because Q[Z_] already takes that into account
 
           baryon_density[iz + nz*iy + nz*ny*ix] += (thickA*baryon_density_profile(f->getZ(iz), etaB, sigmaIN, sigmaOUT, 1) +
                                               thickB*baryon_density_profile(f->getZ(iz), etaB, sigmaIN, sigmaOUT, 2)); //taken from 2106.08125
         }
       }
     }
-    
+
     eventxA.clear();
     eventxB.clear();
     eventyA.clear();
@@ -109,7 +109,7 @@ void ICSuperMC::setIC(Fluid* f,  EoS *eos) {
     eventxB.push_back(dummyX);
     eventyB.push_back(dummyY);
   }
-  prevId = dummyId;                                              
+  prevId = dummyId;
  }
 
   xcdmA = accumulate(eventxA.begin(),eventxA.end(),0.0)/eventxA.size();
@@ -119,7 +119,7 @@ void ICSuperMC::setIC(Fluid* f,  EoS *eos) {
 
   maxRA = max_distance_from_center(eventxA,eventyA,xcdmA,ycdmA);
   maxRB = max_distance_from_center(eventxB,eventyB,xcdmB,ycdmB);
-  
+
   for (int ix = 0; ix < nx; ix++){
     for (int iy = 0; iy < ny; iy++){
       double thickA  = T(f->getX(ix),f->getY(iy),eventxA,eventyA, xcdmA, ycdmA, maxRA);
@@ -131,14 +131,14 @@ void ICSuperMC::setIC(Fluid* f,  EoS *eos) {
       for(int iz = 0; iz < nz; iz++){
         double En = energy(norm, f->getZ(iz), (1-eff)*y_CM, eta0, sigmaeta,ybeam);
         T00_xyz[iz + nz*iy + nz*ny*ix]+= En*cosh(eff*y_CM);
-        T0z_xyz[iz + nz*iy + nz*ny*ix]+= En*sinh(eff*y_CM); //not needed to divide by tau0 because Q[Z_] already takes that into account       
+        T0z_xyz[iz + nz*iy + nz*ny*ix]+= En*sinh(eff*y_CM); //not needed to divide by tau0 because Q[Z_] already takes that into account
 
         baryon_density[iz + nz*iy + nz*ny*ix] += (thickA*baryon_density_profile(f->getZ(iz), etaB, sigmaIN, sigmaOUT, 1) +
                                             thickB*baryon_density_profile(f->getZ(iz), etaB, sigmaIN, sigmaOUT, 2));
       }
     }
   }
-  
+
   eventxA.clear();
   eventxB.clear();
   eventyA.clear();
@@ -161,19 +161,19 @@ double gamma = 0;
 
 for (int ix = 0; ix < nx; ix++){
   for (int iy = 0; iy < ny; iy++){
-   for (int iz = 0; iz < nz; iz++) {        
+   for (int iz = 0; iz < nz; iz++) {
     Q[T_] = T00_xyz[iz + nz*iy + nz*ny*ix]/nevents;
     Q[X_] = 0.;
     Q[Y_] = 0.;
     Q[Z_] = T0z_xyz[iz + nz*iy + nz*ny*ix]/nevents;
-    
+
     transformPV(eos, Q, e, p, nb, nq, ns, vx, vy, vz); //we need the gamma factor to initialize the currents
     gamma = 1./sqrt(1-vx*vx-vy*vy-vz*vz);
-    
+
     Q[NB_] = gamma*baryon_density[iz + nz*iy + nz*ny*ix]/nevents;
     Q[NQ_] = gamma*ZoverA*baryon_density[iz + nz*iy + nz*ny*ix]/nevents;
     Q[NS_] = 0.;
-    
+
     transformPV(eos, Q, e, p, nb, nq, ns, vx, vy, vz);
     if(e>EMAX) EMAX = e;
     // if (e < 1e-7 || fabs(f->getX(ix)) > 10. || fabs(f->getY(iy)) > 10. ||
@@ -247,10 +247,10 @@ double ICSuperMC::baryon_density_profile(double etas, double etaB, double sigmaI
       double variable = etas + etaB;
       if(variable>=0){
         result = norm*exp(-1./(2*sigmaIN*sigmaIN) *variable*variable);
-      }    
+      }
       else{
         result = norm*exp(-1./(2*sigmaOUT*sigmaOUT) *variable*variable);
-      }  
+      }
     }
     else{
       cout<<"problem with particle ID!"<<endl;
@@ -262,7 +262,7 @@ double ICSuperMC::baryon_density_profile(double etas, double etaB, double sigmaI
 
 double ICSuperMC::max_distance_from_center(vector<double> x, vector<double> y, double xcdm, double ycdm){
   double max_dist = 0;
-  for(int i=0; i<x.size();i++){
+  for(std::size_t i=0; i<x.size();i++){
       if( max_dist<sqrt(pow((x[i]-xcdm),2) + pow((y[i]-ycdm),2)) ){
         max_dist = sqrt(pow((x[i]-xcdm),2) + pow((y[i]-ycdm),2));
       }
@@ -298,7 +298,7 @@ void ICSuperMC::initialize_superMC_parameters(std::string setup_data){
     else if (strcmp(parName, "sigmaIN") == 0)
     sigmaIN = atof(parValue);
     else if (strcmp(parName, "sigmaOUT") == 0)
-    sigmaOUT = atof(parValue);  
+    sigmaOUT = atof(parValue);
     }
 
     cout<< "superMC parameters initialized:"<<endl;
@@ -311,6 +311,6 @@ void ICSuperMC::initialize_superMC_parameters(std::string setup_data){
     cout<<"sigmaIN: " << sigmaIN << endl;
     cout<<"sigmaOUT: " << sigmaOUT<<endl;
   }
-  
+
 
 
