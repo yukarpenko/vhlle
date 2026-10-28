@@ -10,7 +10,7 @@
 #include "eoCMF.h"
 
 /*
-Equation of state based on 
+Equation of state based on
 J. Steinheimer, S. Schramm, and H. Stocker, Phys. Rev.
 C 84, 045208 (2011), arXiv:1108.2596 [hep-ph].
 A. Motornenko, J. Steinheimer, V. Vovchenko,
@@ -250,7 +250,7 @@ int EoSCMF::get_ind(double eps, double n) {
 }
 
 double EoSCMF::get_temp(double eps, double n) {
- double el1, el2, eh1, eh2, elow, ehigh, etabval, ediff1, ediff2, temp;
+ double el1, el2, eh1, eh2, elow, ehigh, etabval, /* ediff1, */ ediff2, temp;
  int n_ind = n / dN;
  if (n_ind < 0) n_ind = 0;
 
@@ -265,7 +265,7 @@ double EoSCMF::get_temp(double eps, double n) {
  ehigh = (eh2 - eh1) / dN * (n - (double) n_ind * dN) + eh1;
 
  etabval = ehigh - elow;
- ediff1 = eps - ehigh;
+//  ediff1 = eps - ehigh;
  ediff2 = eps - elow;
 //    if (ediff1 *ediff2 < 0.0f) {
  temp = ((double) t_ind + (ediff2 / etabval))*dT;

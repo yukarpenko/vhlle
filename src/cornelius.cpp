@@ -1503,8 +1503,6 @@ void Cube::construct_polygons(double value0) {
   Line *l = squares[i].get_lines();
   for (int j = 0; j < Nline; j++) {
    lines[Nlines] = &l[j];
-   double *p = lines[Nlines]->get_start();
-   p = lines[Nlines]->get_end();
    Nlines++;
   }
   l = NULL;
