@@ -31,7 +31,7 @@ IcGlissando::IcGlissando(Fluid* f, const char* filename, double _tau0, const cha
  zmax = f->getZ(nz - 1);
 
  tau0 = _tau0;
- 
+
  if(strcmp(setup,"LHC276")==0) {
   sNN = 2760;
   eta0 = 2.3; // midrapidity plateau
@@ -229,17 +229,14 @@ void IcGlissando::makeSmoothTable(int npart) {
       double tilt = C[ip]>0 ? 0.5*(etaM + eta)/etaM : 0.5*(etaM - eta)/etaM;
       tilt = std::max(0.0, tilt);
       tilt = std::min(1.0, tilt);
-      double baryonGaussian;
-      if (sNN < 100) {
-       baryonGaussian = C[ip]>0 ? exp(-pow(eta - neta0, 2)/(2. * nsigma * nsigma)) : exp(-pow(eta + neta0, 2)/(2. * nsigma * nsigma)) ;
-       baryonGaussian /= nsigma*sqrt(2*C_PI);
-      }
       double fEta = 0.;
       if(fabs(eta)<eta0) fEta = 1.0;
       else if (fabs(eta)<ybeam) fEta = exp(-0.5*pow((fabs(eta)-eta0)/sigEta,2));
       rho[ix][iy][iz] += trSmear * fEta * tilt
        * ((1.0 - alphaMix) + abs(C[ip])*alphaMix);
       if (sNN < 100) {
+       double baryonGaussian = C[ip]>0 ? exp(-pow(eta - neta0, 2)/(2. * nsigma * nsigma)) : exp(-pow(eta + neta0, 2)/(2. * nsigma * nsigma)) ;
+       baryonGaussian /= nsigma*sqrt(2*C_PI);
        nrho[ix][iy][iz] += trSmear * ((1.0 - alphaMix) + abs(C[ip])*alphaMix) * baryonGaussian;
       }
      } // Z(eta) loop
