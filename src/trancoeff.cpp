@@ -1,5 +1,7 @@
 #include <iostream>
 #include <iomanip>
+#include <sstream>
+#include <stdexcept>
 #include "eos.h"
 #include "trancoeff.h"
 #include "inc.h"
@@ -54,7 +56,7 @@ double TransportCoeff::zetaS(double e, double T, double s, double P)
     else if(T>=T_peak2)
        return B_norm2*exp(-((T-T_peak2)*(T-T_peak2)/(B2*B2)));
  }else if(zetaSparam==4)
- {  
+ {
     if (abs(s) < 1e-10 || T < 1e-1) {
             return 0;
          }
@@ -62,7 +64,15 @@ double TransportCoeff::zetaS(double e, double T, double s, double P)
       return ((e+P)/(s*T))*zetaS0 * exp(pow(zetaSScaleBeta*(pow(e,0.25)-pow(zetaSPeakEpsilon,0.25)),2) / 2.0*pow(zetaSSigmaMinus,2));
     else
       return ((e+P)/(s*T))*zetaS0 * exp(pow(zetaSScaleBeta*(pow(e,0.25)-pow(zetaSPeakEpsilon,0.25)),2) / 2.0*pow(zetaSSigmaPlus,2));
+ } else {
+   std::stringstream err_msg{};
+   err_msg << "Unsupported zetaSparam: " << zetaSparam;
+   throw std::logic_error(err_msg.str());
  }
+
+ std::stringstream err_msg{};
+ err_msg << "Invalid temperature T = " << T << " GeV passed to TransportCoeff::zetaS";
+ throw std::logic_error(err_msg.str());
 }
 
 void TransportCoeff::getEta(double e, double rho, double T, double muB, double s, double P, double &_etaS, double &_zetaS) {
@@ -86,6 +96,10 @@ double TransportCoeff::etaS(double e,double rho, double T, double muB, double s,
          }
          double Tc=T0+etaSShiftMuB*(muB/0.938);
          return ((e+P)/(s*T))*std::max(0.0, (etaSMin + ((T>Tc) ? ah*(T-Tc) :  al*(T-Tc)))*(1 + etaSScaleMuB*(muB/0.938)));
+   } else {
+      std::stringstream err_msg{};
+      err_msg << "Unsupported etaSparam: " << etaSparam;
+      throw std::logic_error(err_msg.str());
    }
 }
 
