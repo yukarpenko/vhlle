@@ -12,7 +12,7 @@
 
 
 /*
-Equation of state based on 
+Equation of state based on
 J. Steinheimer, S. Schramm, and H. Stocker, Phys. Rev.
 C 84, 045208 (2011), arXiv:1108.2596 [hep-ph].
 A. Motornenko, J. Steinheimer, V. Vovchenko,
@@ -22,7 +22,7 @@ E. R. Most, A. Motornenko, J. Steinheimer, V. Dex-
 heimer, M. Hanauske, L. Rezzolla, and H. Stoecker,
 Phys. Rev. D 107, 043034 (2023), arXiv:2201.13150
 [nucl-th]
-The equation of state is retabulated to allow for faster access. It needs to be 
+The equation of state is retabulated to allow for faster access. It needs to be
 unzipped before usage.
 */
 
@@ -38,7 +38,7 @@ class EoSCMFeaux {
  double **ptab, **Ttab, **mubtab, **mustab, **stab;
 
 public:
- EoSCMFeaux(char* filename, int Ne, int Nn);
+ EoSCMFeaux(const char* filename, int Ne, int Nn);
  ~EoSCMFeaux();
  double read_file(ifstream& stream);
  void get(double e, double nb, double& p, double& T, double& mub, double& mus);
@@ -54,11 +54,11 @@ double EoSCMFeaux::read_file(ifstream& stream){
   }else{
     d = atof(text.c_str());
   }
- 
+
   return d;
 
 }
-EoSCMFeaux::EoSCMFeaux(char* filename, int Ne, int Nn) {
+EoSCMFeaux::EoSCMFeaux(const char* filename, int Ne, int Nn) {
  ne = Ne;
  nn = Nn;
  ptab = new double*[ne];
@@ -154,9 +154,9 @@ void EoSCMFeaux::get(double e, double nb, double& p, double& T, double& mub,
    }else{
     T = mub = mus = p = 0.;
    }
-   
+
  }
- 
+
  if (p < 0.0) p = 0.0;
 }
 
@@ -213,7 +213,7 @@ void EoSCMFe::eos(double e, double nb, double nq, double ns, double& T,
   mub = mus = 0.0;
  }
 
- muq = 0.0;  
+ muq = 0.0;
 }
 
 double EoSCMFe::p(double e, double nb, double nq, double ns) {
