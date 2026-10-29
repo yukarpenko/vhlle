@@ -50,11 +50,8 @@ std::vector<std::string> split(const std::string &s, const char delim) {
 
 }  // namespace
 
-void VtkOutput::write_header(std::ofstream &file, const Hydro &h,
+void VtkOutput::write_header(std::ofstream &file, Fluid &fluid,
                              const std::string &quantity) {
-  num_of_cells_x_direction_ = h.getFluid()->getNX();
-  num_of_cells_y_direction_ = h.getFluid()->getNY();
-  num_of_cells_eta_direction_ = h.getFluid()->getNZ();
   const std::size_t point_count = num_of_cells_x_direction_ *
                                   num_of_cells_y_direction_ *
                                   num_of_cells_eta_direction_;
@@ -64,8 +61,8 @@ void VtkOutput::write_header(std::ofstream &file, const Hydro &h,
     << "DATASET STRUCTURED_POINTS\n"
     << "DIMENSIONS " << num_of_cells_x_direction_ << " "
       << num_of_cells_y_direction_ << " " << num_of_cells_eta_direction_ << "\n"
-    << "SPACING " << h.getFluid()->getDx() << " " << h.getFluid()->getDy()
-                  << " " << h.getFluid()->getDz() << "\n"
+    << "SPACING " << fluid.getDx() << " " << fluid.getDy()
+                  << " " << fluid.getDz() << "\n"
     << "ORIGIN " << xmin_ << " " << ymin_ << " " << etamin_ << "\n"
     << "POINT_DATA " <<  point_count << "\n";
 }
@@ -82,7 +79,8 @@ std::filesystem::path VtkOutput::make_filename(const std::string &quantity,
   return output_path_ / filename.str();
 }
 
-void VtkOutput::write_vtk_scalar(std::ofstream &file, const Hydro &h,
+void VtkOutput::write_vtk_scalar(std::ofstream &file, Fluid &fluid,
+                                 const double tau,
                                  const std::string &quantity) {
   file << "SCALARS " << quantity << " double 1\n"
        << "LOOKUP_TABLE default\n";
@@ -91,8 +89,8 @@ void VtkOutput::write_vtk_scalar(std::ofstream &file, const Hydro &h,
     for (std::size_t iy = 0; iy < num_of_cells_y_direction_; iy++) {
       for (std::size_t ix = 0; ix < num_of_cells_x_direction_; ix++) {
         double e, nb, nq, ns, p, vx, vy, vz;
-        Cell* cell = h.getFluid()->getCell(ix, iy, ieta);
-        cell->getPrimVar(&eos_, h.getTau(), e, p, nb, nq, ns, vx, vy, vz);
+        Cell* cell = fluid.getCell(ix, iy, ieta);
+        cell->getPrimVar(&eos_, tau, e, p, nb, nq, ns, vx, vy, vz);
         double q = 0;
         // scalar quantities
         if (quantity == "eps") {
@@ -135,7 +133,8 @@ void VtkOutput::write_vtk_scalar(std::ofstream &file, const Hydro &h,
   }
 }
 
-void VtkOutput::write_vtk_vector(std::ofstream &file, const Hydro &h,
+void VtkOutput::write_vtk_vector(std::ofstream &file, Fluid &fluid,
+                                 const double tau,
                                  const std::string &quantity) {
   // The only implemented vector quantity is velocity.
   if (quantity != "v") {
@@ -147,8 +146,8 @@ void VtkOutput::write_vtk_vector(std::ofstream &file, const Hydro &h,
     for (std::size_t iy = 0; iy < num_of_cells_y_direction_; iy++) {
       for (std::size_t ix = 0; ix < num_of_cells_x_direction_; ix++) {
         double e, p, nb, nq, ns, vx, vy, vz;
-        Cell* cell = h.getFluid()->getCell(ix, iy, ieta);
-        cell->getPrimVar(&eos_, h.getTau(), e, p, nb, nq, ns, vx, vy, vz);
+        Cell* cell = fluid.getCell(ix, iy, ieta);
+        cell->getPrimVar(&eos_, tau, e, p, nb, nq, ns, vx, vy, vz);
         file << set_tiny_values_to_zero(vx) << ' '
              << set_tiny_values_to_zero(vy) << ' '
              << set_tiny_values_to_zero(vz) << '\n';
@@ -157,7 +156,7 @@ void VtkOutput::write_vtk_vector(std::ofstream &file, const Hydro &h,
   }
 }
 
-void VtkOutput::write_vtk_tensor(std::ofstream &file, const Hydro &h,
+void VtkOutput::write_vtk_tensor(std::ofstream &file, Fluid &fluid,
                                  const std::string &quantity) {
   // The only implemented tensor quantity is the shear stress tensor.
   if (quantity != "pi") {
@@ -172,7 +171,7 @@ void VtkOutput::write_vtk_tensor(std::ofstream &file, const Hydro &h,
       for (std::size_t ieta = 0; ieta < num_of_cells_eta_direction_; ieta++) {
         for (std::size_t iy = 0; iy < num_of_cells_y_direction_; iy++) {
           for (std::size_t ix = 0; ix < num_of_cells_x_direction_; ix++) {
-            Cell* cell = h.getFluid()->getCell(ix, iy, ieta);
+            Cell* cell = fluid.getCell(ix, iy, ieta);
             if (ix > 0) {
               file.put(' ');
             }
@@ -191,7 +190,14 @@ void VtkOutput::write(const Hydro &h, const std::string &quantities) {
       "No VTK output will be created.\n";
     return;
   }
+
+  Fluid &fluid = *h.getFluid();
+  const double tau = h.getTau();
+  num_of_cells_x_direction_ = fluid.getNX();
+  num_of_cells_y_direction_ = fluid.getNY();
+  num_of_cells_eta_direction_ = fluid.getNZ();
   const std::vector<std::string> quantities_list = split(quantities, ',');
+
   for (const auto &q : quantities_list) {
     const auto quantity_it = valid_quantities_.find(q);
     if (quantity_it == valid_quantities_.end()) {
@@ -208,16 +214,16 @@ void VtkOutput::write(const Hydro &h, const std::string &quantities) {
     }
 
     set_precision_vtk_ascii_output(file);
-    write_header(file, h, q);
+    write_header(file, fluid, q);
     switch (quantity_it->second) {
     case QuantityType::Scalar:
-      write_vtk_scalar(file, h, q);
+      write_vtk_scalar(file, fluid, tau, q);
       break;
     case QuantityType::Vector:
-      write_vtk_vector(file, h, q);
+      write_vtk_vector(file, fluid, tau, q);
       break;
     case QuantityType::Tensor:
-      write_vtk_tensor(file, h, q);
+      write_vtk_tensor(file, fluid, q);
       break;
     default:
       throw std::logic_error("Unhandled VTK quantity type '" + q + "'.");

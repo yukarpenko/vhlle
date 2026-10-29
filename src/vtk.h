@@ -7,6 +7,7 @@
 #include <string>
 
 class EoS;
+class Fluid;
 class Hydro;
 
 class VtkOutput {
@@ -45,13 +46,13 @@ class VtkOutput {
     {"v", QuantityType::Vector}           // velocity
   };
 
-  void write_header(std::ofstream &file, const Hydro &h,
+  void write_header(std::ofstream &file, Fluid &fluid,
                     const std::string &quantity);
-  void write_vtk_scalar(std::ofstream &file, const Hydro &h,
+  void write_vtk_scalar(std::ofstream &file, Fluid &fluid, const double tau,
                         const std::string &quantity);
-  void write_vtk_vector(std::ofstream &file, const Hydro &h,
+  void write_vtk_vector(std::ofstream &file, Fluid &fluid, const double tau,
                         const std::string &quantity);
-  void write_vtk_tensor(std::ofstream &file, const Hydro &h,
+  void write_vtk_tensor(std::ofstream &file, Fluid &fluid,
                         const std::string &quantity);
   std::filesystem::path make_filename(const std::string &quantity,
                                       int counter) const;
