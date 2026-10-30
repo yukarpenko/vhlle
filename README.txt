@@ -80,7 +80,7 @@ The following branches may be particularly useful:
  sudo yum install make gcc binutils gsl
 
  ROOT is not required to compile and run the code.
- As of commit 589b7cb , C++17 is required (because of calls to std::filesystem),
+ As of commit 589b7cb, C++17 is required (because of calls to std::filesystem),
  therefore make sure `root-config --cflags` returns '-std=c++17' among the options.
 
  Optionally, to run Gnuplot scripts provided in the program package one has to
@@ -150,7 +150,7 @@ The filename suffixes correspond to:
  gnuplot> load 'radFlow.plot'  # which creates "vradSong.eps" postscript containing Figure 9,
  gnuplot> load 'epsilonp.plot'  # which creates "epsilonpSong.eps" postscript containing Figure 10
 
- 2)numerical solution for ideal Gubser flow (end of Section 4.1).
+ 2) numerical solution for ideal Gubser flow (end of Section 4.1).
   The corresponding parameter file is:
 params/gubserCPC
 
@@ -159,7 +159,7 @@ params/gubserCPC
  which creates "gubserEps.eps" and "gubserVx.eps", which are Figures 5 and 6,
  respectively.
 
- 3)3D hydro simulation described in Section 4.4 ("Energy conservation").
+ 3) 3D hydro simulation described in Section 4.4 ("Energy conservation").
   The corresponding parameter file is:
 params/3DCPC
 
@@ -238,7 +238,7 @@ where
  y : y coordinate [fm]
  z : rapidity
  vx : x-component of 3-velocity
- vy : x-component of 3-velocity
+ vy : y-component of 3-velocity
  vz : longitudinal flow rapidity
  eps : energy density in fluid rest frame [GeV/fm^3]
  nb : baryon density in fluid rest frame [1/fm^3]

@@ -15,8 +15,6 @@ IC_KW::IC_KW(const char* filename) {
   exit(1);
  }
 
- double f1, f2, f3;
-
  nheadlines = 6;
  header = new char*[nheadlines];
  for (int i = 0; i < nheadlines; i++) {

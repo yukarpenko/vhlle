@@ -261,9 +261,8 @@ void IcTrento::makeSmoothTable(int npart) {
     const double x = xmin + ix * dx;
     const double y = ymin + iy * dy;
     const double eta = zmin + iz * dz;
-    double baryonGaussian;
     if (sNN < 100) {
-     baryonGaussian = eta>0 ? exp(-pow(eta - neta0, 2)/(2. * nsigma * nsigma)) : exp(-pow(eta + neta0, 2)/(2. * nsigma * nsigma)) ;
+     double baryonGaussian = eta>0 ? exp(-pow(eta - neta0, 2)/(2. * nsigma * nsigma)) : exp(-pow(eta + neta0, 2)/(2. * nsigma * nsigma)) ;
      baryonGaussian /= nsigma*sqrt(2*C_PI);
      nrho[ix][iy][iz] += interpolateGrid(x,y) * baryonGaussian;
     }
