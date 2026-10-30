@@ -90,7 +90,7 @@ double TransportCoeff::etaS(double e,double rho, double T, double muB, double s,
 }
 
 void TransportCoeff::getTau(double e, double rho, double T, double muB, double s, double P, double &_taupi, double &_tauPi) {
- if (T > 1e-1 && abs(e + P) > 1.e-10) {
+ if (T > 1e-10 && abs(e + P) > 1.e-10) {
    //based on 1403.0962.  As no cs2 table is available, we approximate it by 0.228
   _taupi = (5./5.068)* s * etaS(e,rho, T, muB, s, P) / (e + P);
   _tauPi =  (6./5.068)*zetaS(e,T, s, P) * s / (e + P);
