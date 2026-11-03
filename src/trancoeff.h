@@ -9,8 +9,8 @@ public:
     etaSScaleMuB, zetaSPeakEpsilon, zetaSScaleBeta, zetaSSigmaMinus, zetaSSigmaPlus;
   EoS *eos;  // EoS instance is needed optionally for zeta/s or eta/s parametrization,
   const int etaSparam, zetaSparam;
-  double zetaS(double e, double T, double s, double P);
-  double etaS(double e,double rho, double T, double muB, double s, double P);
+ double zeta(double e, double p, double nb, double s, double T, double mub);
+ double eta(double e, double p, double nb, double s, double T, double mub);
   TransportCoeff(double _etaS0, double _zetaS0, double _ah, double _al, double _aRho, double _T0, 
     double _etaSMin, double _etaSEpsilonMin, double _etaSShiftMuB, double _etaSScaleMuB, double _zetaSPeakEpsilon,
     double _zetaSScaleBeta, double _zetaSSigmaMinus, double _zetaSSigmaPlus, EoS *_eos, 
@@ -21,9 +21,9 @@ public:
   ~TransportCoeff(){};
   void printZetaT();
   // returns (optionally temperature dependent) eta/s and zeta/s
-  void getEta(double e, double rho, double T, double muB, double s, double P, double &_etaS, double &_zetaS);
+ void getEta(double e, double p, double nb, double s, double T, double mub, double &_eta, double &_zeta);
   // returns shear and bulk relaxation times
-  void getTau(double e, double rho, double T, double muB, double s, double P, double &_taupi, double &_tauPi);
+ void getTau(double e, double p, double nb, double s, double T, double mub, double &_taupi, double &_tauPi);
   // deltapipi, taupipi, lambdapiPi * divided by tau_pi * !
   void getOther(double e, double nb, double nq, double ns,
     double &deltapipi, double &taupipi, double &lambdapiPi, double &phi7) {

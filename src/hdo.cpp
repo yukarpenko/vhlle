@@ -473,10 +473,10 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
   eos->eos(e1, nb, nq, ns, T1, mub, muq, mus, p);
  }
  //############## get transport coefficients
- double etaS, zetaS;
+ double eta, zeta;
  double s = eos->s(e1, nb, nq, ns);  // entropy density in the current cell
  eos->eos(e1, nb, nq, ns, T, mub, muq, mus, p);
- trcoeff->getEta(e1, nb, T, mub,  s,  p, etaS, zetaS);
+ trcoeff->getEta(e1, p, nb, s, T, mub, eta, zeta);
  //##############
  // if(e1<0.00004) s=0. ; // negative pressure due to pi^zz for small e
  ut0 = 1.0 / sqrt(1.0 - vx0 * vx0 - vy0 * vy0 - vz0 * vz0);
@@ -681,10 +681,10 @@ void Hydro::NSquant(int ix, int iy, int iz, double pi[4][4], double &Pi,
    pi[i][j] = 0.0;
    for (int k = 0; k < 4; k++)
     for (int l = 0; l < 4; l++) {
-     pi[i][j] += Z[i][j][k][l] * dmu[k][l] * 2.0 * etaS * s / 5.068;
+     pi[i][j] += Z[i][j][k][l] * dmu[k][l] * 2.0 * eta / 5.068;
     }
   }
- Pi = -zetaS * s * (dmu[0][0] + dmu[1][1] + dmu[2][2] + dmu[3][3]) /
+ Pi = -zeta * (dmu[0][0] + dmu[1][1] + dmu[2][2] + dmu[3][3]) /
       5.068;  // fm^{-4} --> GeV/fm^3
  du = dmu[0][0] + dmu[1][1] + dmu[2][2] + dmu[3][3];
  //--------- debug part: NaN/inf check, trace check, diag check, transversality
@@ -712,13 +712,13 @@ void Hydro::setNSvalues() {
     //############## set NS values assuming initial zero flow + Bjorken z
     // flow
     double T, mub, muq, mus;
-    double etaS, zetaS;
+    double eta, zeta;
     double s = eos->s(e, nb, nq, ns);  // entropy density in the current cell
     eos->eos(e, nb, nq, ns, T, mub, muq, mus, p);
-    trcoeff->getEta(e, nb, T, mub,  s,  p, etaS, zetaS);
+    trcoeff->getEta(e, p, nb, s, T, mub, eta, zeta);
     for (int i = 0; i < 4; i++)
      for (int j = 0; j < 4; j++) piNS[i][j] = 0.0;  // reset piNS
-    piNS[1][1] = piNS[2][2] = 2.0 / 3.0 * etaS * s / tau / 5.068;
+    piNS[1][1] = piNS[2][2] = 2.0 / 3.0 * eta / tau / 5.068;
     piNS[3][3] = -2.0 * piNS[1][1];
     PiNS = 0.0;
     for (int i = 0; i < 4; i++)
@@ -783,10 +783,9 @@ void Hydro::ISformal() {
       c->setDbeta(dbeta);
      }
      eos->eos(e, nb, nq, ns, T, mub, muq, mus, p);
-     double etaS, zetaS;
+     double eta, zeta;
      const double s = eos->s(e, nb, nq, ns);
-     trcoeff->getEta(e, nb, T, mub,  s,  p, etaS, zetaS);
-     const double eta = etaS * s;
+     trcoeff->getEta(e, p, nb, s, T, mub, eta, zeta);
      // auxiliary variable sigmaNS = piNS / (2*eta), 
      // mainly to protect against division by zero in the eta=0 case.
      for(int i=0; i<4; i++)
@@ -796,7 +795,7 @@ void Hydro::ISformal() {
      }
      //############# get relaxation times
      double taupi, tauPi;
-     trcoeff->getTau(e, nb, T, mub, s, p, taupi, tauPi);
+     trcoeff->getTau(e, p, nb, s, T, mub, taupi, tauPi);
      double deltapipi, taupipi, lambdapiPi, phi7, delPiPi, lamPipi;
      trcoeff->getOther(e, nb, nq, ns, deltapipi, taupipi, lambdapiPi, phi7);
      phi7 = phi7/taupi;  // dividing by tau_pi here, to avoid NaNs when tau_pi==0
