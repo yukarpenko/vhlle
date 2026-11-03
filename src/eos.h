@@ -1,6 +1,7 @@
 #pragma once
 #include <cmath>
 #include <string>
+#include <vector>
 #include <gsl/gsl_spline.h>
 
 
@@ -43,8 +44,14 @@ public:
 // each variant is enabled by compiling with -D SIMPLE / -D TABLE
 class EoSs : public EoS {
 private:
- gsl_interp_accel *acc_p, *acc_T, *acc_mu;
+ // One gsl_interp_accel per OpenMP thread.  The accelerator caches the last
+ // bracketing interval and is *mutated* on every gsl_spline_eval() call
+ // (cache/hit_count/miss_count, 24 bytes = one cache line), so a single shared
+ // instance is both a data race and a true-sharing hotspot that the whole
+ // thread team hammers tens of millions of times per timestep.
+ std::vector<gsl_interp_accel *> acc_p, acc_T, acc_mu;
  gsl_spline *spline_p, *spline_T, *spline_mu;
+ int nAcc;  // number of accelerators = number of threads (of 1 if no OpenMP)
 
 public:
  EoSs(std::string fname, int ncols);

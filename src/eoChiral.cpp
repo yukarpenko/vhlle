@@ -21,34 +21,55 @@ using namespace std;
 // ---- auxiliary EoS class. Two instances (objects) of this class will be
 // created
 // ---- to store two EoS tables: chiraleos and chiralsmall
-// ---- Not performance-wise, but the code is elegant :)
+// ---- The EoS tables are stored in memory as a flat array of structured type
+// containing all EoS quantities. The structure is reworked such that all the quantities
+// from neighbouring points in the table are stored in nearby memory locations.
+// This should improve the CPU caching and somewhat reduce the RAM look-up.
+struct EoSNode {
+ double p, T, mub, mus;
+};
+
 class EoSaux {
  double emax, nmax, emin, nmin;
+ double de, dn;          // grid spacings, precomputed once (were recomputed
+                         // on *every* get()/p() call: two divisions each)
+ double inv_de, inv_dn;  // and their reciprocals
  int ne, nn;
- double **ptab, **Ttab, **mubtab, **mustab, **stab;
+ EoSNode* tab;           // flat, row-major: tab[ie * nn + in]
+
+ // Locate the cell and the bilinear weights.  Shared by get() and p(), which
+ // previously carried two identical copies of this code.
+ // Here, a specific layout of the flat array in memory is used:
+ // the access pattern is tab[(size_t)ie * nn + in]
+ // returned r0 and r1 are pointers, therefore in get() and p() functions,
+ // pointer arithmetic is used.
+ inline void locate(double e, double nb, const EoSNode*& r0, const EoSNode*& r1,
+                    double& w0e, double& w1e, double& w0n, double& w1n) const {
+  int ie = (int)((e - emin) * inv_de);
+  int in = (int)((nb - nmin) * inv_dn);
+  if (ie < 0) ie = 0;
+  if (in < 0) in = 0;
+  if (ie > ne - 2) ie = ne - 2;
+  if (in > nn - 2) in = nn - 2;
+  const double em = (e - emin - ie * de) * inv_de;
+  const double nm = (nb - nmin - in * dn) * inv_dn;
+  w1e = em;  w0e = 1. - em;
+  w1n = nm;  w0n = 1. - nm;
+  r0 = tab + (size_t)ie * nn + in;
+  r1 = r0 + nn;
+ }
 
 public:
- EoSaux(char* filename, int Ne, int Nn);
+ EoSaux(const char* filename, int Ne, int Nn);
  ~EoSaux();
  void get(double e, double nb, double& p, double& T, double& mub, double& mus);
  double p(double e, double nb);
 };
 
-EoSaux::EoSaux(char* filename, int Ne, int Nn) {
+EoSaux::EoSaux(const char* filename, int Ne, int Nn) {
  ne = Ne;
  nn = Nn;
- ptab = new double*[ne];
- Ttab = new double*[ne];
- mubtab = new double*[ne];
- mustab = new double*[ne];
- stab = new double*[ne];
- for (int i = 0; i < ne; i++) {
-  ptab[i] = new double[nn];
-  Ttab[i] = new double[nn];
-  mubtab[i] = new double[nn];
-  mustab[i] = new double[nn];
-  stab[i] = new double[nn];
- }
+ tab = new EoSNode[(size_t)ne * nn];
  double* e = new double[ne];
  double* n = new double[nn];
  ifstream fin(filename);
@@ -57,23 +78,29 @@ EoSaux::EoSaux(char* filename, int Ne, int Nn) {
   cout << "I/O error with " << filename << endl;
   exit(1);
  }
+ double sdummy;
  for (int in = 0; in < nn; in++)
   for (int ie = 0; ie < ne; ie++) {
    // T [MeV], mu_q [MeV], energy density [e_0], pressure [e_0], baryon
    // density [n_0], entropy density [n_0], mu_S [MeV], placeholder (not
    // important).
-   fin >> Ttab[ie][in] >> mubtab[ie][in] >> e[ie] >> ptab[ie][in] >> n[in] >>
-       stab[ie][in] >> mustab[ie][in] >> a;
-   Ttab[ie][in] /= 1000.0;    // --> T[GeV]
-   mubtab[ie][in] *= 3.0/1000.0;  // --> mub[GeV]
-   mustab[ie][in] /= 1000.0;  // --> mus[GeV]
-   ptab[ie][in] *= 0.146;     // --> p[GeV/fm3]
-   stab[ie][in] *= 0.15;      // --> s[1/fm3]
+   EoSNode& nd = tab[(size_t)ie * nn + in];
+   fin >> nd.T >> nd.mub >> e[ie] >> nd.p >> n[in] >> sdummy >> nd.mus >> a;
+   nd.T /= 1000.0;          // --> T[GeV]
+   nd.mub *= 3.0 / 1000.0;  // --> mub[GeV]
+   nd.mus /= 1000.0;        // --> mus[GeV]
+   nd.p *= 0.146;           // --> p[GeV/fm3]
+   // the entropy-density column is read but discarded: nothing ever used it
+   // (EoS::s() recomputes s from e, p, T and the chemical potentials)
   }
  emin = e[0] * 0.146;
  emax = e[ne - 1] * 0.146;
  nmin = n[0] * 0.15;
  nmax = n[nn - 1] * 0.15;
+ de = (emax - emin) / (ne - 1);
+ dn = (nmax - nmin) / (nn - 1);
+ inv_de = 1.0 / de;
+ inv_dn = 1.0 / dn;
  cout << "EoSaux: table " << filename
       << " read, [emin,emax,nmin,nmax] = " << emin << "  " << emax << "  "
       << nmin << "  " << nmax << endl;
@@ -81,20 +108,7 @@ EoSaux::EoSaux(char* filename, int Ne, int Nn) {
  delete[] n;
 }
 
-EoSaux::~EoSaux() {
- for (int i = 0; i < ne; i++) {
-  delete[] ptab[i];
-  delete[] Ttab[i];
-  delete[] mubtab[i];
-  delete[] mustab[i];
-  delete[] stab[i];
- }
- delete ptab;
- delete Ttab;
- delete mubtab;
- delete mustab;
- delete stab;
-}
+EoSaux::~EoSaux() { delete[] tab; }
 
 void EoSaux::get(double e, double nb, double& p, double& T, double& mub,
                  double& mus) {
@@ -102,55 +116,27 @@ void EoSaux::get(double e, double nb, double& p, double& T, double& mub,
   T = mub = mus = p = 0.;
   return;
  }
- const double de = (emax - emin) / (ne - 1);
- const double dn = (nmax - nmin) / (nn - 1);
- int ie = (int)((e - emin) / de);
- int in = (int)((nb - nmin) / dn);
- if (ie < 0) ie = 0;
- if (in < 0) in = 0;
- if (ie > ne - 2) ie = ne - 2;
- if (in > nn - 2) in = nn - 2;
- const double em = e - emin - ie * de;
- const double nm = nb - nmin - in * dn;
-
- double we[2] = {1. - em / de, em / de};
- double wn[2] = {1. - nm / dn, nm / dn};
-
- T = mub = mus = p = 0.0;
- for (int je = 0; je < 2; je++)
-  for (int jn = 0; jn < 2; jn++) {
-   p += we[je] * wn[jn] * ptab[ie + je][in + jn];
-   T += we[je] * wn[jn] * Ttab[ie + je][in + jn];
-   mub += we[je] * wn[jn] * mubtab[ie + je][in + jn];
-   mus += we[je] * wn[jn] * mustab[ie + je][in + jn];
-  }
+ const EoSNode *r0, *r1;
+ double w0e, w1e, w0n, w1n;
+ locate(e, nb, r0, r1, w0e, w1e, w0n, w1n);
+ const double c00 = w0e * w0n, c01 = w0e * w1n;
+ const double c10 = w1e * w0n, c11 = w1e * w1n;
+ p = c00 * r0[0].p + c01 * r0[1].p + c10 * r1[0].p + c11 * r1[1].p;
+ T = c00 * r0[0].T + c01 * r0[1].T + c10 * r1[0].T + c11 * r1[1].T;
+ mub = c00 * r0[0].mub + c01 * r0[1].mub + c10 * r1[0].mub + c11 * r1[1].mub;
+ mus = c00 * r0[0].mus + c01 * r0[1].mus + c10 * r1[0].mus + c11 * r1[1].mus;
  if (p < 0.0) p = 0.0;
- // cout <<  e <<" "<< nb <<" "<< nq <<" "<< ns <<" "<< _T<<endl;
 }
 
 double EoSaux::p(double e, double nb) {
  if (e < 0.) return 0.0;
- const double de = (emax - emin) / (ne - 1);
- const double dn = (nmax - nmin) / (nn - 1);
- int ie = (int)((e - emin) / de);
- int in = (int)((nb - nmin) / dn);
- if (ie < 0) ie = 0;
- if (in < 0) in = 0;
- if (ie > ne - 2) ie = ne - 2;
- if (in > nn - 2) in = nn - 2;
- const double em = e - emin - ie * de;
- const double nm = nb - nmin - in * dn;
-
- double we[2] = {1. - em / de, em / de};
- double wn[2] = {1. - nm / dn, nm / dn};
-
- double p = 0.0;
- for (int je = 0; je < 2; je++)
-  for (int jn = 0; jn < 2; jn++) p += we[je] * wn[jn] * ptab[ie + je][in + jn];
-
+ const EoSNode *r0, *r1;
+ double w0e, w1e, w0n, w1n;
+ locate(e, nb, r0, r1, w0e, w1e, w0n, w1n);
+ double p = w0e * (w0n * r0[0].p + w1n * r0[1].p) +
+            w1e * (w0n * r1[0].p + w1n * r1[1].p);
  if (p < 0.0) p = 0.0;
  return p;
- // cout <<  e <<" "<< nb <<" "<< nq <<" "<< ns <<" "<< _T<<endl;
 }
 
 EoSChiral::EoSChiral() {

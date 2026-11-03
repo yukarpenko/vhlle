@@ -19,18 +19,6 @@ double minmod(double a, double b) {
   return a;
 }
 
-// index44: returns an index of pi^{mu nu} mu,nu component in a plain 1D array
-int index44(const int &i, const int &j) {
- if (i > 3 || j > 3 || i < 0 || j < 0) {
-  std::cout << "index44: i j " << i << " " << j << endl;
-  exit(1);
- }
- if (j < i)
-  return (i * (i + 1)) / 2 + j;
- else
-  return (j * (j + 1)) / 2 + i;
-}
-
 Cell::Cell() {
  for (int i = 0; i < 7; i++) {
   Q[i] = 0.;
