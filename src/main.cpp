@@ -22,6 +22,7 @@
 #include <iomanip>
 #include <iostream>
 #include <map>
+#include <set>
 #include <sstream>
 #include "fld.h"
 #include "hdo.h"
@@ -81,9 +82,7 @@ int nx {100}, ny {100}, nz {100}, eosType {1}, etaSparam {0}, zetaSparam {0}, eo
 bool freezeoutOnly {false}, freezeoutExtend {false}, vorticityOn {false};
 double xmin {-5.0}, xmax {5.0}, ymin {-5.0}, ymax {5.0}, etamin {-5.0},
   etamax {5.0}, tau0 {1.0}, tauMax {20.0}, tauResize {4.0}, dtau {0.05},
-  etaS {0.08}, zetaS {0.0}, eCrit {0.5}, etaSEpsilonMin {5.}, al {0.}, ah {0.}, aRho {0.}, T0 {0.15},
-  etaSMin {0.08}, etaSShiftMuB {0.}, etaSScaleMuB {0.}, zetaSPeakEpsilon {5.},
-  zetaSScaleBeta {0.103}, zetaSSigmaMinus {0.1}, zetaSSigmaPlus {0.1}, epsilon0, Rgt {1.0},
+  etaS {0.08}, zetaS {0.0}, eCrit {0.5}, epsilon0, Rgt {1.0},
   Rgz {1.0}, impactPar, s0ScaleFactor, gaussian_sigma {0.0};
 string collSystem, outputDir {"data"}, isInputFile, vtk_values {""};
 int icModel {1},glauberVariable  {1};  // icModel=1 for pure Glauber, 2 for table input (Glissando etc)
@@ -122,10 +121,6 @@ void readParameters(char *parFile) {
         {"etaS", [](const string& value) { etaS = atof(value.c_str()); }},
         {"zetaS", [](const string& value) { zetaS = atof(value.c_str()); }},
         {"zetaSparam", [](const string& value) { zetaSparam = atoi(value.c_str()); }},
-        {"zetaSScaleBeta", [](const string& value) { zetaSScaleBeta = atof(value.c_str()); }},
-        {"zetaSPeakEpsilon", [](const string& value) { zetaSPeakEpsilon = atof(value.c_str()); }},
-        {"zetaSSigmaMinus", [](const string& value) { zetaSSigmaMinus = atof(value.c_str()); }},
-        {"zetaSSigmaPlus", [](const string& value) { zetaSSigmaPlus = atof(value.c_str()); }},
         {"epsilon0", [](const string& value) { epsilon0 = atof(value.c_str()); }},
         {"Rg", [](const string& value) { Rgt = atof(value.c_str()); }},
         {"Rgz", [](const string& value) { Rgz = atof(value.c_str()); }},
@@ -133,14 +128,6 @@ void readParameters(char *parFile) {
         {"s0ScaleFactor", [](const string& value) { s0ScaleFactor = atof(value.c_str()); }},
         {"VTK_output_values", [](const string& value) { vtk_values = value; }},
         {"etaSparam", [](const string& value) { etaSparam = atoi(value.c_str()); }},
-        {"aRho", [](const string& value) { aRho = atof(value.c_str()); }},
-        {"ah", [](const string& value) { ah = atof(value.c_str()); }},
-        {"al", [](const string& value) { al = atof(value.c_str()); }},
-        {"T0", [](const string& value) { T0 = atof(value.c_str()); }},
-        {"etaSEpsilonMin", [](const string& value) { etaSEpsilonMin = atof(value.c_str()); }},
-        {"etaSMin", [](const string& value) { etaSMin = atof(value.c_str()); }},
-        {"etaSShiftMuB", [](const string& value) { etaSShiftMuB = atof(value.c_str()); }},
-        {"etaSScaleMuB", [](const string& value) { etaSScaleMuB = atof(value.c_str()); }},
         {"freezeoutOnly", [](const string& value) { freezeoutOnly = parse_bool(value.c_str()); }},
         {"freezeoutExtend", [](const string& value) { freezeoutExtend = parse_bool(value.c_str()); }},
         {"vorticity", [](const string& value) { vorticityOn = atoi(value.c_str()); }},
@@ -150,6 +137,12 @@ void readParameters(char *parFile) {
         {"cartesian", [](const string& value) { cartesian = parse_bool(value.c_str()); }},
     };
 
+    // parameters of the eta/s and zeta/s parametrizations which are now
+    // hardcoded in TransportCoeff: warn if an input file still contains them
+    const std::set<string> retiredTransportPars = {"zetaSScaleBeta",
+      "zetaSPeakEpsilon", "zetaSSigmaMinus", "zetaSSigmaPlus", "aRho", "ah", "al",
+      "T0", "etaSEpsilonMin", "etaSMin", "etaSShiftMuB", "etaSScaleMuB"};
+
     while (fin.good()) {
         string line;
         getline(fin, line);
@@ -158,6 +151,9 @@ void readParameters(char *parFile) {
         auto handler = handlers.find(parName);
         if (handler != handlers.end()) {
             handler->second(parValue);
+        } else if (retiredTransportPars.count(parName)) {
+            cout << "WARNING: parameter " << parName << " is no longer read from the "
+                 << "input file, the value hardcoded in TransportCoeff is used\n";
         } else if (parName[0] == '!') {
             cout << "CCC " << sline.str() << endl;
         } else {
@@ -195,39 +191,10 @@ void printParameters() {
   cout << "tauGridResize = " << tauResize << endl;
   cout << "dtau = " << dtau << endl;
   cout << "e_crit = " << eCrit << endl;
-  cout << "zeta/s param : " << zetaSparam << endl;
   cout << "etaSparam = " << etaSparam << endl;
-  if (etaSparam == 0){
-    cout << "eta/s = " << etaS << endl;
-  }
-  else if (etaSparam == 1){
-    cout << "al = " << al << endl;
-    cout << "ah = " << ah << endl;
-    cout << "etaSMin = " << etaSMin << endl;
-    cout << "T0 = " << T0 << endl;
-  }
-  else if (etaSparam == 2){
-    cout << "al = " << al << endl;
-    cout << "ah = " << ah << endl;
-    cout << "aRho = " << aRho << endl;
-    cout << "etaSMin = " << etaSMin << endl;
-    cout << "etaSEpsilonMin = " << etaSEpsilonMin << endl;
-  }
-  else if (etaSparam == 3){
-    cout << "al = " << al << endl;
-    cout << "ah = " << ah << endl;
-    cout << "T0 = " << T0 << endl;
-    cout << "etaSMin = " << etaSMin << endl;
-    cout << "etaSShiftMuB = " << etaSShiftMuB << endl;
-    cout << "etaSScaleMuB = " << etaSScaleMuB << endl;
-  }
+  cout << "eta/s = " << etaS << endl;
+  cout << "zetaSparam = " << zetaSparam << endl;
   cout << "zeta/s = " << zetaS << endl;
-  if (zetaSparam == 4){
-    cout << "zetaSPeakEpsilon = " << zetaSPeakEpsilon << endl;
-    cout << "zetaSScaleBeta = " << zetaSScaleBeta << endl;
-    cout << "zetaSSigmaMinus = " << zetaSSigmaMinus << endl;
-    cout << "zetaSSigmaPlus = " << zetaSSigmaPlus << endl;
-  }
   if (icModel==10) {
     cout << "Gaussian_Sigma = " << gaussian_sigma << endl;
     cout << "minParticlesFO = " << minParticlesFO << endl;
@@ -338,8 +305,8 @@ int main(int argc, char **argv) {
  }
 
  // transport coefficients
- trcoeff = new TransportCoeff(etaS, zetaS, ah, al, aRho, T0, etaSMin, etaSEpsilonMin, etaSShiftMuB,
-  etaSScaleMuB, zetaSPeakEpsilon, zetaSScaleBeta, zetaSSigmaMinus, zetaSSigmaPlus,  eos, etaSparam, zetaSparam);
+ trcoeff = new TransportCoeff(etaS, zetaS, etaSparam, zetaSparam, eos);
+ trcoeff->printParameters();
 
  f = new Fluid(eos, eosH, trcoeff, nx, ny, nz, xmin, xmax, ymin, ymax, etamin,
                etamax, dtau, eCrit, cartesian);
