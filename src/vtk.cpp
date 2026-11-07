@@ -1,3 +1,7 @@
+#include <cmath>
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
@@ -8,50 +12,85 @@
 #include "hdo.h"
 #include "vtk.h"
 
-void VtkOutput::write_header(std::ofstream &file, const Hydro h,
-                             const std::string &description) {
-  num_of_cells_x_direction_ = h.getFluid()->getNX();
-  num_of_cells_y_direction_ = h.getFluid()->getNY();
-  num_of_cells_eta_direction_ = h.getFluid()->getNZ();
+namespace {
+
+/// Helper function to set the precision for VTK ASCII output.
+void set_precision_vtk_ascii_output(std::ostream &file) {
+  file << std::defaultfloat << std::setprecision(6);
+}
+
+/**
+ * Magnitudes below this (in code units: GeV, fm and products thereof) are
+ * round-off noise or physically empty tails and are written as exact 0.
+ */
+constexpr double vtk_output_zero_threshold = 1e-6;
+
+/// Sets tiny values (and -0) to 0; NaN and inf pass through deliberately.
+double set_tiny_values_to_zero(double value) {
+  return std::abs(value) < vtk_output_zero_threshold ? 0.0 : value;
+}
+
+/// Helper function to split the string of quantities.
+std::vector<std::string> split(const std::string &s, const char delim) {
+  std::vector<std::string> result{};
+  std::stringstream ss{s};
+  std::string item{};
+
+  while (std::getline(ss, item, delim)) {
+    const auto first = item.find_first_not_of(" \t\n\r\f\v");
+    const auto last = item.find_last_not_of(" \t\n\r\f\v");
+    if (first == std::string::npos) {
+      result.emplace_back();
+    } else {
+      result.emplace_back(item.substr(first, last - first + 1));
+    }
+  }
+  return result;
+}
+
+}  // namespace
+
+void VtkOutput::write_header(std::ofstream &file, Fluid &fluid,
+                             const std::string &quantity) {
+  const std::size_t point_count = num_of_cells_x_direction_ *
+                                  num_of_cells_y_direction_ *
+                                  num_of_cells_eta_direction_;
   file << "# vtk DataFile Version 2.0\n"
-    << description << "\n"
+    << quantity << "\n"
     << "ASCII\n"
     << "DATASET STRUCTURED_POINTS\n"
     << "DIMENSIONS " << num_of_cells_x_direction_ << " "
       << num_of_cells_y_direction_ << " " << num_of_cells_eta_direction_ << "\n"
-    << "SPACING " << h.getFluid()->getDx() << " " << h.getFluid()->getDy()
-                  << " " << h.getFluid()->getDz() << "\n"
+    << "SPACING " << fluid.getDx() << " " << fluid.getDy()
+                  << " " << fluid.getDz() << "\n"
     << "ORIGIN " << xmin_ << " " << ymin_ << " " << etamin_ << "\n"
-    << "POINT_DATA " << num_of_cells_x_direction_ * num_of_cells_y_direction_
-                        * num_of_cells_eta_direction_ << "\n";
-
-  return;
+    << "POINT_DATA " <<  point_count << "\n";
 }
 
-std::string VtkOutput::make_filename(const std::string &descr, int counter) {
-  char suffix[24];
-  snprintf(suffix, sizeof(suffix), "_taustep%05i.vtk",counter);
-  return path_ + std::string("/") + descr + std::string(suffix);
+std::filesystem::path VtkOutput::make_filename(const std::string &quantity,
+                                               const int counter) const {
+  std::ostringstream filename{};
+  filename << quantity
+           << "_taustep"
+           << std::setw(5)
+           << std::setfill('0')
+           << counter
+           << ".vtk";
+  return output_path_ / filename.str();
 }
 
-void VtkOutput::write_vtk_scalar(std::ofstream &file, const Hydro h,
+void VtkOutput::write_vtk_scalar(std::ofstream &file, Fluid &fluid,
+                                 const double tau,
                                  const std::string &quantity) {
   file << "SCALARS " << quantity << " double 1\n"
        << "LOOKUP_TABLE default\n";
-  file << std::setprecision(3);
-  file << std::fixed;
 
-  for (int ieta = 0; ieta < num_of_cells_eta_direction_; ieta++) {
-    for (int iy = 0; iy < num_of_cells_y_direction_; iy++) {
-      for (int ix = 0; ix < num_of_cells_x_direction_; ix++) {
+  for (std::size_t ieta = 0; ieta < num_of_cells_eta_direction_; ieta++) {
+    for (std::size_t iy = 0; iy < num_of_cells_y_direction_; iy++) {
+      for (std::size_t ix = 0; ix < num_of_cells_x_direction_; ix++) {
         double e, nb, nq, ns, p, vx, vy, vz;
-        Cell* cell = h.getFluid()->getCell(ix,iy,ieta);
-        if (cartesian_) {
-         cell->getPrimVar(eos_, 1.0, e, p, nb, nq, ns, vx, vy, vz);
-        }
-        else {
-         cell->getPrimVar(eos_, h.getTau(), e, p, nb, nq, ns, vx, vy, vz);
-        }
+        Cell* cell = fluid.getCell(ix, iy, ieta);
+        cell->getPrimVar(&eos_, tau, e, p, nb, nq, ns, vx, vy, vz);
         double q = 0;
         // scalar quantities
         if (quantity == "eps") {
@@ -70,7 +109,7 @@ void VtkOutput::write_vtk_scalar(std::ofstream &file, const Hydro h,
         } else if (quantity == "mub" || quantity == "muq" || quantity == "mus"
                    || quantity == "T") {
           double mub, muq, mus, T;
-          eos_->eos(e, nb, nq, ns, T, mub, muq, mus, p);
+          eos_.eos(e, nb, nq, ns, T, mub, muq, mus, p);
           if (quantity == "mub") {
             q = mub;
           } else if (quantity == "muq") {
@@ -80,112 +119,122 @@ void VtkOutput::write_vtk_scalar(std::ofstream &file, const Hydro h,
           } else if (quantity == "T") {
             q = T;
           }
+        } else {
+          throw std::logic_error(
+              "Unhandled scalar VTK quantity: '" + quantity + "'");
         }
-        file << q << " ";
+        if (ix > 0) {
+          file.put(' ');
+        }
+        file << set_tiny_values_to_zero(q);
       }
-      file << "\n";
+      file.put('\n');
     }
   }
 }
 
-void VtkOutput::write_vtk_vector(std::ofstream &file, const Hydro h,
+void VtkOutput::write_vtk_vector(std::ofstream &file, Fluid &fluid,
+                                 const double tau,
                                  const std::string &quantity) {
+  // The only implemented vector quantity is velocity.
+  if (quantity != "v") {
+    throw std::logic_error("Unhandled vector VTK quantity: '" + quantity + "'");
+  }
   file << "VECTORS " << quantity << " double\n";
-  file << std::setprecision(3);
-  file << std::fixed;
 
-  for (int ieta = 0; ieta < num_of_cells_eta_direction_; ieta++) {
-    for (int iy = 0; iy < num_of_cells_y_direction_; iy++) {
-      for (int ix = 0; ix < num_of_cells_x_direction_; ix++) {
+  for (std::size_t ieta = 0; ieta < num_of_cells_eta_direction_; ieta++) {
+    for (std::size_t iy = 0; iy < num_of_cells_y_direction_; iy++) {
+      for (std::size_t ix = 0; ix < num_of_cells_x_direction_; ix++) {
         double e, p, nb, nq, ns, vx, vy, vz;
-        Cell* cell = h.getFluid()->getCell(ix,iy,ieta);
-        if (cartesian_) {
-         cell->getPrimVar(eos_, 1.0, e, p, nb, nq, ns, vx, vy, vz);
-        }
-        else {
-         cell->getPrimVar(eos_, h.getTau(), e, p, nb, nq, ns, vx, vy, vz);
-        }
-        std::vector<double> q = {0.,0.,0.};
-        if (quantity == "v") {
-          q = {vx, vy, vz};
-        }
-        file << q.at(0) << " " << q.at(1) << " " << q.at(2) << "\n";
+        Cell* cell = fluid.getCell(ix, iy, ieta);
+        cell->getPrimVar(&eos_, tau, e, p, nb, nq, ns, vx, vy, vz);
+        file << set_tiny_values_to_zero(vx) << ' '
+             << set_tiny_values_to_zero(vy) << ' '
+             << set_tiny_values_to_zero(vz) << '\n';
       }
     }
   }
 }
 
-void VtkOutput::write_vtk_tensor(std::ofstream &file, const Hydro h,
+void VtkOutput::write_vtk_tensor(std::ofstream &file, Fluid &fluid,
                                  const std::string &quantity) {
-  for (int i = 0; i < 4; i++) {
-    for (int j = 0; j < 4; j++ ) {
-      file << "SCALARS " << quantity << std::to_string(i) << std::to_string(j)
-           << " double 1\n"
-           << "LOOKUP_TABLE default\n";
-      file << std::setprecision(3);
-      file << std::fixed;
+  // The only implemented tensor quantity is the shear stress tensor.
+  if (quantity != "pi") {
+    throw std::logic_error("Unhandled tensor VTK quantity: '" + quantity + "'");
+  }
 
-      for (int ieta = 0; ieta < num_of_cells_eta_direction_; ieta++) {
-        for (int iy = 0; iy < num_of_cells_y_direction_; iy++) {
-          for (int ix = 0; ix < num_of_cells_x_direction_; ix++) {
-            Cell* cell = h.getFluid()->getCell(ix,iy,ieta);
-            double q = 0;
-            if (quantity == "pi") {
-              q = cell->getpi(i,j);
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      file << "SCALARS " << quantity << i << j << " double 1\n"
+           << "LOOKUP_TABLE default\n";
+
+      for (std::size_t ieta = 0; ieta < num_of_cells_eta_direction_; ieta++) {
+        for (std::size_t iy = 0; iy < num_of_cells_y_direction_; iy++) {
+          for (std::size_t ix = 0; ix < num_of_cells_x_direction_; ix++) {
+            Cell* cell = fluid.getCell(ix, iy, ieta);
+            if (ix > 0) {
+              file.put(' ');
             }
-            file << q << " ";
+            file << set_tiny_values_to_zero(cell->getpi(i, j));
           }
-          file << "\n";
+          file.put('\n');
         }
       }
     }
   }
 }
 
-std::vector<std::string> split (const std::string &s, char delim) {
-  std::vector<std::string> result;
-  std::stringstream ss(s);
-  std::string item;
-
-  while (getline(ss, item, delim)) {
-    result.push_back(item);
+void VtkOutput::write(const Hydro &h, const std::string &quantities) {
+  if (quantities.empty()) {
+    std::cerr << "VTK quantities in configuration file are empty. "
+      "No VTK output will be created.\n";
+    return;
   }
 
-  return result;
-}
+  Fluid &fluid = *h.getFluid();
+  const double tau = h.getTau();
+  num_of_cells_x_direction_ = fluid.getNX();
+  num_of_cells_y_direction_ = fluid.getNY();
+  num_of_cells_eta_direction_ = fluid.getNZ();
+  const std::vector<std::string> quantities_list = split(quantities, ',');
 
-bool VtkOutput::is_quantity_implemented(const std::string &quantity) {
-  bool quantity_is_valid = (valid_quantities_.find(quantity)
-                            != valid_quantities_.end());
-  return quantity_is_valid;
-}
-
-void VtkOutput::write(const Hydro h, const std::string &quantities) {
-  std::vector<std::string> quantities_list = split(quantities,',');
-  for (std::string q : quantities_list){
-    if (!is_quantity_implemented(q)) {
-      std::cout << "Given quantity '" << q << "' is not an "
-        "implemented VTK quantity. This entry will be skipped." << std::endl;
+  for (const auto &q : quantities_list) {
+    const auto quantity_it = valid_quantities_.find(q);
+    if (quantity_it == valid_quantities_.end()) {
+      std::cerr << "Given quantity '" << q << "' is not an "
+        "implemented VTK quantity. This entry will be skipped.\n";
       continue;
     }
-    std::ofstream file;
 
-    file.open(make_filename(q, vtk_output_counter_), std::ios::out);
-    write_header(file, h, q);
-    if (valid_quantities_.at(q) == "scalar") {
-      write_vtk_scalar(file, h, q);
-    } else if (valid_quantities_.at(q) == "vector") {
-      write_vtk_vector(file, h, q);
-    } else if (valid_quantities_.at(q) == "tensor") {
-      write_vtk_tensor(file, h, q);
-    } else {
-      std::cout << "Quantity '" << q << "' is neither stated to be a scalar, "
-        "nor a vector, nor a tensor. Skipping this quantity. Please check the "
-        "map in file src/vtk.h." << std::endl;
+    const auto filename = make_filename(q, vtk_output_counter_);
+    std::ofstream file{filename};
+    if (!file) {
+      throw std::runtime_error(
+        "Unable to open VTK output file: " + filename.string());
     }
-    file.close();
+
+    set_precision_vtk_ascii_output(file);
+    write_header(file, fluid, q);
+    switch (quantity_it->second) {
+    case QuantityType::Scalar:
+      write_vtk_scalar(file, fluid, tau, q);
+      break;
+    case QuantityType::Vector:
+      write_vtk_vector(file, fluid, tau, q);
+      break;
+    case QuantityType::Tensor:
+      write_vtk_tensor(file, fluid, q);
+      break;
+    default:
+      throw std::logic_error("Unhandled VTK quantity type '" + q + "'.");
+    }
+
+    file.flush();
+    if (!file) {
+      throw std::runtime_error(
+          "Failed while writing VTK output file: " + filename.string());
+    }
   }
 
-  vtk_output_counter_++;
-  return;
+  ++vtk_output_counter_;
 }
