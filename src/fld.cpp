@@ -602,13 +602,9 @@ void transformToLab(double eta, double &vx, double &vy, double &vz) {
 int Fluid::outputSurface(double tau, bool extendFO) {
  static double EtotSurfPos = 0.0, EtotSurfPosVisc = 0.0, EtotSurfNeg = 0.0;
  static double nbTotSurf = 0.0, nbTotSurfPos = 0.0, nbTotSurfNeg = 0.0;
- double e, p, nb, nq, ns, T, mub, muq, mus, vx, vy, vz, Q[7];
  double E = 0., Ecore = 0., Efull = 0., S = 0., Px = 0., vt_num = 0., vt_den = 0.,
         vxvy_num = 0., vxvy_den = 0., pi0x_num = 0., pi0x_den = 0.,
         txxyy_num = 0., txxyy_den = 0., Nb1 = 0., Nb2 = 0., Nbcore = 0.;
- double eta = 0;
- double ch {0.}, sh {0.};
- double etaC {0.};
  const double gmumu[4] = {1., -1., -1., -1.};
  int nelements = 0, nsusp = 0;  // all surface elements and suspicious ones
  int nCoreCells = 0,
@@ -674,8 +670,7 @@ int Fluid::outputSurface(double tau, bool extendFO) {
 // parallel region so each x-slab works on its own copies, which lets the
 // loop body below stay unchanged
   double e, p, nb, nq, ns, T, mub, muq, mus, vx, vy, vz, Q[7];
-  double eta = 0., ch = 0., sh = 0., etaC = 0.;
-  double uC[4];
+  double ch = 0., sh = 0., etaC = 0.;
   double E = 0., Ecore = 0., Efull = 0., S = 0., Px = 0., vt_num = 0.,
          vt_den = 0., vxvy_num = 0., vxvy_den = 0., pi0x_num = 0.,
          pi0x_den = 0., txxyy_num = 0., txxyy_den = 0., Nb1 = 0., Nb2 = 0.,
@@ -709,7 +704,6 @@ int Fluid::outputSurface(double tau, bool extendFO) {
     eos->eos(e, nb, nq, ns, T, mub, muq, mus, p);
     // EoS::s() would call eos() a second time; reuse what we already have
     double s = (T > 0.) ? (e + p - mub * nb - muq * nq - mus * ns) / T : 0.;
-    eta = getZ(iz);
     if (cartesian) {
      E += (e + p) / (1. - vx*vx - vy*vy - vz*vz) - p;
      if(e>ecrit) {
