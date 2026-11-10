@@ -655,6 +655,7 @@ int Fluid::outputSurface(double tau, bool extendFO) {
  };
  std::vector<SlabSums> acc(nSlab);
  const double arrayDxLoc[4] = {dt, dx, dy, dz};
+ // --------------------- PARALLEL REGION STARTS HERE!
  #pragma omp parallel for schedule(dynamic, 1)
  for (int ix = sx0; ix < sx1; ix++) {
   // --- per-thread Cornelius instance and corner cube
@@ -668,8 +669,9 @@ int Fluid::outputSurface(double tau, bool extendFO) {
     for (int i3 = 0; i3 < 2; i3++) ccube[i1][i2][i3] = new double[2];
    }
   }
-  // --- shadow every function-scope temporary and accumulator, so that the
-  // loop body below is unchanged and each slab works on private copies
+// thread-private local variables, declared inside the
+// parallel region so each x-slab works on its own copies, which lets the
+// loop body below stay unchanged
   double e, p, nb, nq, ns, T, mub, muq, mus, vx, vy, vz, Q[7];
   double eta = 0., ch = 0., sh = 0., etaC = 0.;
   double uC[4];
@@ -1124,7 +1126,7 @@ int Fluid::outputSurface(double tau, bool extendFO) {
    delete[] ccube[i1];
   }
   delete[] ccube;
- }  // end parallel ix loop
+ }  // --------------- END PARALLEL REGION
  // --- merge the slabs in ascending ix order (deterministic)
  for (int k = 0; k < nSlab; k++) {
   const SlabSums &sums = acc[k];
