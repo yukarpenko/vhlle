@@ -219,6 +219,9 @@ void Fluid::checkOutputDirectory(std::string freezeoutFile) {
                                "         It will be deleted automatically.\n";
     std::cout << yellow << file_warning << reset;
     bool isDeleted = std::filesystem::remove(freezeoutFile);
+    if (!isDeleted && std::filesystem::exists(freezeoutFile)) {
+      std::cerr << yellow << "Could not remove " << freezeoutFile << '\n' << reset;
+    }
   }
 }
 
@@ -450,19 +453,19 @@ void Fluid::updateM(double tau, double dt) {
 
      if (c->getDM(X_) == 0. && c->getDM(Y_) == 0. && c->getDM(Z_) == 0.) {
       int diagCase = 0;
-      
+
       if (getCell(ix + 1, iy + 1, iz)->getMaxM() >= 1. ||
           getCell(ix + 1, iy - 1, iz)->getMaxM() >= 1. ||
           getCell(ix - 1, iy + 1, iz)->getMaxM() >= 1. ||
           getCell(ix - 1, iy - 1, iz)->getMaxM() >= 1.)
         diagCase = 1;
-          
+
       if (getCell(ix, iy + 1, iz + 1)->getMaxM() >= 1. ||
           getCell(ix, iy + 1, iz - 1)->getMaxM() >= 1. ||
           getCell(ix, iy - 1, iz + 1)->getMaxM() >= 1. ||
           getCell(ix, iy - 1, iz - 1)->getMaxM() >= 1.)
         diagCase = 2;
-          
+
       if (getCell(ix + 1, iy, iz + 1)->getMaxM() >= 1. ||
           getCell(ix + 1, iy, iz - 1)->getMaxM() >= 1. ||
           getCell(ix - 1, iy, iz + 1)->getMaxM() >= 1. ||
@@ -504,7 +507,7 @@ void Fluid::updateM(double tau, double dt) {
 
 void Fluid::outputGnuplot(double tau) {
  // in Cartesian frame:
- // time t is passed as tau parameter. 
+ // time t is passed as tau parameter.
  // in such case getCMFvariables() re-sets tau=1 internally
  double e, p, nb, nq, ns, T, mub, muq, mus, vx, vy, vz;
 
@@ -599,16 +602,10 @@ void transformToLab(double eta, double &vx, double &vy, double &vz) {
 int Fluid::outputSurface(double tau, bool extendFO) {
  static double EtotSurfPos = 0.0, EtotSurfPosVisc = 0.0, EtotSurfNeg = 0.0;
  static double nbTotSurf = 0.0, nbTotSurfPos = 0.0, nbTotSurfNeg = 0.0;
- double e, p, nb, nq, ns, T, mub, muq, mus, vx, vy, vz, Q[7];
  double E = 0., Ecore = 0., Efull = 0., S = 0., Px = 0., vt_num = 0., vt_den = 0.,
         vxvy_num = 0., vxvy_den = 0., pi0x_num = 0., pi0x_den = 0.,
-        txxyy_num = 0., txxyy_den = 0., Nb1 = 0., Nb2 = 0., Nbcore = 0.,
-        eps_p = 0.;
- double eta = 0;
- double ch {0.}, sh {0.};
- double etaC {0.};
+        txxyy_num = 0., txxyy_den = 0., Nb1 = 0., Nb2 = 0., Nbcore = 0.;
  const double gmumu[4] = {1., -1., -1., -1.};
- double uC[4];
  int nelements = 0, nsusp = 0;  // all surface elements and suspicious ones
  int nCoreCells = 0,
      nCoreCutCells = 0;  // cells with e>eCrit and cells with cut visc.corr.
@@ -673,8 +670,7 @@ int Fluid::outputSurface(double tau, bool extendFO) {
 // parallel region so each x-slab works on its own copies, which lets the
 // loop body below stay unchanged
   double e, p, nb, nq, ns, T, mub, muq, mus, vx, vy, vz, Q[7];
-  double eta = 0., ch = 0., sh = 0., etaC = 0.;
-  double uC[4];
+  double ch = 0., sh = 0., etaC = 0.;
   double E = 0., Ecore = 0., Efull = 0., S = 0., Px = 0., vt_num = 0.,
          vt_den = 0., vxvy_num = 0., vxvy_den = 0., pi0x_num = 0.,
          pi0x_den = 0., txxyy_num = 0., txxyy_den = 0., Nb1 = 0., Nb2 = 0.,
@@ -708,7 +704,6 @@ int Fluid::outputSurface(double tau, bool extendFO) {
     eos->eos(e, nb, nq, ns, T, mub, muq, mus, p);
     // EoS::s() would call eos() a second time; reuse what we already have
     double s = (T > 0.) ? (e + p - mub * nb - muq * nq - mus * ns) / T : 0.;
-    eta = getZ(iz);
     if (cartesian) {
      E += (e + p) / (1. - vx*vx - vy*vy - vz*vz) - p;
      if(e>ecrit) {
@@ -795,7 +790,7 @@ int Fluid::outputSurface(double tau, bool extendFO) {
                 fabs(c->getpi(0, 1));
      pi0x_den += e / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz));
     }
-        
+
     //----- Cornelius stuff
     // ---- corner energy densities come straight from the cached arrays.
     // Cornelius only produces surface elements when the cube is cut by the
@@ -839,7 +834,7 @@ int Fluid::outputSurface(double tau, bool extendFO) {
 
        cc->getQ(QCube[1][jx][jy][jz]);
        cc->getQprev(QCube[0][jx][jy][jz]);
-       
+
        // ---- get viscous tensor
        for (int ii = 0; ii < 4; ii++) {
         for (int jj = 0; jj <= ii; jj++) {
@@ -852,7 +847,7 @@ int Fluid::outputSurface(double tau, bool extendFO) {
        if(vorticityOn) {
         // ensure that dbetaBlock is allocated
         if(!dbetaBlock) {
-          std::runtime_error("dbetaBlock is a nullptr");
+          throw std::runtime_error("dbetaBlock is a nullptr");
         }
         for(int column = 0 ; column < 4 ; column++) {
           for(int row = 0 ; row < 4 ; row++) {
@@ -922,7 +917,7 @@ int Fluid::outputSurface(double tau, bool extendFO) {
          if (vorticityOn) {
           // ensure that dbetaBlock is allocated
           if(!dbetaInterpolated) {
-            std::runtime_error("dbetaInterpolated is a nullptr");
+            throw std::runtime_error("dbetaInterpolated is a nullptr");
           }
           for(int column = 0 ; column < 4 ; column++) {
             for(int row = 0 ; row < 4 ; row++) {
@@ -932,12 +927,12 @@ int Fluid::outputSurface(double tau, bool extendFO) {
           }
          }
        }
-        
+
      if (!cartesian){
       etaC = getZ(iz) + corn.get_centroid_elem(isegm, 3);
       transformToLab(etaC, vxC, vyC, vzC);  // viC is now in lab.frame!
      }
-     
+
      double v2C = vxC * vxC + vyC * vyC + vzC * vzC;
      if (v2C > 1.) {
       vxC *= sqrt(0.99 / v2C);
@@ -945,11 +940,11 @@ int Fluid::outputSurface(double tau, bool extendFO) {
       vzC *= sqrt(0.99 / v2C);
       v2C = 0.99;
      }
-     
+
      double gammaC = 1. / sqrt(1. - vxC * vxC - vyC * vyC - vzC * vzC);
      double uC[4] = {gammaC, gammaC * vxC, gammaC * vyC, gammaC * vzC};
      double dsigma[4];
-     
+
      // ---- transform dsigma to lab.frame :
      if (cartesian) {
       for(int ii=0; ii<4; ii++)
@@ -959,7 +954,7 @@ int Fluid::outputSurface(double tau, bool extendFO) {
       const double tauC = tau + corn.get_centroid_elem(isegm, 0);
       ch = cosh(etaC);
       sh = sinh(etaC);
-      
+
       dsigma[0] = tauC * (ch * corn.get_normal_elem(isegm, 0) -
                          sh / tauC * corn.get_normal_elem(isegm, 3));
      dsigma[3] = tauC * (-sh * corn.get_normal_elem(isegm, 0) +
@@ -967,7 +962,7 @@ int Fluid::outputSurface(double tau, bool extendFO) {
      dsigma[1] = tauC * corn.get_normal_elem(isegm, 1);
      dsigma[2] = tauC * corn.get_normal_elem(isegm, 2);
      }
-     
+
      // d(Veff) and dsigma_mu dsigma^mu computation
      double dVEff = 0.0, dsigma2 = 0.0;
      for (int ii = 0; ii < 4; ii++) {
@@ -1025,7 +1020,7 @@ int Fluid::outputSurface(double tau, bool extendFO) {
             sh * piC[index44(0, 2)] + ch * piC[index44(3, 2)];
          /*pi33*/ picart[index44(3, 3)] = sh * sh * piC[index44(0, 0)] +
                                           ch * ch * piC[index44(3, 3)] +
-                                          2. * sh * ch * piC[index44(0, 3)]; 
+                                          2. * sh * ch * piC[index44(0, 3)];
         }
       }
       for (int ii = 0; ii < 10; ii++) ffreezeBuf << setw(24) << picart[ii];
@@ -1035,7 +1030,7 @@ int Fluid::outputSurface(double tau, bool extendFO) {
      }
      else {
       ffreezeBuf << endl;
-     } 
+     }
 #else
      ffreezeBuf << setw(24) << dVEff << endl;
 #endif
@@ -1047,8 +1042,8 @@ int Fluid::outputSurface(double tau, bool extendFO) {
          {0., 1., 0., 0.},
          {0., 0., 1., 0.},
          {0., 0., 0., 1.}})
-      : nullptr; 
-     
+      : nullptr;
+
      if (!cartesian) {
       jacobian = vorticityOn
       ? std::make_unique<Matrix2D>(Matrix2D{
@@ -1058,7 +1053,7 @@ int Fluid::outputSurface(double tau, bool extendFO) {
          {-sh, 0., 0., ch}})
       : nullptr;
      }
-     
+
      // Transform dbeta to Cartesian coordinates. This calculates d_i beta_j
      std::unique_ptr<Matrix2D> dbetaCartesian = vorticityOn
        ? std::make_unique<Matrix2D>(Matrix2D(4, std::vector<double>(4, 0.0)))
@@ -1067,7 +1062,7 @@ int Fluid::outputSurface(double tau, bool extendFO) {
      if(vorticityOn) {
       // ensure that dbetaCartesian and jacobian are allocated
       if (!dbetaCartesian || !jacobian) {
-        std::runtime_error("dbetaCartesian and/or jacobian is a nullptr");
+        throw std::runtime_error("dbetaCartesian and/or jacobian is a nullptr");
       }
       for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
@@ -1168,7 +1163,6 @@ int Fluid::outputSurface(double tau, bool extendFO) {
  Nb1 *= dx * dy * dz;
  Nb2 *= dx * dy * dz;
  Nbcore *= dx * dy * dz;
- eps_p = txxyy_num / txxyy_den ;
  output::faniz << setw(12) << tau << setw(14) << vt_num / vt_den << setw(14)
            << vxvy_num / vxvy_den << setw(14) << pi0x_num / pi0x_den << endl;
 // cout << setw(10) << tau << setw(13) << E << setw(13) << Efull << setw(13)
@@ -1285,9 +1279,9 @@ output::f2d << endl;
                  2. * p;
      pi0x_num += e / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz)) *
                 fabs(c->getpi(0, 1));
-     pi0x_den += e / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz)); 
+     pi0x_den += e / (1. - vx * vx - vy * vy - tanh(vz) * tanh(vz));
     }
-    
+
     //----- Cornelius stuff
     bool isCorona = true, isTail = true;
     double QCube[2][2][2][7];
@@ -1324,7 +1318,7 @@ output::f2d << endl;
        for (int i = 0; i < 7; i++) {
         QC[i] += QCube[jx][jy][jz][i] * 0.125;
        }
-    if (!cartesian) 
+    if (!cartesian)
      for (int i = 0; i < 7; i++) QC[i] = QC[i] / tau;
     double _ns = 0.0;
     transformPV(eos, QC, eC, pC, nbC, nqC, _ns, vxC, vyC, vzC);
@@ -1358,18 +1352,18 @@ output::f2d << endl;
       vzC *= sqrt(0.99 / v2C);
       v2C = 0.99;
      }
-     
+
      double gammaC = 1. / sqrt(1. - vxC * vxC - vyC * vyC - vzC * vzC);
      double uC[4] = {gammaC, gammaC * vxC, gammaC * vyC, gammaC * vzC};
      double dsigma[4];
-     
+
      if (cartesian) {
       dsigma[0] = dx * dy * dz;
-      dsigma[1] = dsigma[2] = dsigma[3] = 0.0; 
+      dsigma[1] = dsigma[2] = dsigma[3] = 0.0;
      }
      else {
       const double tauC = tau;
-      
+
       // ---- transform dsigma to lab.frame :
       ch = cosh(etaC);
       sh = sinh(etaC);
@@ -1378,7 +1372,7 @@ output::f2d << endl;
       dsigma[1] = 0.0;
       dsigma[2] = 0.0;
      }
-     
+
      double dVEff = 0.0;
      for (int ii = 0; ii < 4; ii++)
       dVEff += dsigma[ii] * uC[ii];  // normalize for Delta eta=1
@@ -1461,7 +1455,7 @@ output::f2d << endl;
 
 
 void Fluid::InitialAnisotropies(double tau0) {
- double e, p, nb, nq, ns, t, mub, muq, mus, vx, vy, vz;
+ double e, nb, nq, ns, vx, vy, vz;
 
  double xcm = 0.0, xcm_nom = 0.0, xcm_denom = 0.0 ;
  double ycm = 0.0, ycm_nom = 0.0, ycm_denom = 0.0 ;
@@ -1583,12 +1577,12 @@ void Fluid::addParticle(Particle _particle) {
  int izc = _particle.getIzc();
  int smoothz = _particle.getNsmoothZ();
  const double scale = _particle.getScale();
- 
- for (int ix = ixc - smoothx; ix < ixc + smoothx + 1; ix++) 
-  for (int iy = iyc - smoothy; iy < iyc + smoothy + 1; iy++) 
-   for (int iz = izc - smoothz; iz < izc + smoothz + 1; iz++) 
+
+ for (int ix = ixc - smoothx; ix < ixc + smoothx + 1; ix++)
+  for (int iy = iyc - smoothy; iy < iyc + smoothy + 1; iy++)
+   for (int iz = izc - smoothz; iz < izc + smoothz + 1; iz++)
      if (ix > 0 && ix < nx && iy > 0 && iy < ny && iz > 0 && iz < nz) {
-      
+
       const double xdiff = _particle.getX() - (minx + ix * dx);
       const double ydiff = _particle.getY() - (miny + iy * dy);
       const double zdiff = _particle.getZ() - (minz + iz * dz);
